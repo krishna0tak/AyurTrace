@@ -40,8 +40,7 @@
         <div class="container">
             <div class="navbar-content">
                 <a href="index.html" class="logo">
-                    <i class="fas fa-industry"></i>
-                    AyuTrace
+                    <img src="assets/icons/ayutrace_logo_svg.svg" alt="AyurTrace Logo" style="height: 32px; width: auto;">
                 </a>
                 <div class="nav-links">
                     <a href="#" class="active"><i class="fas fa-home"></i> Dashboard</a>
@@ -632,9 +631,9 @@
         }
 
         // Logout functionality
-        document.getElementById('logoutBtn').addEventListener('click', function(e) {
+        document.getElementById('logoutBtn').addEventListener('click', async function(e) {
             e.preventDefault();
-            logout();
+            await signOut();
         });
     </script>
 </body>
