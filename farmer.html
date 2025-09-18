@@ -157,13 +157,14 @@
             </section>
 
             <!-- Search Batch Section -->
+            <!-- Timeline Search Section (Primary) -->
             <section class="card" style="margin-bottom: 2rem;">
                 <h3 class="card-header">
-                    <i class="fas fa-search"></i>
-                    Search Batch
+                    <i class="fas fa-timeline"></i>
+                    Batch Timeline & Search
                 </h3>
                 <div class="form-group">
-                    <label for="searchBatchInput">Enter Batch ID to view full supply chain</label>
+                    <label for="searchBatchInput">Enter Batch ID to view complete supply chain history</label>
                     <div class="input-group">
                         <input type="text" id="searchBatchInput" class="form-input" placeholder="Enter Batch ID (e.g., BATCH_1726614123456)">
                         <button type="button" id="searchBatchBtn" class="get-location-btn">
@@ -184,19 +185,10 @@
                         </button>
                     </div>
                 </div>
-            </section>
 
-            <!-- Inline Supply Chain History (no redirect) -->
-            <section class="card" id="chainResultsSection" style="display: none; margin-top: 1rem;">
-                <h3 class="card-header">
-                    <i class="fas fa-route"></i>
-                    Supply Chain History
-                </h3>
-                <div style="padding: 16px;">
-                    <p id="chainResultId" class="text-sm" style="color:#64748b; margin-bottom: 12px;">Batch ID: -</p>
-                    <div id="chainTimeline" class="relative" style="padding-left: 16px; border-left: 2px solid #e2e8f0;">
-                        <p style="color:#94a3b8;">Enter a Batch ID above or click a QR code to view the history here.</p>
-                    </div>
+                <!-- Timeline Display -->
+                <div id="chainTimeline" class="relative" style="padding-left: 16px; border-left: 2px solid #e2e8f0; margin-top: 20px;">
+                    <p style="color:#94a3b8;">Enter a Batch ID above or click a QR code to view the supply chain history.</p>
                 </div>
             </section>
 
@@ -466,7 +458,7 @@
                     const cropName = formData.get('cropName');
                     const quantity = formData.get('quantity');
                     const harvestDate = formData.get('harvestDate');
-                    const farmLocation = formData.get('farmLocation');
+                    let farmLocation = formData.get('farmLocation');
                     
                     try {
                         let photoHash = '0x' + '0'.repeat(64); // default placeholder
@@ -483,6 +475,17 @@
                                 // Store the mapping for later retrieval
                                 Blockchain.storeIPFSMapping(photoHash, ipfsHash);
                                 console.log('Image uploaded to IPFS:', ipfsHash);
+                                // Augment farmLocation with farmer name + IPFS so other roles can read it easily on-chain
+                                if (typeof farmLocation === 'string') {
+                                    const u = await getCurrentUser();
+                                    const farmerName = (u && u.name) ? u.name : '';
+                                    const tagParts = [];
+                                    if (farmerName) tagParts.push(`FARMER=${farmerName}`);
+                                    if (ipfsHash) tagParts.push(`IPFS=${ipfsHash}`);
+                                    if (tagParts.length) {
+                                        farmLocation = `${farmLocation} ::${tagParts.join(' ::')}`;
+                                    }
+                                }
                             } catch (err) {
                                 console.warn('Image upload failed, proceeding without image:', err);
                                 // Continue with default photoHash
@@ -492,7 +495,26 @@
                             uploadBtn.disabled = false;
                         }
 
+                        // Ensure FARMER name is embedded even if no image or upload failed
+                        if (typeof farmLocation === 'string') {
+                            try {
+                                const u = await getCurrentUser();
+                                const farmerName = (u && u.name) ? u.name : '';
+                                if (farmerName && !/::\s*FARMER=/i.test(farmLocation)) {
+                                    farmLocation = `${farmLocation} ::FARMER=${farmerName}`;
+                                }
+                            } catch {}
+                        }
+
                         await Blockchain.createBatch({ batchId, cropType: cropName, quantity, harvestDate, farmLocation, photoHash });
+                        // Store lightweight meta off-chain too (farmer name, ipfs)
+                        try {
+                            const u = await getCurrentUser();
+                            const meta = { farmer: (u && u.name) ? u.name : null };
+                            const original = Blockchain.getOriginalIPFSHash(photoHash);
+                            if (original) meta.ipfs = original;
+                            Blockchain.storeBatchMeta(batchId, meta);
+                        } catch {}
                         
                         // For UI stats, also cache minimal record locally
                         const batchData = {
@@ -750,14 +772,16 @@
         // Inline render: fetch logs and render timeline in this page (with caching)
         async function showChainInline(batchId) {
             if (!batchId) return;
-            
-            const section = document.getElementById('chainResultsSection');
+
+            const section = document.getElementById('chainTimeline')?.closest('section') || document;
             const idEl = document.getElementById('chainResultId');
             const timeline = document.getElementById('chainTimeline');
-            
+
             if (idEl) idEl.textContent = `Batch ID: ${batchId}`;
-            if (timeline) timeline.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin" style="font-size:24px;color:#6366f1;"></i><p style="margin-top:12px;color:#64748b;">Loading from blockchain...</p></div>';
-            section.style.display = 'block';
+            if (timeline) {
+                timeline.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin" style="font-size:24px;color:#6366f1;"></i><p style="margin-top:12px;color:#64748b;">Loading from blockchain...</p></div>';
+            }
+            if (section && section.style) section.style.display = 'block';
 
             try {
                 await Blockchain.init();
@@ -771,119 +795,98 @@
                 console.timeEnd('Chain fetch');
                 
                 if (!logs || logs.length === 0) {
-                    timeline.innerHTML = `<div style="text-align:center;padding:40px;color:#ef4444;"><i class="fas fa-exclamation-triangle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i><p style="font-size:16px;margin:0;">No history found for Batch ID: ${batchId}</p><p style="font-size:14px;margin:8px 0 0 0;opacity:0.8;">The batch may not exist or hasn't been processed yet</p></div>`;
-                    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    if (timeline) {
+                        timeline.innerHTML = `<div style="text-align:center;padding:40px;color:#ef4444;"><i class="fas fa-exclamation-triangle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i><p style="font-size:16px;margin:0;">No history found for Batch ID: ${batchId}</p><p style="font-size:14px;margin:8px 0 0 0;opacity:0.8;">The batch may not exist or hasn't been processed yet</p></div>`;
+                    }
+                    if (section && section.scrollIntoView) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     return;
                 }
-                
-                renderChainFromLogs(batchId, logs, timeline);
-                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                if (timeline) {
+                    renderChainFromLogs(batchId, logs, timeline);
+                }
+                if (section && section.scrollIntoView) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
             } catch (e) {
                 console.error('Chain fetch error:', e);
-                timeline.innerHTML = `<div style="text-align:center;padding:40px;color:#ef4444;"><i class="fas fa-exclamation-triangle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i><p style="font-size:16px;margin:0;">Error loading chain</p><p style="font-size:14px;margin:8px 0 0 0;opacity:0.8;">${e.message || 'Network or contract error'}</p></div>`;
+                if (timeline) {
+                    timeline.innerHTML = `<div style=\"text-align:center;padding:40px;color:#ef4444;\"><i class=\"fas fa-exclamation-triangle\" style=\"font-size:48px;margin-bottom:16px;opacity:0.5;\"></i><p style=\"font-size:16px;margin:0;\">Error loading chain</p><p style=\"font-size:14px;margin:8px 0 0 0;opacity:0.8;\">${e.message || 'Network or contract error'}</p></div>`;
+                }
             }
         }
 
         // Render chain events with dynamic, user-friendly timeline
         function renderChainFromLogs(batchId, logs, container) {
-            const eventConfig = {
-                BatchCreated: { 
-                    icon: '🌾', 
-                    title: 'Batch Created', 
-                    color: '#10b981',
-                    getDescription: (args) => {
-                        let desc = `${args.cropType || 'Unknown crop'} • ${args.quantity || '0'} kg • Location: ${args.farmLocation || 'Not specified'}`;
-                        if (args.photoHash && args.photoHash !== '0x' + '0'.repeat(64)) {
-                            desc += ` • <a href="#" onclick="showBatchImage('${args.photoHash}')" style="color: #3b82f6; text-decoration: none;"><i class="fas fa-image"></i> View Image</a>`;
-                        }
-                        return desc;
-                    }
-                },
-                CollectionAdded: { 
-                    icon: '👷', 
-                    title: 'Collection Added', 
-                    color: '#3b82f6',
-                    getDescription: (args) => `Collected by ${args.collectorId || 'Unknown'} • ${args.quantity || '0'} kg of ${args.cropName || 'Unknown crop'}`
-                },
-                InspectionAdded: { 
-                    icon: '🕵️', 
-                    title: 'Quality Inspection', 
-                    color: '#8b5cf6',
-                    getDescription: (args) => `Result: ${args.result || 'Unknown'} • Inspector: ${args.inspectorId || 'Unknown'}${args.notes ? ` • Notes: ${args.notes}` : ''}`
-                },
-                ProductCreated: { 
-                    icon: '🏭', 
-                    title: 'Product Manufactured', 
-                    color: '#f59e0b',
-                    getDescription: (args) => `Product: ${args.productType || 'Unknown'} • Processed: ${args.quantityProcessed || '0'} kg • Manufacturer: ${args.manufacturerId || 'Unknown'}`
-                },
-                ProductReceived: { 
-                    icon: '📦', 
-                    title: 'Product Received', 
-                    color: '#06b6d4',
-                    getDescription: (args) => `${args.herbType || 'Product'} • ${args.quantity || '0'} kg • Storage: ${args.storageLocation || 'Unknown location'}`
-                },
-                ProductDispatched: { 
-                    icon: '🚚', 
-                    title: 'Product Dispatched', 
-                    color: '#ef4444',
-                    getDescription: (args) => `${args.quantityDispatched || args.quantityToDispatch || '0'} kg dispatched to ${args.destination || 'Unknown destination'}`
-                }
+            const icon = { 
+                BatchCreated: '🌾', 
+                CollectionAdded: '👷', 
+                InspectionAdded: '🕵️', 
+                ProductCreated: '🏭', 
+                ProductReceived: '📦', 
+                ProductDispatched: '🚚' 
             };
-
-            let html = `<div style="color:#94a3b8;font-size:14px;margin-bottom:16px;padding:12px;background:#f1f5f9;border-radius:8px;">
-                <strong>Supply Chain Journey for ${batchId}</strong><br>
-                <span style="font-size:12px;">${logs.length} events tracked on blockchain</span>
-            </div>`;
             
-            logs.forEach((l, index) => {
+            let html = '';
+            logs.forEach(l => {
                 const name = l.fragment?.name || 'Event';
-                const config = eventConfig[name] || { icon: '⛓️', title: name, color: '#6b7280', getDescription: () => 'Event details' };
+                const ts = l.args?.timestamp || l.args?.collectionDate || l.args?.date || null;
+                const when = ts ? new Date(Number(ts) * (ts > 1e12 ? 1 : 1000)).toLocaleString() : '';
                 
-                // Get timestamp
-                const tsRaw = (l.args && (l.args.timestamp ?? l.args.collectionDate ?? l.args.date ?? l.args.processingDate)) ?? null;
-                let when = 'Unknown time';
-                if (tsRaw !== null && tsRaw !== undefined) {
-                    const tsNum = typeof tsRaw === 'bigint' ? Number(tsRaw) : Number(tsRaw);
-                    const ms = tsNum > 1e12 ? tsNum : tsNum * 1000;
-                    if (!Number.isNaN(ms)) {
-                        const date = new Date(ms);
-                        when = date.toLocaleDateString() + ' at ' + date.toLocaleTimeString();
+                let description = '';
+                if (name === 'BatchCreated' && l.args) {
+                    const meta = Blockchain?.parseFarmLocationMeta ? Blockchain.parseFarmLocationMeta(l.args.farmLocation || '') : {};
+                    const farmer = meta.farmer || 'Unknown Farmer';
+                    const baseLoc = meta.base || (l.args.farmLocation || 'Not specified');
+                    description = `${l.args.cropType} • ${l.args.quantity} kg • Location: ${baseLoc} • Farmer: ${farmer}`;
+                    const imageHash = meta.ipfs || l.args.photoHash;
+                    if (imageHash && Blockchain?.getImageFromPinata) {
+                        description += `<br><div style="margin-top:8px;"><img src="${Blockchain.getImageFromPinata(imageHash)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:2px solid #e5e7eb;" onclick="showFullImage('${imageHash}')" title="Click to view full image" /><span style="margin-left:8px;color:#3b82f6;cursor:pointer;" onclick="showFullImage('${imageHash}')"><i class="fas fa-expand"></i> View Full</span></div>`;
                     }
+                } else {
+                    description = JSON.stringify(l.args, null, 2);
                 }
-                
-                const blockInfo = (l.blockNumber !== undefined && l.blockNumber !== null) ? `Block #${Number(l.blockNumber)}` : '';
-                const description = l.args ? config.getDescription(l.args) : 'No details available';
-                
-                // Check if this is the last item to hide the connecting line
-                const isLast = index === logs.length - 1;
                 
                 html += `
-                <div style="display:flex; gap:16px; padding-bottom:${isLast ? '0' : '20px'}; position:relative;">
-                    <div style="display:flex; flex-direction:column; align-items:center; z-index:2;">
-                        <div style="background:${config.color};color:#fff;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 2px 8px rgba(0,0,0,0.15);">${config.icon}</div>
-                        ${!isLast ? '<div style="width:3px;height:100%;background:linear-gradient(to bottom, #e2e8f0, #f1f5f9);position:absolute;top:48px;left:22.5px;"></div>' : ''}
+                <div class="timeline-item" style="display:flex;gap:16px;padding-bottom:32px;">
+                    <div style="display:flex;flex-direction:column;align-items:center;">
+                        <div style="background:#6366f1;color:white;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;">${icon[name] || '⛓️'}</div>
+                        <div style="width:2px;height:100%;background:#e2e8f0;margin-top:8px;"></div>
                     </div>
-                    <div style="background:white;padding:16px;border-radius:12px;flex:1;box-shadow:0 1px 3px rgba(0,0,0,0.1);border-left:4px solid ${config.color};">
-                        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
-                            <h4 style="margin:0;font-weight:600;color:#1f2937;font-size:16px;">${config.title}</h4>
-                            ${blockInfo ? `<span style="background:#f3f4f6;color:#6b7280;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:500;">${blockInfo}</span>` : ''}
-                        </div>
-                        <p style="margin:0 0 8px 0;color:#374151;font-size:14px;line-height:1.5;">${description}</p>
-                        <p style="margin:0;color:#9ca3af;font-size:12px;"><i class="fas fa-clock"></i> ${when}</p>
+                    <div style="background:#f8fafc;padding:16px;border-radius:12px;flex:1;">
+                        <p style="font-weight:600;color:#1f2937;margin:0 0 4px 0;">${name}</p>
+                        ${when ? `<p style="font-size:12px;color:#6b7280;margin:0 0 8px 0;">${when}</p>` : ''}
+                        <div style="font-size:12px;color:#4b5563;">${description}</div>
                     </div>
                 </div>`;
             });
             
-            if (logs.length === 0) {
-                html = `<div style="text-align:center;padding:40px;color:#6b7280;">
-                    <i class="fas fa-search" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i>
-                    <p style="font-size:16px;margin:0;">No events found for this batch</p>
-                    <p style="font-size:14px;margin:8px 0 0 0;opacity:0.8;">The batch may not exist or hasn't been processed yet</p>
-                </div>`;
-            }
-            
             container.innerHTML = html;
+        }
+
+        // Show full image modal
+        function showFullImage(ipfsHash) {
+            if (!ipfsHash) return;
+            const fullUrl = Blockchain.getImageFromPinata(ipfsHash);
+            
+            // Create modal overlay
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:1000;';
+            overlay.onclick = (e) => {
+                if (e.target === overlay) overlay.remove();
+            };
+            
+            // Create modal content
+            const modal = document.createElement('div');
+            modal.style.cssText = 'background:white;padding:16px;border-radius:12px;max-width:90%;max-height:90%;overflow:auto;';
+            modal.innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                    <h3 style="margin:0;font-size:18px;font-weight:600;">Image Preview</h3>
+                    <button onclick="this.closest('div[style*=\"position:fixed\"]').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;">×</button>
+                </div>
+                <img src="${fullUrl}" style="max-width:100%;height:auto;border-radius:8px;" alt="Full image" />
+            `;
+            
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
         }
 
         // BigInt-safe JSON stringify
