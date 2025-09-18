@@ -76,6 +76,16 @@
         const UI = {
             init() {
                 document.getElementById('btnLogin').addEventListener('click', () => this.login());
+                // Check if user is already logged in
+                this.checkAuthState();
+            },
+
+            async checkAuthState() {
+                const user = await getCurrentUser();
+                if (user) {
+                    // User is already logged in, redirect to appropriate dashboard
+                    this.handleSuccessfulAuth(user);
+                }
             },
 
             showFeedback(elId, message, type) {
@@ -89,9 +99,10 @@
             },
             
             handleSuccessfulAuth(userData) {
-                const userKey = `ayurtrace_user_${userData.actorId}_${userData.role}`;
-                localStorage.setItem(userKey, JSON.stringify(userData));
-                sessionStorage.setItem('ayurtrace_currentUserKey', userKey);
+                // Store user session
+                sessionStorage.setItem('ayurtrace_user', JSON.stringify(userData));
+                
+                // Redirect based on role
                 let redirectUrl = '';
                 switch (userData.role) {
                     case 1: // Farmer
@@ -110,7 +121,7 @@
                         redirectUrl = 'distributor.html';
                         break;
                     default:
-                        redirectUrl = 'index.html'; // Fallback
+                        redirectUrl = 'index.html';
                 }
                 window.location.href = redirectUrl;
             },
@@ -125,14 +136,17 @@
                 }
 
                 this.showFeedback('authFeedback', 'Logging in...', 'info');
-                const storedUser = await signIn(actorId, password, role);
-
-                if (!storedUser) {
-                    return this.showFeedback('authFeedback', 'Incorrect Actor ID, Password, or Role.', 'error');
+                try {
+                    const storedUser = await signIn(actorId, password, role);
+                    if (!storedUser) {
+                        return this.showFeedback('authFeedback', 'Incorrect Actor ID, Password, or Role.', 'error');
+                    }
+                    this.showFeedback('authFeedback', 'Login successful! Redirecting...', 'success');
+                    setTimeout(() => this.handleSuccessfulAuth(storedUser), 700);
+                } catch (error) {
+                    console.error('Login error:', error);
+                    this.showFeedback('authFeedback', 'Login failed. Please try again.', 'error');
                 }
-
-                this.showFeedback('authFeedback', 'Login successful! Redirecting...', 'success');
-                setTimeout(() => this.handleSuccessfulAuth(storedUser), 1000);
             },
         };
 

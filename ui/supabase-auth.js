@@ -1,104 +1,115 @@
-const supabase = supabase.createClient(window.config.SUPABASE_URL, window.config.SUPABASE_ANON_KEY);
+// supabase-auth.js (table-based auth using public.users_plain)
+const supabaseClient = window.supabase.createClient(
+    window.config.SUPABASE_URL,
+    window.config.SUPABASE_ANON_KEY
+);
 
-/**
- * Signs up a new user using Supabase Auth and creates a profile in the public.users_plain table.
- * @param {string} email - The user's email, used as the actorId.
- * @param {string} password - The user's password.
- * @param {number} role - The user's role.
- * @returns {Promise<{user: any, error: any}>}
- */
-async function signUp(email, password, role) {
-    // Step 1: Create the user in Supabase's built-in auth system
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-    });
-
-    if (authError) {
-        return { user: null, error: authError };
-    }
-
-    if (authData.user) {
-        // Step 2: Create a corresponding profile in the public.users_plain table
-        const { error: profileError } = await supabase
-            .from('users_plain')
-            .insert([
-                { 
-                    id: authData.user.id, 
-                    actorId: email, 
-                    role: role, 
-                    // Add other fields like fullName if available from signup form
-                }
-            ]);
-
-        if (profileError) {
-            // If profile creation fails, you might want to delete the created auth user
-            // This is a more advanced cleanup step
-            return { user: null, error: profileError };
-        }
-
-        return { user: authData.user, error: null };
-    }
-
-    return { user: null, error: new Error('An unknown error occurred during sign up.') };
+// Local session helpers
+const SESSION_KEY = 'ayurtrace_user';
+function saveSession(user) {
+    try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(user)); } catch {}
+}
+function clearSession() {
+    try { sessionStorage.removeItem(SESSION_KEY); } catch {}
+}
+function readSession() {
+    try {
+        const raw = sessionStorage.getItem(SESSION_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
 }
 
 /**
- * Signs in a user using Supabase Auth and verifies their role from the public.users_plain table.
- * @param {string} email - The user's email (actorId).
- * @param {string} password - The user's password.
- * @param {number} role - The role the user is trying to log in with.
- * @returns {Promise<any|null>}
+ * Sign up a new user by inserting into public.users_plain
+ * Columns: actorId, password, fullName, phone, address, role
+ * Unique: (actorId, role)
  */
-async function signIn(email, password, role) {
-    // Step 1: Authenticate the user with Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-    });
+async function signUp(actorId, password, role, fullName, phone, address) {
+    try {
+        const payload = {
+            actorId,
+            password,
+            fullName,
+            phone,
+            address,
+            role
+        };
 
-    if (authError) {
-        console.error('Sign-in error:', authError.message);
-        return null;
-    }
-
-    if (authData.user) {
-        // Step 2: Verify the user's role from the public.users_plain table
-        const { data: userProfile, error: profileError } = await supabase
+        const { data, error } = await supabaseClient
             .from('users_plain')
-            .select('role, actorId')
-            .eq('id', authData.user.id)
+            .insert([payload])
+            .select()
+            .single();
+
+        if (error) {
+            // 23505 = unique_violation
+            if (error.code === '23505') {
+                error.message = 'This Actor ID with the selected role already exists.';
+            }
+            return { user: null, error };
+        }
+
+        return { user: data, error: null };
+    } catch (error) {
+        console.error('Sign-up error:', error);
+        return { user: null, error };
+    }
+}
+
+/**
+ * Sign in by matching credentials in public.users_plain
+ */
+async function signIn(actorId, password, role) {
+    try {
+        const { data: user, error } = await supabaseClient
+            .from('users_plain')
+            .select('*')
+            .eq('actorId', actorId)
             .eq('role', role)
             .single();
 
-        if (profileError || !userProfile) {
-            console.error('Profile error or role mismatch:', profileError?.message);
-            await supabase.auth.signOut(); // Sign out if role doesn't match
+        if (error || !user) {
             return null;
         }
 
-        // If authentication and role verification are successful
-        return {
-            actorId: userProfile.actorId,
-            role: userProfile.role,
-            name: userProfile.actorId // Or a fullName from the profile if you add it
-        };
-    }
+        if (user.password !== password) {
+            return null;
+        }
 
-    return null;
+        const sessionUser = {
+            id: user.id,
+            actorId: user.actorId,
+            role: user.role,
+            name: user.fullName || user.actorId
+        };
+        saveSession(sessionUser);
+        return sessionUser;
+    } catch (error) {
+        console.error('Sign-in error:', error);
+        return null;
+    }
 }
 
-/**
- * Signs out the current user.
- */
+/** Sign out: clear local session only */
 async function signOut() {
-    await supabase.auth.signOut();
-    sessionStorage.removeItem('ayurtrace_currentUserKey');
-    localStorage.clear(); // Consider a more targeted clear
+    clearSession();
     window.location.href = 'login.html';
 }
 
-// Make functions available globally
+/** Get current user from local session */
+async function getCurrentUser() {
+    return readSession();
+}
+
+/** Is user authenticated? */
+async function isAuthenticated() {
+    return !!readSession();
+}
+
+// Expose globals
 window.signUp = signUp;
 window.signIn = signIn;
 window.signOut = signOut;
+window.getCurrentUser = getCurrentUser;
+window.isAuthenticated = isAuthenticated;
+window.supabaseClient = supabaseClient;

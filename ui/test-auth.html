@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth Test - AyurTrace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="supabase-auth.js"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">AyurTrace Authentication Test</h1>
+        
+        <!-- Auth Status -->
+        <div class="bg-white p-6 rounded-lg shadow mb-6">
+            <h2 class="text-xl font-bold mb-4">Authentication Status</h2>
+            <div id="authStatus" class="p-4 rounded bg-gray-50">
+                Checking...
+            </div>
+        </div>
+
+        <!-- Current User Info -->
+        <div class="bg-white p-6 rounded-lg shadow mb-6">
+            <h2 class="text-xl font-bold mb-4">Current User</h2>
+            <pre id="userInfo" class="bg-gray-50 p-4 rounded text-sm overflow-x-auto">
+                Loading...
+            </pre>
+        </div>
+
+        <!-- Test Actions -->
+        <div class="bg-white p-6 rounded-lg shadow mb-6">
+            <h2 class="text-xl font-bold mb-4">Test Actions</h2>
+            <div class="space-y-4">
+                <div>
+                    <button id="testSignup" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        Test Signup (TESTUSER001)
+                    </button>
+                    <button id="testLogin" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                        Test Login (TESTUSER001)
+                    </button>
+                    <button id="testLogout" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                        Test Logout
+                    </button>
+                </div>
+                <div>
+                    <button id="refreshStatus" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                        Refresh Status
+                    </button>
+                    <a href="auth.html" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 inline-block">
+                        Go to Auth Page
+                    </a>
+                    <a href="index.html" class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600 inline-block">
+                        Go to Home
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-bold mb-4">Test Results</h2>
+            <div id="testResults" class="space-y-2">
+                <!-- Results will appear here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const TestUI = {
+            init() {
+                this.bindEvents();
+                this.updateStatus();
+            },
+
+            bindEvents() {
+                document.getElementById('testSignup').addEventListener('click', () => this.testSignup());
+                document.getElementById('testLogin').addEventListener('click', () => this.testLogin());
+                document.getElementById('testLogout').addEventListener('click', () => this.testLogout());
+                document.getElementById('refreshStatus').addEventListener('click', () => this.updateStatus());
+            },
+
+            async updateStatus() {
+                try {
+                    const user = await getCurrentUser();
+                    const isAuth = await isAuthenticated();
+                    
+                    const authStatus = document.getElementById('authStatus');
+                    const userInfo = document.getElementById('userInfo');
+                    
+                    if (user) {
+                        authStatus.innerHTML = `<span class="text-green-600 font-bold">✓ Authenticated</span>`;
+                        userInfo.textContent = JSON.stringify(user, null, 2);
+                    } else {
+                        authStatus.innerHTML = `<span class="text-red-600 font-bold">✗ Not Authenticated</span>`;
+                        userInfo.textContent = 'No user logged in';
+                    }
+                } catch (error) {
+                    this.addResult('Error checking auth status: ' + error.message, 'error');
+                }
+            },
+
+            async testSignup() {
+                this.addResult('Testing signup...', 'info');
+                try {
+                    const { user, error } = await signUp(
+                        'TESTUSER001',
+                        'password123',
+                        1, // Farmer
+                        'Test User',
+                        '+1234567890',
+                        '123 Test Street, Test City'
+                    );
+
+                    if (error) {
+                        this.addResult(`Signup failed: ${error.message}`, 'error');
+                    } else {
+                        this.addResult('Signup successful!', 'success');
+                        this.updateStatus();
+                    }
+                } catch (error) {
+                    this.addResult(`Signup error: ${error.message}`, 'error');
+                }
+            },
+
+            async testLogin() {
+                this.addResult('Testing login...', 'info');
+                try {
+                    const user = await signIn('TESTUSER001', 'password123', 1);
+                    
+                    if (user) {
+                        this.addResult('Login successful!', 'success');
+                        this.updateStatus();
+                    } else {
+                        this.addResult('Login failed: Invalid credentials', 'error');
+                    }
+                } catch (error) {
+                    this.addResult(`Login error: ${error.message}`, 'error');
+                }
+            },
+
+            async testLogout() {
+                this.addResult('Testing logout...', 'info');
+                try {
+                    await signOut();
+                    this.addResult('Logout successful!', 'success');
+                    this.updateStatus();
+                } catch (error) {
+                    this.addResult(`Logout error: ${error.message}`, 'error');
+                }
+            },
+
+            addResult(message, type) {
+                const results = document.getElementById('testResults');
+                const div = document.createElement('div');
+                div.className = `p-3 rounded text-sm`;
+                
+                const timestamp = new Date().toLocaleTimeString();
+                
+                switch (type) {
+                    case 'success':
+                        div.classList.add('bg-green-100', 'text-green-800');
+                        break;
+                    case 'error':
+                        div.classList.add('bg-red-100', 'text-red-800');
+                        break;
+                    case 'info':
+                        div.classList.add('bg-blue-100', 'text-blue-800');
+                        break;
+                    default:
+                        div.classList.add('bg-gray-100', 'text-gray-800');
+                }
+                
+                div.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+                results.insertBefore(div, results.firstChild);
+                
+                // Keep only last 10 results
+                while (results.children.length > 10) {
+                    results.removeChild(results.lastChild);
+                }
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => TestUI.init());
+    </script>
+</body>
+</html>
