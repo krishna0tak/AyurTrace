@@ -42,6 +42,7 @@
     </div>
 
     <script src="config.js"></script>
+    <script src="blockchain.js"></script>
     <script>
     const App = {
         async init() {
@@ -68,73 +69,40 @@
             traceContainer.innerHTML = '<p>Searching blockchain for serial number...</p>';
 
             try {
-                // Step 1: Get the batchId from the serialNumber (which is a productId in the contract)
-                const batchId = await Blockchain.contract.getBatchIdForProduct(serialNumber);
-
-                if (!batchId || batchId === "") {
-                    traceContainer.innerHTML = `<p class="text-red-500">No batch found for Serial Number: ${serialNumber}</p>`;
-                    return;
-                }
-                
-                traceContainer.innerHTML = `<p>Found batch ID: ${batchId}. Fetching history...</p>`;
-
-                // Step 2: Get the full chain using the retrieved batchId
-                const chain = await Blockchain.contract.getFullChainByBatch(batchId);
-
-                if (!chain || chain.length === 0) {
+                // In this contract, productId is independent; assume hash contains a batchId directly for now
+                const batchId = serialNumber; // Until a mapping is added
+                const logs = await Blockchain.getChainForBatch(batchId);
+                if (!logs || logs.length === 0) {
                     traceContainer.innerHTML = `<p class="text-red-500">No history found for Batch ID: ${batchId}</p>`;
                     return;
                 }
-                this.renderChain(chain, traceContainer);
+                this.renderChainFromLogs(batchId, logs, traceContainer);
             } catch (e) {
                 console.error(e);
                 traceContainer.innerHTML = `<p class="text-red-600">Error: Could not retrieve data. Please check the Serial Number and your connection.</p><p class="text-sm text-gray-500">${e.message}</p>`;
             }
         },
-
-        renderChain(chain, container) {
+        renderChainFromLogs(batchId, logs, container) {
+            const icon = { BatchCreated: '🌾', CollectionAdded: '👷', InspectionAdded: '🕵️', ProductCreated: '🏭', ProductReceived: '📦', ProductDispatched: '🚚' };
             let html = '';
-            chain.forEach(block => {
-                const timestamp = new Date(parseInt(block.timeStamp)).toLocaleString();
+            logs.forEach(l => {
+                const name = l.fragment?.name || 'Event';
+                const ts = l.args?.timestamp || l.args?.collectionDate || l.args?.date || null;
+                const when = ts ? new Date(Number(ts) * (ts > 1e12 ? 1 : 1000)).toLocaleString() : '';
                 html += `
                 <div class="timeline-item flex gap-4 pb-8">
                     <div class="flex flex-col items-center">
-                        <div class="bg-indigo-500 text-white w-12 h-12 rounded-full flex items-center justify-center text-xl">${Blockchain.ROLE_ICONS[block.role]}</div>
+                        <div class="bg-indigo-500 text-white w-12 h-12 rounded-full flex items-center justify-center text-xl">${icon[name] || '⛓️'}</div>
                         <div class="timeline-line w-0.5 h-full bg-gray-200"></div>
                     </div>
                     <div class="bg-gray-50 p-4 rounded-lg flex-1">
-                        <p class="font-bold text-gray-800">${Blockchain.ROLES[block.role]} Action</p>
-                        <p class="text-sm text-gray-500">By <strong>${block.name}</strong> (${block.actorId})</p>
-                        <p class="text-xs text-gray-400 mb-2">Timestamp: ${timestamp}</p>
-                        <div class="text-sm">
-                           <p><strong>Product:</strong> ${block.cropName}</p>
-                           <p><strong>Quantity:</strong> ${block.quantity.toString()}</p>
-                           <p><strong>Location:</strong> ${block.location}</p>
-                        </div>
+                        <p class="font-bold text-gray-800">${name}</p>
+                        ${when ? `<p class="text-xs text-gray-400 mb-2">${when}</p>` : ''}
+                        <pre class="text-xs text-gray-600 whitespace-pre-wrap">${JSON.stringify(l.args, null, 2)}</pre>
                     </div>
                 </div>`;
             });
-            container.innerHTML = html;
-        }
-    };
-
-    const Blockchain = {
-        provider: null, contract: null,
-        ROLES: { 0: "Unknown", 1: "Farmer", 2: "Collector", 3: "Auditor", 4: "Manufacturer", 5: "Distributor" },
-        ROLE_ICONS: { 1: "🌾", 2: "👷", 3: "🕵️", 4: "🏭", 5: "🚚" },
-
-        async init() {
-            try {
-                this.provider = new ethers.JsonRpcProvider(AppConfig.GANACHE_URL);
-                this.contract = new ethers.Contract(AppConfig.CONTRACT_ADDRESS, AppConfig.CONTRACT_ABI, this.provider);
-                await this.provider.getBlockNumber();
-                return true;
-            } catch (e) {
-                console.error("Blockchain connection failed:", e);
-                alert("Could not connect to the blockchain. Please check the RPC URL in config.js.");
-                document.getElementById('appLoader').classList.add('hidden');
-                return false;
-            }
+            container.innerHTML = `<p class="text-sm text-gray-500 mb-4">History for Batch ID: ${batchId}</p>` + html;
         }
     };
 

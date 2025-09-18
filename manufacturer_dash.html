@@ -15,6 +15,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script src="supabase-auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
+    <script src="blockchain.js"></script>
     <script>
         // Check authentication using the proper auth system
         async function checkAuth() {
@@ -208,16 +210,29 @@
             const batchError = document.getElementById('batchError');
             const submitBtn = document.getElementById('submitBtn');
 
-            fetchBtn.addEventListener('click', function() {
+            await Blockchain.init();
+
+            fetchBtn.addEventListener('click', async function() {
                 const batchId = batchIdInput.value.trim();
                 if (!batchId) {
                     showError('Please enter a batch ID');
                     return;
                 }
 
-                // Check if batch exists in collected batches and is audited
-                const collectedBatches = JSON.parse(localStorage.getItem('collected_batches') || '[]');
-                const batch = collectedBatches.find(b => b.id === batchId && b.status === 'Audited');
+                // Pull collection from-chain
+                let batch;
+                try {
+                    const c = await Blockchain.getCollection(batchId);
+                    if (c && c[5] && BigInt(c[5]) > 0n) {
+                        batch = {
+                            id: c[0],
+                            cropType: c[2],
+                            collectedQuantity: Number(c[3]),
+                            farmer: c[1],
+                            status: c[6] || 'Audited'
+                        };
+                    }
+                } catch (e) { console.warn(e); }
 
                 if (batch) {
                     // Check if already processed
@@ -273,51 +288,36 @@
 
             // Form submission
             const processForm = document.getElementById('processForm');
-            processForm.addEventListener('submit', function(e) {
+            processForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
-                
-                const processedData = {
-                    id: 'PROD_' + Date.now(),
-                    sourceBatchId: batchIdInput.value,
-                    auditedInfo: document.getElementById('auditedInfo').value,
-                    processingDate: document.getElementById('processingDate').value,
-                    quantityProcessed: document.getElementById('quantityProcessed').value,
-                    wastage: document.getElementById('wastage').value,
-                    productType: document.getElementById('productType').value,
-                    expiryDate: document.getElementById('expiryDate').value,
-                    batchLocation: document.getElementById('batchLocation').value,
-                    processingNotes: document.getElementById('processingNotes').value,
-                    manufacturer: user.name,
-                    status: 'Completed',
-                    timestamp: new Date().toISOString(),
-                    finalQuantity: (parseFloat(document.getElementById('quantityProcessed').value) - parseFloat(document.getElementById('wastage').value)).toFixed(1)
-                };
+                await Blockchain.init();
 
-                // Store processed batch
-                let processed = JSON.parse(localStorage.getItem('processed_batches') || '[]');
-                processed.unshift(processedData);
-                localStorage.setItem('processed_batches', JSON.stringify(processed));
+                const productId = 'PROD_' + Date.now();
+                const sourceBatchId = batchIdInput.value;
+                const productType = document.getElementById('productType').value;
+                const quantityProcessed = document.getElementById('quantityProcessed').value;
+                const wastage = document.getElementById('wastage').value;
+                const processingDate = Math.floor(new Date(document.getElementById('processingDate').value + 'T00:00:00Z').getTime()/1000);
+                const expiryDate = Math.floor(new Date(document.getElementById('expiryDate').value + 'T00:00:00Z').getTime()/1000);
+                const manufacturerId = 'MAN001'; // TODO map from logged in user
 
-                // Update the source batch status to 'Processed'
-                let collectedBatches = JSON.parse(localStorage.getItem('collected_batches') || '[]');
-                const batchIndex = collectedBatches.findIndex(b => b.id === batchIdInput.value);
-                if (batchIndex !== -1) {
-                    collectedBatches[batchIndex].status = 'Processed';
-                    localStorage.setItem('collected_batches', JSON.stringify(collectedBatches));
+                try {
+                    await Blockchain.createProduct({ productId, sourceBatchId, productType, quantityProcessed, wastage, processingDate, expiryDate, manufacturerId });
+                    alert('Product created on-chain: ' + productId);
+                } catch (err) {
+                    console.error(err);
+                    alert(err.message || 'Failed to create product on-chain');
                 }
 
-                // Reset form
+                // Reset form UI only
                 processForm.reset();
                 batchDetails.style.display = 'none';
                 submitBtn.disabled = true;
                 document.getElementById('processingDate').value = new Date().toISOString().split('T')[0];
-                const oneYearFromNow = new Date();
-                oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-                document.getElementById('expiryDate').value = oneYearFromNow.toISOString().split('T')[0];
+                const oneYearFromNow2 = new Date();
+                oneYearFromNow2.setFullYear(oneYearFromNow2.getFullYear() + 1);
+                document.getElementById('expiryDate').value = oneYearFromNow2.toISOString().split('T')[0];
 
-                alert(`Product created successfully!\nProduct ID: ${processedData.id}\nFinal Quantity: ${processedData.finalQuantity}kg`);
-                
-                // Refresh data
                 loadStats();
                 loadProcessedBatches();
             });

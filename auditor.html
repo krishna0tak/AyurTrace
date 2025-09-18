@@ -11,6 +11,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script src="supabase-auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
+    <script src="blockchain.js"></script>
 </head>
 
 <body>
@@ -205,16 +207,34 @@
             const collectionError = document.getElementById('collectionError');
             const submitBtn = document.getElementById('submitBtn');
 
-            fetchBtn.addEventListener('click', function() {
+            await Blockchain.init();
+
+            fetchBtn.addEventListener('click', async function() {
                 const collectionId = collectionIdInput.value.trim();
                 if (!collectionId) {
                     showError('Please enter a collection ID');
                     return;
                 }
 
-                // Check if collection exists and is pending audit
-                const collections = JSON.parse(localStorage.getItem('collected_batches') || '[]');
-                const collection = collections.find(c => c.id === collectionId && c.status === 'Pending Audit');
+                // Look up collection on-chain via batchId mapping
+                let collection;
+                try {
+                    const c = await Blockchain.getCollection(collectionId);
+                    // c tuple: [farmerBatchId, farmerId, cropName, quantity, collectorId, collectionDate, status]
+                    if (c && c[5] && BigInt(c[5]) > 0n) {
+                        collection = {
+                            id: c[0],
+                            cropType: c[2],
+                            collectedQuantity: c[3].toString(),
+                            collector: c[4],
+                            collectionDate: Number(c[5]) * 1000,
+                            condition: '—',
+                            status: c[6] || 'Pending Audit'
+                        };
+                    }
+                } catch (e) {
+                    console.warn('On-chain getCollection failed', e);
+                }
 
                 if (collection) {
                     // Check if already audited
@@ -270,48 +290,26 @@
 
             // Form submission
             const auditForm = document.getElementById('auditForm');
-            auditForm.addEventListener('submit', function(e) {
+            auditForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
-                
-                const auditData = {
-                    id: 'AUDIT_' + Date.now(),
-                    collectionId: collectionIdInput.value,
-                    collectionInfo: document.getElementById('collectionInfo').value,
-                    collector: document.getElementById('collectorName').value,
-                    auditDate: document.getElementById('auditDate').value,
-                    auditResult: document.getElementById('auditResult').value,
-                    qualityGrade: document.getElementById('qualityGrade').value,
-                    moistureContent: document.getElementById('moistureContent').value,
-                    auditNotes: document.getElementById('auditNotes').value,
-                    recommendations: document.getElementById('recommendations').value,
-                    auditor: user.name,
-                    timestamp: new Date().toISOString()
-                };
 
-                // Store audit
-                let audits = JSON.parse(localStorage.getItem('audit_history') || '[]');
-                audits.unshift(auditData);
-                localStorage.setItem('audit_history', JSON.stringify(audits));
-
-                // Update collection status
-                let collections = JSON.parse(localStorage.getItem('collected_batches') || '[]');
-                const collectionIndex = collections.findIndex(c => c.id === collectionIdInput.value);
-                if (collectionIndex !== -1) {
-                    collections[collectionIndex].status = 'Audited';
-                    collections[collectionIndex].auditResult = auditData.auditResult;
-                    collections[collectionIndex].qualityGrade = auditData.qualityGrade;
-                    localStorage.setItem('collected_batches', JSON.stringify(collections));
+                const auditResult = document.getElementById('auditResult').value;
+                const auditNotes = document.getElementById('auditNotes').value;
+                const inspectorId = 'AUD001'; // TODO: map from logged in user
+                try {
+                    await Blockchain.addInspection({ batchId: collectionIdInput.value, inspectorId, result: auditResult, notes: auditNotes });
+                    alert('Audit added on-chain and forwarded.');
+                } catch (err) {
+                    console.error(err);
+                    alert(err.message || 'Failed to record audit on-chain');
                 }
 
-                // Reset form
+                // Reset form UI
                 auditForm.reset();
                 collectionDetails.style.display = 'none';
                 submitBtn.disabled = true;
                 document.getElementById('auditDate').value = new Date().toISOString().split('T')[0];
 
-                alert(`Audit completed successfully!\nResult: ${auditData.auditResult}\nGrade: ${auditData.qualityGrade}\nForwarded to manufacturer.`);
-                
-                // Refresh data
                 loadStats();
                 loadAuditHistory();
             });

@@ -14,7 +14,81 @@
     <!-- Auth Check Script -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
+        .capture-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .capture-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .image-capture-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .image-preview {
+            border: 2px dashed #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            background: #f8fafc;
+        }
+        
     <script src="supabase-auth.js"></script>
+    <style>
+        .capture-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .capture-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .image-capture-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .image-preview {
+            border: 2px dashed #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            background: #f8fafc;
+        }
+        
+        .image-preview img {
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
+    <script src="blockchain.js"></script>
     <script>
         // Check authentication using the proper auth system
         async function checkAuth() {
@@ -139,6 +213,20 @@
                                 placeholder="Additional details about the batch..."></textarea>
                         </div>
                         <div class="form-group">
+                            <label for="cropImage">Crop Image with Location & Time</label>
+                            <div class="image-capture-section">
+                                <button type="button" id="captureImageBtn" class="capture-btn">
+                                    <i class="fas fa-camera"></i>
+                                    Capture Image
+                                </button>
+                                <input type="file" id="imageFileInput" accept="image/*" style="display: none;">
+                                <div id="imagePreview" class="image-preview" style="display: none;">
+                                    <img id="previewImg" style="max-width: 200px; max-height: 200px;">
+                                    <p id="imageMetadata" class="text-sm text-gray-600"></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
                             <label for="expectedQuality">Expected Quality Grade</label>
                             <select id="expectedQuality" name="expectedQuality" class="form-input" required>
                                 <option value="">Select Quality</option>
@@ -218,42 +306,151 @@
                 });
             }
 
-            // Form submission
+            // Image capture functionality
+            let capturedImageBlob = null;
+            let imageMetadata = null;
+
+            const captureBtn = document.getElementById('captureImageBtn');
+            const fileInput = document.getElementById('imageFileInput');
+            const imagePreview = document.getElementById('imagePreview');
+            const previewImg = document.getElementById('previewImg');
+            const metadataDiv = document.getElementById('imageMetadata');
+
+            captureBtn.addEventListener('click', function() {
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    capturedImageBlob = file;
+                    
+                    // Get current location and time
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                            function(position) {
+                                const lat = position.coords.latitude.toFixed(6);
+                                const lng = position.coords.longitude.toFixed(6);
+                                const timestamp = new Date().toLocaleString();
+                                
+                                imageMetadata = {
+                                    location: `${lat}, ${lng}`,
+                                    timestamp: timestamp,
+                                    coordinates: { lat: parseFloat(lat), lng: parseFloat(lng) }
+                                };
+                                
+                                // Show preview
+                                const reader = new FileReader();
+                                reader.onload = function(e) {
+                                    previewImg.src = e.target.result;
+                                    metadataDiv.innerHTML = `📍 Location: ${imageMetadata.location}<br>🕒 Time: ${imageMetadata.timestamp}`;
+                                    imagePreview.style.display = 'block';
+                                };
+                                reader.readAsDataURL(file);
+                            },
+                            function(error) {
+                                // Still show image but without location
+                                const timestamp = new Date().toLocaleString();
+                                imageMetadata = {
+                                    location: 'Location unavailable',
+                                    timestamp: timestamp
+                                };
+                                
+                                const reader = new FileReader();
+                                reader.onload = function(e) {
+                                    previewImg.src = e.target.result;
+                                    metadataDiv.innerHTML = `📍 Location: ${imageMetadata.location}<br>🕒 Time: ${imageMetadata.timestamp}`;
+                                    imagePreview.style.display = 'block';
+                                };
+                                reader.readAsDataURL(file);
+                            }
+                        );
+                    } else {
+                        // No geolocation, just timestamp
+                        const timestamp = new Date().toLocaleString();
+                        imageMetadata = {
+                            location: 'Location unavailable',
+                            timestamp: timestamp
+                        };
+                        
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            previewImg.src = e.target.result;
+                            metadataDiv.innerHTML = `📍 Location: ${imageMetadata.location}<br>🕒 Time: ${imageMetadata.timestamp}`;
+                            imagePreview.style.display = 'block';
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                }
+            });
+
+            // Form submission -> on-chain createBatch
             const newBatchForm = document.getElementById('newBatchForm');
             if (newBatchForm) {
-                newBatchForm.addEventListener('submit', function(e) {
+                newBatchForm.addEventListener('submit', async function(e) {
                     e.preventDefault();
-                    
-                    // Get form data
+                    await Blockchain.init();
+
                     const formData = new FormData(newBatchForm);
-                    const batchData = {
-                        id: 'BATCH_' + Date.now(),
-                        cropType: formData.get('cropType'),
-                        quantity: formData.get('quantity'),
-                        harvestDate: formData.get('harvestDate'),
-                        farmLocation: formData.get('farmLocation'),
-                        description: formData.get('description'),
-                        expectedQuality: formData.get('expectedQuality'),
-                        status: 'Created',
-                        timestamp: new Date().toISOString(),
-                        farmer: user.name
-                    };
-
-                    // Store in localStorage (in real app, this would be sent to backend)
-                    let batches = JSON.parse(localStorage.getItem('farmer_batches') || '[]');
-                    batches.unshift(batchData);
-                    localStorage.setItem('farmer_batches', JSON.stringify(batches));
-
-                    // Reset form and hide
-                    newBatchForm.reset();
-                    createBatchSection.style.display = 'none';
-
-                    // Show success message
-                    alert('Batch created successfully!');
+                    const batchId = 'BATCH_' + Date.now();
+                    const cropType = formData.get('cropType');
+                    const quantity = formData.get('quantity');
+                    const harvestDate = formData.get('harvestDate');
+                    const farmLocation = formData.get('farmLocation');
                     
-                    // Refresh stats and recent batches
-                    loadStats();
-                    loadRecentBatches();
+                    try {
+                        let photoHash = '0x' + '0'.repeat(64); // default placeholder
+                        
+                        // Upload image to Pinata if captured
+                        if (capturedImageBlob && imageMetadata) {
+                            const uploadBtn = document.querySelector('#newBatchForm button[type="submit"]');
+                            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading Image...';
+                            uploadBtn.disabled = true;
+                            
+                            try {
+                                const ipfsHash = await Blockchain.uploadImageToPinata(capturedImageBlob, imageMetadata);
+                                photoHash = ethers.id(ipfsHash); // Convert IPFS hash to bytes32
+                                console.log('Image uploaded to IPFS:', ipfsHash);
+                            } catch (err) {
+                                console.warn('Image upload failed, proceeding without image:', err);
+                                // Continue with default photoHash
+                            }
+                            
+                            uploadBtn.innerHTML = '<i class="fas fa-plus"></i> Create Batch';
+                            uploadBtn.disabled = false;
+                        }
+
+                        await Blockchain.createBatch({ batchId, cropType, quantity, harvestDate, farmLocation, photoHash });
+                        
+                        // For UI stats, also cache minimal record locally
+                        const batchData = {
+                            id: batchId,
+                            cropType,
+                            quantity,
+                            harvestDate,
+                            farmLocation,
+                            status: 'Created',
+                            timestamp: new Date().toISOString(),
+                            farmer: user.name,
+                            imageMetadata: imageMetadata
+                        };
+                        let batches = JSON.parse(localStorage.getItem('farmer_batches') || '[]');
+                        batches.unshift(batchData);
+                        localStorage.setItem('farmer_batches', JSON.stringify(batches));
+
+                        newBatchForm.reset();
+                        createBatchSection.style.display = 'none';
+                        imagePreview.style.display = 'none';
+                        capturedImageBlob = null;
+                        imageMetadata = null;
+                        
+                        alert('Batch created on blockchain with image!');
+                        loadStats();
+                        loadRecentBatches();
+                    } catch (err) {
+                        console.error(err);
+                        alert(err.message || 'Failed to create batch on blockchain');
+                    }
                 });
             }
 

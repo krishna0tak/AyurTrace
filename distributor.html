@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="theme.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
+    <script src="blockchain.js"></script>
     <script src="supabase-auth.js"></script>
 </head>
 <body>
@@ -98,28 +100,30 @@
         </div>
     </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/web3@1.7.3/dist/web3.min.js"></script>
     <script src="config.js"></script>
     <script src="supabase-auth.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async function() {
-            const web3 = new Web3(window.config.GANACHE_URL);
-            const contract = new web3.eth.Contract(window.config.CONTRACT_ABI, window.config.CONTRACT_ADDRESS);
+            try { await Blockchain.init(); } catch(e) { console.error(e); alert('Blockchain init failed'); }
 
             const receptionForm = document.getElementById('receptionForm');
             const dispatchForm = document.getElementById('dispatchForm');
 
             receptionForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
-                const batchId = document.getElementById('receptionBatchId').value;
-                const herbType = document.getElementById('herbType').value;
-                const quantity = document.getElementById('receptionQuantity').value;
-                const storageLocation = document.getElementById('storageLocation').value;
+                const batchId = document.getElementById('receptionBatchId').value.trim();
+                const herbType = document.getElementById('herbType').value.trim();
+                const quantity = parseFloat(document.getElementById('receptionQuantity').value || '0');
+                const storageLocation = document.getElementById('storageLocation').value.trim();
+
+                if (!batchId || !herbType || quantity <= 0 || !storageLocation) {
+                    alert('Please fill all fields correctly.');
+                    return;
+                }
 
                 try {
-                    const accounts = await web3.eth.getAccounts();
-                    await contract.methods.recordReception(batchId, herbType, quantity, storageLocation).send({ from: accounts[0] });
-                    alert("Reception recorded successfully!");
+                    await Blockchain.recordReception({ batchId, herbType, quantity, storageLocation });
+                    alert("Reception recorded on-chain!");
                     receptionForm.reset();
                 } catch (error) {
                     console.error("Error recording reception:", error);
@@ -129,14 +133,18 @@
 
             dispatchForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
-                const batchId = document.getElementById('dispatchBatchId').value;
-                const quantity = document.getElementById('dispatchQuantity').value;
-                const destination = document.getElementById('destination').value;
+                const batchId = document.getElementById('dispatchBatchId').value.trim();
+                const quantity = parseFloat(document.getElementById('dispatchQuantity').value || '0');
+                const destination = document.getElementById('destination').value.trim();
+
+                if (!batchId || quantity <= 0 || !destination) {
+                    alert('Please fill all fields correctly.');
+                    return;
+                }
 
                 try {
-                    const accounts = await web3.eth.getAccounts();
-                    await contract.methods.recordDispatch(batchId, quantity, destination).send({ from: accounts[0] });
-                    alert("Dispatch recorded successfully!");
+                    await Blockchain.recordDispatch({ batchId, quantityToDispatch: quantity, destination });
+                    alert("Dispatch recorded on-chain!");
                     dispatchForm.reset();
                 } catch (error) {
                     console.error("Error recording dispatch:", error);
