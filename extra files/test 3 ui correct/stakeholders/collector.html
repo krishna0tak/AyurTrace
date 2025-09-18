@@ -5,329 +5,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Collector Dashboard - AyurTrace</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-    <style>
-        :root {
-            --primary-green: #27856a;
-            --primary-green-dark: #1f6b55;
-            --primary-green-light: #e9f3f1;
-            --status-bg: #e6f6e6;
-            --status-text: #3c9d3c;
-            --background-color: #f7f9fc;
-            --card-background: #ffffff;
-            --text-primary: #121f3e;
-            --text-secondary: #5a647e;
-            --border-color: #e5e7eb;
-            --error-red: #e53e3e;
-            --font-family: 'Inter', sans-serif;
-        }
-
-        /* --- Base & Typography --- */
-        body {
-            font-family: var(--font-family);
-            margin: 0;
-            background-color: var(--background-color);
-            color: var(--text-primary);
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-
-        .container {
-            max-width: 1300px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        /* --- Header --- */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem 2rem;
-            background-color: var(--card-background);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        header .logo h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin: 0;
-            color: var(--primary-green);
-        }
-
-        header nav a {
-            text-decoration: none;
-            color: var(--text-secondary);
-            margin-left: 1.5rem;
-            font-weight: 500;
-            transition: color 0.2s ease;
-            padding: 0.5rem;
-            border-bottom: 2px solid transparent;
-        }
-
-        header nav a:hover {
-            color: var(--primary-green);
-        }
-
-        header nav a.active {
-            color: var(--primary-green);
-            font-weight: 600;
-            border-bottom: 2px solid var(--primary-green);
-        }
-
-
-        /* --- Dashboard Layout & Cards --- */
-        .dashboard-header {
-            margin-bottom: 2rem;
-        }
-
-        .dashboard-header h2 {
-            font-size: 2.25rem;
-            margin-bottom: 0.25rem;
-            font-weight: 700;
-        }
-
-        .dashboard-header p {
-            color: var(--text-secondary);
-            font-size: 1.125rem;
-            margin-top: 0;
-        }
-
-        .dashboard-content {
-            display: grid;
-            grid-template-columns: 1fr 1.75fr;
-            gap: 2rem;
-        }
-
-        .card {
-            background-color: var(--card-background);
-            border-radius: 12px;
-            padding: 1.5rem 2rem;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-        }
-
-        .card-header {
-            margin-top: 0;
-            font-size: 1.25rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            color: var(--primary-green);
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 1.5rem;
-        }
-
-        /* --- Form Elements --- */
-        .form-group {
-            margin-bottom: 1.25rem;
-        }
-
-        .form-group label {
-            display: block;
-            font-weight: 500;
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-        }
-
-        .input-group {
-            display: flex;
-        }
-
-        input[type="text"],
-        input[type="number"],
-        input[type="date"] {
-            width: 100%;
-            padding: 0.875rem 1.25rem;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 1rem;
-            color: var(--text-primary);
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-            box-sizing: border-box;
-        }
-
-        input::placeholder {
-            color: #9ca3af;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: var(--primary-green);
-            box-shadow: 0 0 0 3px var(--primary-green-light);
-        }
-
-        input:disabled {
-            background-color: #f3f4f6;
-            cursor: not-allowed;
-            color: #6b7280;
-        }
-
-        .input-group input {
-            border-radius: 8px 0 0 8px;
-            border-right: none;
-        }
-
-        #fetch-details-btn {
-            border: 1px solid var(--primary-green);
-            background-color: var(--primary-green);
-            color: white;
-            padding: 0 1.5rem;
-            border-radius: 0 8px 8px 0;
-            cursor: pointer;
-            font-weight: 600;
-            transition: background-color 0.2s ease;
-        }
-
-        #fetch-details-btn:hover {
-            background-color: var(--primary-green-dark);
-        }
-
-        .submit-btn {
-            width: 100%;
-            padding: 0.875rem;
-            border: none;
-            background-color: var(--primary-green);
-            color: white;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.2s ease, transform 0.1s ease;
-        }
-
-        .submit-btn:hover {
-            background-color: var(--primary-green-dark);
-            transform: translateY(-2px);
-        }
-
-        .submit-btn:disabled {
-            background-color: #a5d6b9;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .error-message {
-            color: var(--error-red);
-            font-size: 0.875rem;
-            margin-top: 0.5rem;
-            height: 1.2em;
-        }
-
-        /* --- Table Styles --- */
-        .table-container {
-            width: 100%;
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th,
-        td {
-            padding: 1rem 1.25rem;
-            text-align: left;
-            border-bottom: 1px solid var(--border-color);
-            vertical-align: middle;
-        }
-
-        th {
-            font-weight: 600;
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        tbody tr {
-            transition: background-color 0.2s ease;
-        }
-
-        tbody tr:hover {
-            background-color: #f7f9fc;
-        }
-
-        tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        .status {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            background-color: var(--status-bg);
-            color: var(--status-text);
-        }
-
-        .placeholder td {
-            text-align: center;
-            color: #999;
-            padding: 3rem 0;
-        }
-
-
-        /* --- Animation --- */
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .row-fade-in {
-            animation: fadeIn 0.5s ease-out forwards;
-        }
-
-
-        /* --- Responsive --- */
-        @media (max-width: 1024px) {
-            .dashboard-content {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/web3@1.7.3/dist/web3.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../theme.css">
-    <script src="../config.js"></script>
 </head>
 
 <body>
-    <div id="auth-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 101; display: flex; align-items: center; justify-content: center;">
-        <div style="background-color: white; padding: 20px; border-radius: 10px;">
-            <h2>Login or Sign Up</h2>
-            <input type="email" id="email" placeholder="Email" style="width: 100%; padding: 10px; margin-bottom: 10px;">
-            <input type="password" id="password" placeholder="Password" style="width: 100%; padding: 10px; margin-bottom: 10px;">
-            <button id="login-btn" style="padding: 10px; margin-right: 10px;">Login</button>
-            <button id="signup-btn" style="padding: 10px;">Sign Up</button>
-        </div>
-    </div>
     <header>
         <div class="logo">
-            <h1>AyurTrace</h1>
+            <h1><a href="../index.html" style="text-decoration: none; color: inherit;">AyurTrace</a></h1>
         </div>
         <nav>
             <a href="#" class="active">Dashboard</a>
-            <a href="#">Logout</a>
+            <a href="../logout.html">Logout</a>
         </nav>
     </header>
 
     <main class="container">
         <div class="dashboard-header">
-            <h2>Collector Dashboard</h2>
+            <h2><i class="fas fa-home"></i> Collector Dashboard</h2>
             <p>Manage batch collections and forward them for auditing.</p>
         </div>
 
@@ -409,61 +104,12 @@
     </main>
 
     <script>
-        const SUPABASE_URL = 'https://zanejoswscmmppiuifso.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InphbmVqb3N3c2NtbXBwaXVpZnNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMzE1MjYsImV4cCI6MjA3MzcwNzUyNn0.0iW4ap4gNnF1SQkM8eFDA14ukUFuZeuCmvrMxsNxo_4';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        // Import configuration from config.js
-        const web3 = new Web3(new Web3.providers.HttpProvider(window.config.GANACHE_URL));
-
-        // IMPORTANT: Replace 'your_private_key_here' in config.js with a private key from Ganache
-        const PRIVATE_KEY = window.config.PRIVATE_KEY;
-        const account = web3.eth.accounts.privateKeyToAccount(PRIVATE_KEY);
-        web3.eth.defaultAccount = account.address;
-
-        const COLLECTOR_CHAIN_ADDRESS = window.config.CONTRACT_ADDRESSES.CollectorChain;
-        const COLLECTOR_CHAIN_ABI = window.config.CONTRACT_ABIS.CollectorChain;
-        const collectorChain = new web3.eth.Contract(COLLECTOR_CHAIN_ABI, COLLECTOR_CHAIN_ADDRESS);
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            const authModal = document.getElementById('auth-modal');
-            const loginBtn = document.getElementById('login-btn');
-            const signupBtn = document.getElementById('signup-btn');
-            const emailInput = document.getElementById('email');
-            const passwordInput = document.getElementById('password');
-
-            // Check for logged in user
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                authModal.style.display = 'flex';
-            }
-
-            // Login user
-            loginBtn.addEventListener('click', async () => {
-                const { data, error } = await supabase.auth.signInWithPassword({
-                    email: emailInput.value,
-                    password: passwordInput.value,
-                });
-                if (error) {
-                    alert(`Error logging in: ${error.message}`);
-                } else {
-                    authModal.style.display = 'none';
-                    location.reload();
-                }
-            });
-
-            // Signup user
-            signupBtn.addEventListener('click', async () => {
-                const { data, error } = await supabase.auth.signUp({
-                    email: emailInput.value,
-                    password: passwordInput.value,
-                });
-                if (error) {
-                    alert(`Error signing up: ${error.message}`);
-                } else {
-                    alert('Signup successful! Please check your email to verify your account.');
-                }
-            });
+        document.addEventListener('DOMContentLoaded', () => {
+            const availableBatches = {
+                'FR123-20250908': { crop: 'Rice, 100kg', farmer: 'Ramesh (FR123)' },
+                'FR456-20250910': { crop: 'Ashwagandha, 250kg', farmer: 'Priya (FR456)' },
+                'FR789-20250911': { crop: 'Turmeric, 150kg', farmer: 'Suresh (FR789)' }
+            };
 
             const form = document.getElementById('collect-form');
             const fetchBtn = document.getElementById('fetch-details-btn');
@@ -491,112 +137,35 @@
                 }
             });
 
-            async function fetchBatchDetails() {
+            function fetchBatchDetails() {
                 const batchId = batchIdInput.value.trim();
                 clearBatchDetails();
-
-                if (!batchId) {
-                    batchError.textContent = 'Please enter a Batch ID.';
-                    return;
-                }
-
-                const { data: batch, error } = await supabase
-                    .from('farmer_batches')
-                    .select('*')
-                    .eq('batch_id', batchId)
-                    .single();
-
-                if (error || !batch) {
-                    batchError.textContent = 'Batch ID not found.';
-                } else {
-                    cropDetailsInput.value = `${batch.crop_type}, ${batch.quantity}kg`;
-                    farmerDetailsInput.value = batch.owner;
+                if (availableBatches[batchId]) {
+                    const batch = availableBatches[batchId];
+                    cropDetailsInput.value = batch.crop;
+                    farmerDetailsInput.value = batch.farmer;
                     batchError.textContent = '';
                     submitBtn.disabled = false;
                     collectionDateInput.value = new Date().toISOString().split('T')[0];
+                } else if (batchId === '') {
+                    batchError.textContent = 'Please enter a Batch ID.';
+                } else {
+                    batchError.textContent = 'Batch ID not found.';
                 }
             }
 
-            async function handleFormSubmit(event) {
+            function handleFormSubmit(event) {
                 event.preventDefault();
-
-                const farmerBatchId = batchIdInput.value.trim();
-                const quantity = quantityInput.value;
-                const collectionDate = collectionDateInput.value;
-
-                if (!farmerBatchId || !quantity || !collectionDate) {
-                    alert('Please fill in all required fields.');
-                    return;
-                }
-
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Processing...';
-
-                try {
-                    // 1. Add collection to the blockchain
-                    const addCollectionTx = collectorChain.methods.addCollection(
-                        farmerBatchId,
-                        farmerDetailsInput.value, // farmerId
-                        cropDetailsInput.value.split(',')[0], // cropName
-                        quantity,
-                        account.address // collectorId
-                    );
-
-                    const gas = await addCollectionTx.estimateGas({ from: account.address });
-                    const gasPrice = await web3.eth.getGasPrice();
-                    const data = addCollectionTx.encodeABI();
-                    const nonce = await web3.eth.getTransactionCount(account.address);
-
-                    const signedTx = await web3.eth.accounts.signTransaction(
-                        {
-                            to: COLLECTOR_CHAIN_ADDRESS,
-                            data,
-                            gas,
-                            gasPrice,
-                            nonce,
-                        },
-                        PRIVATE_KEY
-                    );
-
-                    const receipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
-                    console.log('Transaction receipt:', receipt);
-
-                    // 2. Insert collection data into Supabase
-                    const { data: supabaseData, error: supabaseError } = await supabase
-                        .from('collector_collections')
-                        .insert([
-                            {
-                                farmer_batch_id: farmerBatchId,
-                                farmer_id: farmerDetailsInput.value,
-                                crop_name: cropDetailsInput.value.split(',')[0],
-                                quantity: quantity,
-                                collector_id: account.address,
-                                collection_date: new Date(collectionDate).toISOString(),
-                                status: 'Sent to Auditor',
-                            },
-                        ]);
-
-                    if (supabaseError) {
-                        throw new Error(`Supabase error: ${supabaseError.message}`);
-                    }
-
-                    // 3. Update UI
-                    addBatchToTable({
-                        batchId: farmerBatchId,
-                        crop: cropDetailsInput.value.split(',')[0],
-                        farmer: farmerDetailsInput.value,
-                        collectionDate: new Date(collectionDate).toLocaleDateString('en-GB'),
-                        status: 'Sent to Auditor',
-                    });
-
-                    resetForm();
-
-                } catch (error) {
-                    alert(`Error creating collection: ${error.message}`);
-                } finally {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Confirm & Forward to Auditor';
-                }
+                const batchData = {
+                    batchId: batchIdInput.value.trim(),
+                    crop: cropDetailsInput.value,
+                    farmer: farmerDetailsInput.value,
+                    collectionDate: new Date(collectionDateInput.value).toLocaleDateString('en-GB'),
+                    status: 'Sent to Auditor'
+                };
+                addBatchToTable(batchData);
+                delete availableBatches[batchData.batchId];
+                resetForm();
             }
 
             function addBatchToTable(data) {
@@ -608,7 +177,7 @@
                 newRow.classList.add('row-fade-in');
                 newRow.innerHTML = `
                     <td>${data.batchId}</td>
-                    <td>${data.crop}</td>
+                    <td>${data.crop.split(',')[0]}</td>
                     <td>${data.farmer}</td>
                     <td>${data.collectionDate}</td>
                     <td><span class="status">${data.status}</span></td>
@@ -627,34 +196,26 @@
                 clearBatchDetails();
                 batchError.textContent = '';
             }
-
-            async function loadCollectedBatches() {
-                const { data: batches, error } = await supabase
-                    .from('collector_collections')
-                    .select('*')
-                    .eq('collector_id', account.address);
-
-                if (error) {
-                    console.error('Error loading collected batches:', error);
-                    return;
-                }
-
-                tableBody.innerHTML = '';
-                for (const batch of batches) {
-                    addBatchToTable({
-                        batchId: batch.farmer_batch_id,
-                        crop: batch.crop_name,
-                        farmer: batch.farmer_id,
-                        collectionDate: new Date(batch.collection_date).toLocaleDateString('en-GB'),
-                        status: batch.status,
-                    });
-                }
-            }
-
-            if(user) {
-                loadCollectedBatches();
-            }
         });
+    </script>
+    <script>
+    // Minimal auth guard and logout wiring (no UI changes)
+    (function(){
+      const targetRole = 'collector';
+      let user = null;
+      try { user = JSON.parse(localStorage.getItem('ayurtrace_user') || 'null'); } catch(_) {}
+      if (!user || !user.role) { window.location.href = '../login.html'; return; }
+      const map = { farmer: 'farmer.html', collector: 'collector.html', manufacturer: 'manufacturer_dash.html', auditor: 'auditor.html' };
+      if (user.role !== targetRole) {
+        const t = map[user.role];
+        window.location.href = t ? t : '../login.html';
+        return;
+      }
+      // Ensure any existing Logout links go to logout
+      document.querySelectorAll('a').forEach(a => {
+        if (/logout/i.test(a.textContent)) a.setAttribute('href','../logout.html');
+      });
+    })();
     </script>
 </body>
 

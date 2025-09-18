@@ -1,442 +1,239 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Manufacturer Dashboard | AyurTrace</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(to right, #f7fff7, #e0ffe0);
-      margin: 0;
-      padding: 0;
-    }
-
-    header {
-      background: #2e7d32;
-      color: white;
-      padding: 15px;
-      text-align: center;
-      font-size: 22px;
-      font-weight: bold;
-      letter-spacing: 1px;
-    }
-
-    .container {
-      width: 90%;
-      margin: 20px auto;
-    }
-
-    /* Analytics Cards */
-    .stats {
-      display: flex;
-      gap: 20px;
-      margin-bottom: 25px;
-    }
-
-    .card {
-      flex: 1;
-      background: white;
-      border-radius: 12px;
-      padding: 20px;
-      text-align: center;
-      box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
-      transition: transform 0.2s ease-in-out;
-    }
-
-    .card:hover {
-      transform: scale(1.05);
-    }
-
-    .card h2 {
-      margin: 0;
-      font-size: 28px;
-      color: #2e7d32;
-    }
-
-    .card p {
-      margin: 5px 0 0;
-      font-size: 16px;
-      color: #555;
-    }
-
-    /* Dashboard Box */
-    .dashboard-box {
-      background: #fff;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
-    }
-
-    .dashboard-box h3 {
-      color: #2e7d32;
-      margin-bottom: 15px;
-    }
-
-    .form-group {
-      margin-bottom: 12px;
-    }
-
-    label {
-      display: block;
-      font-weight: bold;
-      margin-bottom: 5px;
-    }
-
-    input, select {
-      width: 100%;
-      padding: 8px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-    }
-
-    button {
-      background: #2e7d32;
-      color: white;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 16px;
-    }
-
-    button:hover {
-      background: #256328;
-    }
-
-    /* Alerts Panel */
-    .alerts {
-      background: #fff3cd;
-      border: 1px solid #ffeeba;
-      padding: 15px;
-      border-radius: 12px;
-      box-shadow: 0px 4px 8px rgba(0,0,0,0.05);
-      margin-bottom: 20px;
-    }
-
-    .alerts h3 {
-      color: #856404;
-      margin: 0 0 10px;
-    }
-
-    .alert {
-      padding: 8px;
-      margin: 5px 0;
-      border-left: 5px solid #ffc107;
-      background: #fff8e1;
-      font-size: 15px;
-    }
-
-    /* Product History */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-
-    table, th, td {
-      border: 1px solid #ddd;
-    }
-
-    th, td {
-      padding: 10px;
-      text-align: center;
-    }
-
-    th {
-      background: #2e7d32;
-      color: white;
-    }
-  </style>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/web3@1.7.3/dist/web3.min.js"></script>
+  <title>Manufacturer Dashboard - AyurTrace</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="../theme.css">
-  <script src="../config.js"></script>
 </head>
+
 <body>
-  <div id="auth-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 101; display: flex; align-items: center; justify-content: center;">
-      <div style="background-color: white; padding: 20px; border-radius: 10px;">
-          <h2>Login or Sign Up</h2>
-          <input type="email" id="email" placeholder="Email" style="width: 100%; padding: 10px; margin-bottom: 10px;">
-          <input type="password" id="password" placeholder="Password" style="width: 100%; padding: 10px; margin-bottom: 10px;">
-          <button id="login-btn" style="padding: 10px; margin-right: 10px;">Login</button>
-          <button id="signup-btn" style="padding: 10px;">Sign Up</button>
-      </div>
-  </div>
-  <header>🌿 AyurTrace | Manufacturer Dashboard</header>
-  <div class="container">
+  <header>
+    <div class="logo">
+      <h1><a href="../index.html" style="text-decoration: none; color: inherit;">AyurTrace</a></h1>
+    </div>
+    <nav>
+      <a href="#" class="active"><i class="fas fa-home"></i> Dashboard</a>
+      <a href="../logout.html">Logout</a>
+    </nav>
+  </header>
 
-    <!-- Analytics Cards -->
-    <div class="stats">
+  <main class="container">
+    <div class="dashboard-header">
+      <h2><i class="fas fa-home"></i> Manufacturer Dashboard 🏭</h2>
+      <p>Process audited batches and create final, traceable products.</p>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stats-card">
+        <p class="value">0</p>
+        <p class="label">Total Batches Processed</p>
+      </div>
+      <div class="stats-card">
+        <p class="value">0%</p>
+        <p class="label">Average Wastage</p>
+      </div>
+      <div class="stats-card">
+        <p class="value">-</p>
+        <p class="label">Top Product</p>
+      </div>
+    </div>
+
+    <div class="dashboard-content">
       <div class="card">
-        <h2>120</h2>
-        <p>Total Batches Processed</p>
+        <h3 class="card-header">Process New Batch</h3>
+        <form id="process-form">
+          <div class="form-group">
+            <label for="source-batch-id">Scan/Enter Audited Batch ID</label>
+            <input type="text" id="source-batch-id" placeholder="e.g., FR123-20250908" required>
+          </div>
+          <div class="form-group">
+            <label for="processing-date">Processing Date</label>
+            <input type="date" id="processing-date" required>
+          </div>
+          <div class="form-group">
+            <label for="quantity-processed">Quantity Processed (kg)</label>
+            <input type="number" id="quantity-processed" min="0" step="0.1" placeholder="e.g., 95" required>
+          </div>
+          <div class="form-group">
+            <label for="wastage">Wastage (kg)</label>
+            <input type="number" id="wastage" min="0" step="0.1" placeholder="e.g., 5" required>
+          </div>
+          <div class="form-group">
+            <label for="product-type">Final Product Type</label>
+            <select id="product-type">
+              <option>Rice Bag 25kg</option>
+              <option>Powder Pack 1kg</option>
+              <option>Herbal Oil Bottle</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="expiry-date">Expiry Date</label>
+            <input type="date" id="expiry-date" required>
+          </div>
+          <button type="submit" class="submit-btn" id="submit-btn">Generate Product Batch + Update Blockchain</button>
+          <p id="status-message"></p>
+        </form>
       </div>
+
       <div class="card">
-        <h2>4.5%</h2>
-        <p>Average Wastage</p>
-      </div>
-      <div class="card">
-        <h2>Rice Bag</h2>
-        <p>Top Product</p>
+        <h3 class="card-header">Product History</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Product ID</th>
+                <th>Source Batch</th>
+                <th>Product</th>
+                <th>Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body">
+              <tr class="placeholder">
+                <td colspan="5">No products have been created yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
+  </main>
 
-    <!-- Alerts Panel -->
-    <div class="alerts">
-      <h3>🔔 Alerts & Notifications</h3>
-      <div class="alert">⚠️ Batch MF789 expiring in 30 days!</div>
-      <div class="alert">📦 New batch FR124 ready for processing.</div>
-    </div>
+  <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
 
-    <!-- Process New Batch -->
-    <div class="dashboard-box">
-      <h3>➕ Process New Batch</h3>
-      <div class="form-group">
-        <label>Scan/Enter Batch ID</label>
-        <input type="text" placeholder="FR123-20250908">
-      </div>
-      <div class="form-group">
-        <label>Processing Date</label>
-        <input type="date">
-      </div>
-      <div class="form-group">
-        <label>Quantity Processed (kg)</label>
-        <input type="number" placeholder="95">
-      </div>
-      <div class="form-group">
-        <label>Wastage (kg)</label>
-        <input type="number" placeholder="5">
-      </div>
-      <div class="form-group">
-        <label>Product Type</label>
-        <select>
-          <option>Rice Bag 25kg</option>
-          <option>Powder Pack 1kg</option>
-          <option>Herbal Oil Bottle</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Packaging Date</label>
-        <input type="date">
-      </div>
-      <div class="form-group">
-        <label>Expiry Date</label>
-        <input type="date">
-      </div>
-      <button>✅ Generate Product Batch ID + QR</button>
-    </div>
-
-    <!-- Product History -->
-    <div class="dashboard-box">
-      <h3>📜 Product History</h3>
-      <table>
-        <tr>
-          <th>Product Batch</th>
-          <th>Source Batch</th>
-          <th>Product</th>
-          <th>Status</th>
-        </tr>
-        <tr>
-          <td>MF789-20250909</td>
-          <td>FR123-20250908</td>
-          <td>Rice Bag</td>
-          <td>In Storage</td>
-        </tr>
-      </table>
-    </div>
-
-  </div>
   <script>
-    const SUPABASE_URL = 'https://zanejoswscmmppiuifso.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InphbmVqb3N3c2NtbXBwaXVpZnNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMzE1MjYsImV4cCI6MjA3MzcwNzUyNn0.0iW4ap4gNnF1SQkM8eFDA14ukUFuZeuCmvrMxsNxo_4';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    document.addEventListener('DOMContentLoaded', () => {
+      const contractAddress = "YOUR_CONTRACT_ADDRESS_HERE";
+      const contractABI = [ /* PASTE_YOUR_FULL_ABI_ARRAY_HERE */];
 
-    // Import configuration from config.js
-    const web3 = new Web3(new Web3.providers.HttpProvider(window.config.GANACHE_URL));
+      const form = document.getElementById('process-form');
+      const submitBtn = document.getElementById('submit-btn');
+      const statusMessage = document.getElementById('status-message');
+      const historyTableBody = document.getElementById('history-table-body');
 
-    // IMPORTANT: Replace 'your_private_key_here' in config.js with a private key from Ganache
-    const PRIVATE_KEY = window.config.PRIVATE_KEY;
-    const account = web3.eth.accounts.privateKeyToAccount(PRIVATE_KEY);
-    web3.eth.defaultAccount = account.address;
+      let contract, signer;
 
-    const MANUFACTURER_CHAIN_ADDRESS = window.config.CONTRACT_ADDRESSES.ManufacturerChain;
-    const MANUFACTURER_CHAIN_ABI = window.config.CONTRACT_ABIS.ManufacturerChain;
-    const manufacturerChain = new web3.eth.Contract(MANUFACTURER_CHAIN_ABI, MANUFACTURER_CHAIN_ADDRESS);
-
-    document.addEventListener('DOMContentLoaded', async () => {
-        const authModal = document.getElementById('auth-modal');
-        const loginBtn = document.getElementById('login-btn');
-        const signupBtn = document.getElementById('signup-btn');
-        const emailInput = document.getElementById('email');
-        const passwordInput = document.getElementById('password');
-
-        // Check for logged in user
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-            authModal.style.display = 'flex';
+      async function init() {
+        if (typeof window.ethereum === 'undefined') {
+          statusMessage.innerText = "Please install MetaMask!";
+          submitBtn.disabled = true;
+          return;
         }
 
-        // Login user
-        loginBtn.addEventListener('click', async () => {
-            const { data, error } = await supabase.auth.signInWithPassword({
-                email: emailInput.value,
-                password: passwordInput.value,
-            });
-            if (error) {
-                alert(`Error logging in: ${error.message}`);
-            } else {
-                authModal.style.display = 'none';
-                location.reload();
-            }
-        });
+        try {
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          await provider.send("eth_requestAccounts", []);
+          signer = provider.getSigner();
+          contract = new ethers.Contract(contractAddress, contractABI, signer);
+          console.log("Connected to wallet and contract loaded.");
+        } catch (error) {
+          console.error("Initialization failed:", error);
+          statusMessage.innerText = "Could not connect to wallet.";
+          submitBtn.disabled = true;
+        }
+      }
 
-        // Signup user
-        signupBtn.addEventListener('click', async () => {
-            const { data, error } = await supabase.auth.signUp({
-                email: emailInput.value,
-                password: passwordInput.value,
-            });
-            if (error) {
-                alert(`Error signing up: ${error.message}`);
-            } else {
-                alert('Signup successful! Please check your email to verify your account.');
-            }
-        });
-
-        const processBatchForm = document.querySelector('.dashboard-box form');
-        const productHistoryTable = document.querySelector('.dashboard-box table tbody');
-
-        processBatchForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-
-            const sourceBatchId = processBatchForm.querySelector('input[type="text"]').value;
-            const processingDate = processBatchForm.querySelector('input[type="date"]').value;
-            const quantityProcessed = processBatchForm.querySelector('input[type="number"]').value;
-            const wastage = processBatchForm.querySelectorAll('input[type="number"]')[1].value;
-            const productType = processBatchForm.querySelector('select').value;
-            const packagingDate = processBatchForm.querySelectorAll('input[type="date"]')[1].value;
-            const expiryDate = processBatchForm.querySelectorAll('input[type="date"]')[2].value;
-
-            if (!sourceBatchId || !processingDate || !quantityProcessed || !wastage || !productType || !packagingDate || !expiryDate) {
-                alert('Please fill in all required fields.');
-                return;
-            }
-
-            const submitBtn = processBatchForm.querySelector('button');
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Processing...';
-
-            try {
-                const productId = `MF-${new Date().getTime()}`;
-
-                // 1. Create product on the blockchain
-                const createProductTx = manufacturerChain.methods.createProduct(
-                    productId,
-                    sourceBatchId,
-                    productType,
-                    quantityProcessed,
-                    wastage,
-                    new Date(processingDate).getTime(),
-                    new Date(expiryDate).getTime(),
-                    account.address
-                );
-
-                const gas = await createProductTx.estimateGas({ from: account.address });
-                const gasPrice = await web3.eth.getGasPrice();
-                const data = createProductTx.encodeABI();
-                const nonce = await web3.eth.getTransactionCount(account.address);
-
-                const signedTx = await web3.eth.accounts.signTransaction(
-                    {
-                        to: MANUFACTURER_CHAIN_ADDRESS,
-                        data,
-                        gas,
-                        gasPrice,
-                        nonce,
-                    },
-                    PRIVATE_KEY
-                );
-
-                const receipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
-                console.log('Transaction receipt:', receipt);
-
-                // 2. Insert product data into Supabase
-                const { data: supabaseData, error: supabaseError } = await supabase
-                    .from('manufacturer_products')
-                    .insert([
-                        {
-                            product_id: productId,
-                            source_batch_id: sourceBatchId,
-                            product_type: productType,
-                            quantity_processed: quantityProcessed,
-                            wastage: wastage,
-                            processing_date: new Date(processingDate).toISOString(),
-                            expiry_date: new Date(expiryDate).toISOString(),
-                            manufacturer_id: account.address,
-                        },
-                    ]);
-
-                if (supabaseError) {
-                    throw new Error(`Supabase error: ${supabaseError.message}`);
-                }
-
-                // 3. Update UI
-                addProductToTable({
-                    productId: productId,
-                    sourceBatchId: sourceBatchId,
-                    product: productType,
-                    status: 'In Storage',
-                });
-
-                processBatchForm.reset();
-
-            } catch (error) {
-                alert(`Error creating product: ${error.message}`);
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = '✅ Generate Product Batch ID + QR';
-            }
-        });
-
-        function addProductToTable(product) {
-            const newRow = document.createElement('tr');
-            newRow.innerHTML = `
-                <td>${product.productId}</td>
-                <td>${product.sourceBatchId}</td>
-                <td>${product.product}</td>
-                <td>${product.status}</td>
-            `;
-            productHistoryTable.appendChild(newRow);
+      async function handleFormSubmit(event) {
+        event.preventDefault();
+        if (!contract || !signer) {
+          statusMessage.innerText = "Please connect your wallet first.";
+          return;
         }
 
-        async function loadProductHistory() {
-            const { data: products, error } = await supabase
-                .from('manufacturer_products')
-                .select('*')
-                .eq('manufacturer_id', account.address);
+        submitBtn.disabled = true;
+        statusMessage.innerText = "Processing... Please confirm transaction in MetaMask.";
 
-            if (error) {
-                console.error('Error loading product history:', error);
-                return;
-            }
+        try {
+          const sourceBatchId = document.getElementById('source-batch-id').value;
+          const productType = document.getElementById('product-type').value;
+          const quantityProcessed = document.getElementById('quantity-processed').value;
+          const wastage = document.getElementById('wastage').value;
+          const processingDateVal = document.getElementById('processing-date').value;
+          const expiryDateVal = document.getElementById('expiry-date').value;
 
-            productHistoryTable.innerHTML = '';
-            for (const product of products) {
-                addProductToTable({
-                    productId: product.product_id,
-                    sourceBatchId: product.source_batch_id,
-                    product: product.product_type,
-                    status: 'In Storage',
-                });
-            }
+          if (!sourceBatchId || !processingDateVal || !expiryDateVal || !quantityProcessed || !wastage) {
+            throw new Error("Please fill out all required fields.");
+          }
+
+          const processingDate = Math.floor(new Date(processingDateVal).getTime() / 1000);
+          const expiryDate = Math.floor(new Date(expiryDateVal).getTime() / 1000);
+          const productId = `MF-${Date.now()}`;
+          const manufacturerId = await signer.getAddress();
+          const tx = await contract.createProduct(
+            productId,
+            sourceBatchId,
+            productType,
+            ethers.utils.parseUnits(quantityProcessed, 0),
+            ethers.utils.parseUnits(wastage, 0),
+            processingDate,
+            expiryDate,
+            manufacturerId
+          );
+
+          statusMessage.innerText = "Transaction sent... waiting for confirmation.";
+          await tx.wait();
+
+          statusMessage.innerText = `Success! Product ${productId} created.`;
+          addProductToTable({
+            productId,
+            sourceBatchId,
+            productType,
+            date: new Date(processingDate * 1000).toLocaleDateString('en-GB'),
+            status: "In Storage"
+          });
+          form.reset();
+
+        } catch (error) {
+          console.error("Transaction failed:", error);
+          statusMessage.innerText = error.message.includes("User denied") ? "Transaction rejected." : "Transaction failed. Check console.";
+        } finally {
+          submitBtn.disabled = false;
+          setTimeout(() => { statusMessage.innerText = ''; }, 5000);
+        }
+      }
+
+      function addProductToTable(data) {
+        const placeholder = historyTableBody.querySelector('.placeholder');
+        if (placeholder) {
+          placeholder.style.display = 'none';
         }
 
-        if (user) {
-            loadProductHistory();
-        }
+        const newRow = document.createElement('tr');
+        newRow.innerHTML = `
+                    <td>${data.productId}</td>
+                    <td>${data.sourceBatchId}</td>
+                    <td>${data.productType}</td>
+                    <td>${data.date}</td>
+                    <td><span class="status status-storage">${data.status}</span></td>
+                `;
+        historyTableBody.prepend(newRow);
+      }
+
+      form.addEventListener('submit', handleFormSubmit);
+      init();
     });
   </script>
+  <script>
+  // Minimal auth guard for manufacturer; leave UI intact
+  (function(){
+    const targetRole = 'manufacturer';
+    let user = null;
+    try { user = JSON.parse(localStorage.getItem('ayurtrace_user') || 'null'); } catch(_) {}
+    if (!user || !user.role) { window.location.href = '../login.html'; return; }
+    const map = { farmer: 'farmer.html', collector: 'collector.html', manufacturer: 'manufacturer_dash.html', auditor: 'auditor.html' };
+    if (user.role !== targetRole) {
+      const t = map[user.role];
+      window.location.href = t ? t : '../login.html';
+      return;
+    }
+    // Point logout links to logout page if any exist
+    document.querySelectorAll('a').forEach(a => { if (/logout/i.test(a.textContent)) a.href = '../logout.html'; });
+  })();
+  </script>
 </body>
+
 </html>
