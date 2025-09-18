@@ -7,7 +7,7 @@ window.config = {
     SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrdGtsanJnYmtlbmJ2dnBxY2JlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc5OTkwMjMsImV4cCI6MjA3MzU3NTAyM30.2KHill336u0RcXSKjEfhqWCTofAs8B0eCZ7JXsHcyrQ',
 
     // Blockchain
-    GANACHE_URL: 'http://127.0.0.1:7545',
+    GANACHE_URL: 'https://df966708faa2.ngrok-free.app',
     CONTRACT_ADDRESS: '0x34D4c8923697e931a05617BCB3bdd03B15306F71',
     CONTRACT_ABI: [
         // Events

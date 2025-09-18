@@ -1,5 +1,5 @@
 const config = {
-    GANACHE_URL: "http://127.0.0.1:7545", // Or your Ganache URL
+    GANACHE_URL: " https://df966708faa2.ngrok-free.app", // Or your Ganache URL
     CONTRACT_ADDRESS: "0x34D4c8923697e931a05617BCB3bdd03B15306F71", // Replace with your deployed AyurTraceUnified contract address
     CONTRACT_ABI: [], // Replace with your AyurTraceUnified contract ABI
     SUPABASE_URL: "https://uktkljrgbkenbvvpqcbe.supabase.co",

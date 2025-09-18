@@ -75,6 +75,46 @@
       return await this.contractRO.getBatchDetails(batchId);
     },
 
+    // Get all batches created by the current farmer
+    async getFarmerBatches(fromBlock = 0n, toBlock = 'latest') {
+      try {
+        const batchCreatedLogs = await this.contractRO.queryFilter(
+          this.contractRO.filters.BatchCreated(), 
+          fromBlock, 
+          toBlock
+        );
+        
+        const batches = [];
+        for (const log of batchCreatedLogs) {
+          try {
+            const batchId = log.args.batchId;
+            const batchDetails = await this.getBatchDetails(batchId);
+            
+            if (batchDetails && batchDetails[0]) { // Check if batch exists
+              batches.push({
+                id: batchId,
+                cropType: batchDetails[1] || 'Unknown',
+                quantity: batchDetails[2] ? batchDetails[2].toString() : '0',
+                harvestDate: batchDetails[3] || '',
+                farmLocation: batchDetails[4] || '',
+                timestamp: log.blockNumber ? new Date().toISOString() : new Date().toISOString(), // For now, use current time
+                status: 'Created',
+                blockNumber: log.blockNumber
+              });
+            }
+          } catch (err) {
+            console.warn(`Failed to get details for batch ${log.args.batchId}:`, err);
+          }
+        }
+        
+        // Sort by block number (newest first)
+        return batches.sort((a, b) => (b.blockNumber || 0) - (a.blockNumber || 0));
+      } catch (error) {
+        console.error('Error fetching farmer batches:', error);
+        return [];
+      }
+    },
+
     // --- Collector ---
     async addCollection({ farmerBatchId, farmerId, cropName, quantity, collectorId }) {
       const c = this.requireSigner();
