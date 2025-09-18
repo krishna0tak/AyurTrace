@@ -7,7 +7,7 @@ window.config = {
     SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrdGtsanJnYmtlbmJ2dnBxY2JlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc5OTkwMjMsImV4cCI6MjA3MzU3NTAyM30.2KHill336u0RcXSKjEfhqWCTofAs8B0eCZ7JXsHcyrQ',
 
     // Blockchain
-    GANACHE_URL: 'https://df966708faa2.ngrok-free.app',
+    GANACHE_URL: 'https://48322929741c.ngrok-free.app',
     CONTRACT_ADDRESS: '0x34D4c8923697e931a05617BCB3bdd03B15306F71',
     CONTRACT_ABI: [
         // Events
@@ -36,11 +36,11 @@ window.config = {
         {"inputs":[{"internalType":"string","name":"_productId","type":"string"},{"internalType":"string","name":"_sourceBatchId","type":"string"},{"internalType":"string","name":"_productType","type":"string"},{"internalType":"uint256","name":"_quantityProcessed","type":"uint256"},{"internalType":"uint256","name":"_wastage","type":"uint256"},{"internalType":"uint256","name":"_processingDate","type":"uint256"},{"internalType":"uint256","name":"_expiryDate","type":"uint256"},{"internalType":"string","name":"_manufacturerId","type":"string"}],"name":"createProduct","outputs":[],"stateMutability":"nonpayable","type":"function"}
     ],
 
-    // Media storage (Pinata/Pinaka placeholders)
-    PINATA_GATEWAY: 'https://gateway.pinata.cloud/ipfs/', // or your custom gateway
-    PINATA_UPLOAD_URL: 'https://api.pinata.cloud/pinning/pinFileToIPFS', // TODO: set your endpoint
-    PINATA_JWT: '', // TODO: set via env/runtime, do NOT commit secrets
-    IMAGE_BASE_URL: '', // Optional: base CDN URL if different from gateway
+    // Media storage (Pinata IPFS)
+    PINATA_GATEWAY: 'https://pink-decisive-woodpecker-623.mypinata.cloud/ipfs/',
+    PINATA_UPLOAD_URL: 'https://api.pinata.cloud/pinning/pinFileToIPFS',
+    PINATA_JWT: 'd9f10a4440f6f552a5bd', // Your Pinata JWT token
+    IMAGE_BASE_URL: 'https://pink-decisive-woodpecker-623.mypinata.cloud/ipfs/', // Gateway for images
 
     // Ganache private key for signing transactions
     DEV_PRIVATE_KEY: '0x40e57a95f510a8c1a5a64f2c77f082394d0602af0460fc21c4007ece30fd5ad1',

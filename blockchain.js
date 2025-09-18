@@ -7,6 +7,8 @@
     signer: null,
     contractRO: null,
     contractRW: null,
+    cache: new Map(), // Add caching for performance
+    batchCache: new Map(), // Cache for batch details
 
     async init() {
       // Use Ganache RPC directly with provided private key
@@ -61,18 +63,52 @@
       return result.IpfsHash;
     },
 
+    // Get IPFS image URL from hash
+    getImageFromPinata(ipfsHash) {
+      const cfg = window.AppConfig || window.config || {};
+      const gateway = cfg.PINATA_GATEWAY || 'https://gateway.pinata.cloud';
+      return `${gateway}/ipfs/${ipfsHash}`;
+    },
+
+    // Store IPFS hash mapping (for demo - in production, store in contract or database)
+    storeIPFSMapping(photoHash, ipfsHash) {
+      const mappings = JSON.parse(localStorage.getItem('ipfs_mappings') || '{}');
+      mappings[photoHash] = ipfsHash;
+      localStorage.setItem('ipfs_mappings', JSON.stringify(mappings));
+    },
+
+    // Get original IPFS hash from bytes32 hash
+    getOriginalIPFSHash(photoHash) {
+      const mappings = JSON.parse(localStorage.getItem('ipfs_mappings') || '{}');
+      return mappings[photoHash] || null;
+    },
+
     // --- Farmer ---
     async createBatch({ batchId, cropType, quantity, harvestDate, farmLocation, photoHash }) {
       const c = this.requireSigner();
       const hash = photoHash && /^0x[0-9a-fA-F]{64}$/.test(photoHash)
         ? photoHash
         : ethers.id(`${batchId}:${Date.now()}`); // placeholder bytes32
-      const tx = await c.createBatch(batchId, cropType, BigInt(quantity), harvestDate, farmLocation, hash);
+      let overrides = {};
+      try { overrides.nonce = await this.provider.getTransactionCount(this.signer.address, 'pending'); } catch {}
+      const tx = await c.createBatch(batchId, cropType, BigInt(quantity), harvestDate, farmLocation, hash, overrides);
       const receipt = await tx.wait();
       return receipt;
     },
     async getBatchDetails(batchId) {
-      return await this.contractRO.getBatchDetails(batchId);
+      // Check cache first for performance
+      const cacheKey = `batch_${batchId}`;
+      if (this.batchCache.has(cacheKey)) {
+        return this.batchCache.get(cacheKey);
+      }
+      
+      const result = await this.contractRO.getBatchDetails(batchId);
+      
+      // Cache the result for 5 minutes
+      this.batchCache.set(cacheKey, result);
+      setTimeout(() => this.batchCache.delete(cacheKey), 5 * 60 * 1000);
+      
+      return result;
     },
 
     // Get all batches created by the current farmer
@@ -118,7 +154,9 @@
     // --- Collector ---
     async addCollection({ farmerBatchId, farmerId, cropName, quantity, collectorId }) {
       const c = this.requireSigner();
-      const tx = await c.addCollection(farmerBatchId, farmerId, cropName, BigInt(quantity), collectorId);
+      let overrides = {};
+      try { overrides.nonce = await this.provider.getTransactionCount(this.signer.address, 'pending'); } catch {}
+      const tx = await c.addCollection(farmerBatchId, farmerId, cropName, BigInt(quantity), collectorId, overrides);
       return await tx.wait();
     },
     async getCollection(farmerBatchId) {
@@ -128,7 +166,9 @@
     // --- Auditor ---
     async addInspection({ batchId, inspectorId, result, notes }) {
       const c = this.requireSigner();
-      const tx = await c.addInspection(batchId, inspectorId, result, notes);
+      let overrides = {};
+      try { overrides.nonce = await this.provider.getTransactionCount(this.signer.address, 'pending'); } catch {}
+      const tx = await c.addInspection(batchId, inspectorId, result, notes, overrides);
       return await tx.wait();
     },
     async getInspection(batchId) {
@@ -138,6 +178,8 @@
     // --- Manufacturer ---
     async createProduct({ productId, sourceBatchId, productType, quantityProcessed, wastage, processingDate, expiryDate, manufacturerId }) {
       const c = this.requireSigner();
+      let overrides = {};
+      try { overrides.nonce = await this.provider.getTransactionCount(this.signer.address, 'pending'); } catch {}
       const tx = await c.createProduct(
         productId,
         sourceBatchId,
@@ -146,7 +188,8 @@
         BigInt(wastage),
         BigInt(processingDate),
         BigInt(expiryDate),
-        manufacturerId
+        manufacturerId,
+        overrides
       );
       return await tx.wait();
     },
@@ -157,12 +200,16 @@
     // --- Distributor ---
     async recordReception({ batchId, herbType, quantity, storageLocation }) {
       const c = this.requireSigner();
-      const tx = await c.recordReception(batchId, herbType, BigInt(quantity), storageLocation);
+      let overrides = {};
+      try { overrides.nonce = await this.provider.getTransactionCount(this.signer.address, 'pending'); } catch {}
+      const tx = await c.recordReception(batchId, herbType, BigInt(quantity), storageLocation, overrides);
       return await tx.wait();
     },
     async recordDispatch({ batchId, quantityToDispatch, destination }) {
       const c = this.requireSigner();
-      const tx = await c.recordDispatch(batchId, BigInt(quantityToDispatch), destination);
+      let overrides = {};
+      try { overrides.nonce = await this.provider.getTransactionCount(this.signer.address, 'pending'); } catch {}
+      const tx = await c.recordDispatch(batchId, BigInt(quantityToDispatch), destination, overrides);
       return await tx.wait();
     },
     async getInventory(batchId) {
@@ -170,57 +217,168 @@
     },
 
     // --- Events & Chain ---
+    // --- Events & Chain (Optimized with Caching) ---
     async getChainForBatch(batchId, fromBlock = 0n, toBlock = 'latest') {
-      const iface = this.contractRO.interface;
+      // Check cache first
+      const cacheKey = `chain_${batchId}_${fromBlock}_${toBlock}`;
+      if (this.cache.has(cacheKey)) {
+        console.log('Using cached chain data for', batchId);
+        return this.cache.get(cacheKey);
+      }
+
+      console.time(`Fetching chain for ${batchId}`);
       const logs = [];
-      // BatchCreated (indexed batchId)
+
+      // Use multicall pattern - batch all queries
+      const queryPromises = [
+        // BatchCreated query
+        this.contractRO.queryFilter(this.contractRO.filters.BatchCreated(batchId), fromBlock, toBlock)
+          .then(async (bc) => {
+            if (bc.length > 0) {
+              const detailsRaw = await this.getBatchDetails(batchId);
+              const statusNames = ['Pending', 'InTransit', 'Delivered', 'Processing'];
+              return {
+                blockNumber: bc[0].blockNumber,
+                fragment: { name: 'BatchCreated' },
+                args: {
+                  batchId: detailsRaw.batchId ?? detailsRaw[0],
+                  cropType: detailsRaw.cropType ?? detailsRaw[1],
+                  quantity: detailsRaw.quantity ?? detailsRaw[2],
+                  harvestDate: detailsRaw.harvestDate ?? detailsRaw[3],
+                  farmLocation: detailsRaw.farmLocation ?? detailsRaw[4],
+                  photoHash: detailsRaw.photoHash ?? detailsRaw[5],
+                  status: detailsRaw.status ?? detailsRaw[6],
+                  owner: detailsRaw.owner ?? detailsRaw[7],
+                  timestamp: detailsRaw.timestamp ?? detailsRaw[8],
+                  statusText: statusNames[Number(detailsRaw.status ?? 0)] || 'Unknown'
+                }
+              };
+            }
+            return null;
+          }).catch(() => null),
+
+        // Collection query
+        this.contractRO.queryFilter(this.contractRO.filters.CollectionAdded(batchId), fromBlock, toBlock)
+          .then(async (ca) => {
+            if (ca.length > 0) {
+              const colRaw = await this.getCollection(batchId);
+              return {
+                blockNumber: ca[0].blockNumber,
+                fragment: { name: 'CollectionAdded' },
+                args: {
+                  farmerBatchId: colRaw[0],
+                  farmerId: colRaw[1],
+                  cropName: colRaw[2],
+                  quantity: colRaw[3],
+                  collectorId: colRaw[4],
+                  collectionDate: colRaw[5],
+                  status: colRaw[6]
+                }
+              };
+            }
+            return null;
+          }).catch(() => null),
+
+        // Inspection query
+        this.getInspection(batchId)
+          .then((insp) => {
+            if (insp && insp[4] && BigInt(insp[4]) > 0n) {
+              return {
+                blockNumber: 0,
+                args: { batchId, inspectorId: insp[1], result: insp[2], notes: insp[3], date: insp[4] },
+                fragment: { name: 'InspectionAdded' }
+              };
+            }
+            return null;
+          }).catch(() => null)
+      ];
+
+      // Execute main queries in parallel
+      const [batchResult, collectionResult, inspectionResult] = await Promise.all(queryPromises);
+      
+      // Add valid results
+      [batchResult, collectionResult, inspectionResult].forEach(result => {
+        if (result) logs.push(result);
+      });
+
+      // Handle product events with reduced scope
       try {
-        const bc = await this.contractRO.queryFilter(this.contractRO.filters.BatchCreated(batchId), fromBlock, toBlock);
-        logs.push(...bc);
-      } catch {}
-      // CollectionAdded (indexed farmerBatchId)
+        const productLogs = await this.contractRO.queryFilter(
+          this.contractRO.filters.ProductCreated(), 
+          Math.max(fromBlock, 'latest' === toBlock ? 0n : toBlock - 1000n), // Limit range
+          toBlock
+        );
+        
+        // Process only relevant products in parallel
+        const relevantProducts = await Promise.all(
+          productLogs.slice(0, 10).map(async (l) => { // Limit to 10 recent products
+            try {
+              const product = await this.getProduct(l.args.productId);
+              if (product && product.sourceBatchId === batchId) {
+                return {
+                  blockNumber: l.blockNumber,
+                  fragment: { name: 'ProductCreated' },
+                  args: {
+                    productId: product[0],
+                    sourceBatchId: product[1],
+                    productType: product[2],
+                    quantityProcessed: product[3],
+                    wastage: product[4],
+                    processingDate: product[5],
+                    expiryDate: product[6],
+                    manufacturerId: product[7]
+                  }
+                };
+              }
+            } catch {}
+            return null;
+          })
+        );
+        
+        relevantProducts.forEach(p => p && logs.push(p));
+      } catch (e) {
+        console.warn('Product query failed:', e);
+      }
+
+      // Reception/Dispatch in parallel
       try {
-        const ca = await this.contractRO.queryFilter(this.contractRO.filters.CollectionAdded(batchId), fromBlock, toBlock);
-        logs.push(...ca);
-      } catch {}
-      // InspectionAdded (not indexed) -> read via mapping
-      try {
-        const insp = await this.getInspection(batchId);
-        if (insp && insp[4] && BigInt(insp[4]) > 0n) {
-          logs.push({
-            blockNumber: 0,
-            args: {
-              batchId,
-              inspectorId: insp[1],
-              result: insp[2],
-              notes: insp[3],
-              date: insp[4]
-            },
-            fragment: { name: 'InspectionAdded' }
-          });
-        }
-      } catch {}
-      // ProductCreated: productId indexed; sourceBatchId not indexed, so we scan then filter
-      try {
-        const pcLogs = await this.contractRO.queryFilter(this.contractRO.filters.ProductCreated(null, null, null, null), fromBlock, toBlock);
-        for (const l of pcLogs) {
-          // read product to match sourceBatchId
-          const product = await this.getProduct(l.args.productId);
-          if (product && product.sourceBatchId === batchId) logs.push(l);
-        }
-      } catch {}
-      // ProductReceived / Dispatched (indexed batchId)
-      try {
-        const pr = await this.contractRO.queryFilter(this.contractRO.filters.ProductReceived(batchId), fromBlock, toBlock);
-        logs.push(...pr);
-      } catch {}
-      try {
-        const pd = await this.contractRO.queryFilter(this.contractRO.filters.ProductDispatched(batchId), fromBlock, toBlock);
-        logs.push(...pd);
+        const [prLogs, pdLogs] = await Promise.all([
+          this.contractRO.queryFilter(this.contractRO.filters.ProductReceived(batchId), fromBlock, toBlock),
+          this.contractRO.queryFilter(this.contractRO.filters.ProductDispatched(batchId), fromBlock, toBlock)
+        ]);
+        
+        logs.push(...prLogs.map(l => ({ ...l, fragment: { name: 'ProductReceived' } })));
+        logs.push(...pdLogs.map(l => ({ ...l, fragment: { name: 'ProductDispatched' } })));
       } catch {}
 
-      // Sort by blockNumber where available; synthetic logs (inspection) get blockNumber 0 and will appear first
+      // Optimized timestamp enrichment
+      const uniqueBlocks = [...new Set(logs.filter(l => l.blockNumber > 0).map(l => Number(l.blockNumber)))];
+      if (uniqueBlocks.length > 0) {
+        const blockPromises = uniqueBlocks.slice(0, 20).map(bn => // Limit to 20 blocks
+          this.provider.getBlock(bn).then(blk => ({ bn, timestamp: blk?.timestamp })).catch(() => ({ bn, timestamp: null }))
+        );
+        
+        const blockResults = await Promise.all(blockPromises);
+        const blockTs = Object.fromEntries(blockResults.filter(r => r.timestamp).map(r => [r.bn, r.timestamp]));
+
+        logs.forEach(l => {
+          if (!l.args) return;
+          const hasTs = ['timestamp', 'collectionDate', 'date', 'processingDate'].some(field => l.args[field] !== undefined);
+          if (!hasTs && l.blockNumber && blockTs[Number(l.blockNumber)]) {
+            l.args = { ...l.args, timestamp: BigInt(blockTs[Number(l.blockNumber)]) };
+          }
+        });
+      }
+
       logs.sort((a, b) => (Number(a.blockNumber || 0) - Number(b.blockNumber || 0)));
+      
+      // Cache result for 2 minutes
+      this.cache.set(cacheKey, logs);
+      setTimeout(() => this.cache.delete(cacheKey), 2 * 60 * 1000);
+      
+      console.timeEnd(`Fetching chain for ${batchId}`);
+      console.log(`Found ${logs.length} events for batch ${batchId}`);
+      
       return logs;
     }
   };
