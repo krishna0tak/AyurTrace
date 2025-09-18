@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farmer Dashboard - AyuTrace</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="theme.css">
+</head>
+
+<body>
+    <!-- Auth Check Script -->
+    <script>
+        // Check authentication
+        const user = localStorage.getItem('ayurtrace_user');
+        if (!user) {
+            window.location.href = 'login.html';
+        } else {
+            const userData = JSON.parse(user);
+            if (userData.role !== 'farmer') {
+                window.location.href = 'login.html';
+            }
+        }
+    </script>
+
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-content">
+                <a href="index.html" class="logo">
+                    <i class="fas fa-seedling"></i>
+                    AyuTrace
+                </a>
+                <div class="nav-links">
+                    <a href="#" class="active"><i class="fas fa-home"></i> Dashboard</a>
+                </div>
+                <div class="user-menu">
+                    <div class="user-avatar">FN</div>
+                    <span>Farmer Name</span>
+                    <a href="logout.html" class="logout-btn"><i class="fas fa-sign-out-alt"></i></a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container">
+            <section class="dashboard-header">
+                <h1>Welcome back!</h1>
+                <p>Manage your supply chain operations with ease.</p>
+            </section>
+
+            <section class="quick-stats">
+                <div class="stat-card">
+                    <div class="stat-icon total"><i class="fas fa-boxes"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-number">0</div>
+                        <div class="stat-label">Total Batches</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon transit"><i class="fas fa-truck"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-number">0</div>
+                        <div class="stat-label">In Transit</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon delivered"><i class="fas fa-check-circle"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-number">0</div>
+                        <div class="stat-label">Delivered</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon processing"><i class="fas fa-clock"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-number">0</div>
+                        <div class="stat-label">Processing</div>
+                    </div>
+                </div>
+            </section>
+
+            <div style="margin-bottom: 2rem;">
+                <button class="create-batch-btn" id="showCreateBatchFormBtn">
+                    <i class="fas fa-plus"></i>
+                    Create New Batch
+                </button>
+            </div>
+
+            <section class="card" id="createBatchSection" style="display: none;">
+                <h3 class="card-header">
+                    <i class="fas fa-plus-circle"></i>
+                    Create New Batch
+                </h3>
+                <form id="newBatchForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="cropType">Crop Type</label>
+                            <select id="cropType" name="cropType" class="form-input" required>
+                                <option value="">Select Crop</option>
+                                <option value="Rice">Rice</option>
+                                <option value="Wheat">Wheat</option>
+                                <option value="Cotton">Cotton</option>
+                                <option value="Ashwagandha Powder">Ashwagandha Powder</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="quantity">Quantity (kg)</label>
+                            <input type="number" id="quantity" name="quantity" class="form-input"
+                                placeholder="e.g., 100" required min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="harvestDate">Harvest Date</label>
+                            <input type="date" id="harvestDate" name="harvestDate" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="farmLocation">Farm Location</label>
+                            <div class="input-group">
+                                <input type="text" id="farmLocation" name="farmLocation" class="form-input"
+                                    placeholder="Village name or GPS coordinates" required>
+                                <button type="button" class="get-location-btn" id="getLocationBtn">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="description">Description</label>
+                            <textarea id="description" name="description" class="form-input"
+                                placeholder="Additional details about the batch..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="expectedQuality">Expected Quality Grade</label>
+                            <select id="expectedQuality" name="expectedQuality" class="form-input" required>
+                                <option value="">Select Quality</option>
+                                <option value="Premium">Premium</option>
+                                <option value="Standard">Standard</option>
+                                <option value="Basic">Basic</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="submit-btn">
+                        <i class="fas fa-plus"></i>
+                        Create Batch
+                    </button>
+                </form>
+            </section>
+
+            <section class="card">
+                <h3 class="card-header">
+                    <i class="fas fa-history"></i>
+                    Recent Batches
+                </h3>
+                <div id="recentBatches">
+                    <div class="empty-state">
+                        <i class="fas fa-seedling"></i>
+                        <p>No batches created yet</p>
+                        <span>Create your first batch to get started</span>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get user data
+            const user = JSON.parse(localStorage.getItem('ayurtrace_user'));
+            if (user && user.name) {
+                document.querySelector('.user-menu span').textContent = user.name;
+                document.querySelector('.user-avatar').textContent = user.name.substring(0, 2).toUpperCase();
+                document.querySelector('.dashboard-header h1').textContent = `Welcome back, ${user.name}!`;
+            }
+
+            // Show/hide create batch form
+            const showFormBtn = document.getElementById('showCreateBatchFormBtn');
+            const createBatchSection = document.getElementById('createBatchSection');
+            
+            if (showFormBtn && createBatchSection) {
+                showFormBtn.addEventListener('click', function() {
+                    createBatchSection.style.display = createBatchSection.style.display === 'none' ? 'block' : 'none';
+                });
+            }
+
+            // Get location functionality
+            const getLocationBtn = document.getElementById('getLocationBtn');
+            const farmLocationInput = document.getElementById('farmLocation');
+            
+            if (getLocationBtn && farmLocationInput) {
+                getLocationBtn.addEventListener('click', function() {
+                    if (navigator.geolocation) {
+                        getLocationBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                        navigator.geolocation.getCurrentPosition(
+                            function(position) {
+                                const lat = position.coords.latitude.toFixed(6);
+                                const lng = position.coords.longitude.toFixed(6);
+                                farmLocationInput.value = `${lat}, ${lng}`;
+                                getLocationBtn.innerHTML = '<i class="fas fa-map-marker-alt"></i>';
+                            },
+                            function(error) {
+                                alert('Unable to get location. Please enter manually.');
+                                getLocationBtn.innerHTML = '<i class="fas fa-map-marker-alt"></i>';
+                            }
+                        );
+                    } else {
+                        alert('Geolocation is not supported by this browser.');
+                    }
+                });
+            }
+
+            // Form submission
+            const newBatchForm = document.getElementById('newBatchForm');
+            if (newBatchForm) {
+                newBatchForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    // Get form data
+                    const formData = new FormData(newBatchForm);
+                    const batchData = {
+                        id: 'BATCH_' + Date.now(),
+                        cropType: formData.get('cropType'),
+                        quantity: formData.get('quantity'),
+                        harvestDate: formData.get('harvestDate'),
+                        farmLocation: formData.get('farmLocation'),
+                        description: formData.get('description'),
+                        expectedQuality: formData.get('expectedQuality'),
+                        status: 'Created',
+                        timestamp: new Date().toISOString(),
+                        farmer: user.name
+                    };
+
+                    // Store in localStorage (in real app, this would be sent to backend)
+                    let batches = JSON.parse(localStorage.getItem('farmer_batches') || '[]');
+                    batches.unshift(batchData);
+                    localStorage.setItem('farmer_batches', JSON.stringify(batches));
+
+                    // Reset form and hide
+                    newBatchForm.reset();
+                    createBatchSection.style.display = 'none';
+
+                    // Show success message
+                    alert('Batch created successfully!');
+                    
+                    // Refresh stats and recent batches
+                    loadStats();
+                    loadRecentBatches();
+                });
+            }
+
+            // Load initial data
+            loadStats();
+            loadRecentBatches();
+        });
+
+        function loadStats() {
+            const batches = JSON.parse(localStorage.getItem('farmer_batches') || '[]');
+            const total = batches.length;
+            const transit = batches.filter(b => b.status === 'In Transit').length;
+            const delivered = batches.filter(b => b.status === 'Delivered').length;
+            const processing = batches.filter(b => b.status === 'Processing').length;
+
+            // Update stat cards
+            const statNumbers = document.querySelectorAll('.stat-number');
+            if (statNumbers.length >= 4) {
+                statNumbers[0].textContent = total;
+                statNumbers[1].textContent = transit;
+                statNumbers[2].textContent = delivered;
+                statNumbers[3].textContent = processing;
+            }
+        }
+
+        function loadRecentBatches() {
+            const batches = JSON.parse(localStorage.getItem('farmer_batches') || '[]');
+            const recentBatchesContainer = document.getElementById('recentBatches');
+            
+            if (batches.length === 0) {
+                recentBatchesContainer.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-seedling"></i>
+                        <p>No batches created yet</p>
+                        <span>Create your first batch to get started</span>
+                    </div>
+                `;
+                return;
+            }
+
+            const recentBatches = batches.slice(0, 5);
+            recentBatchesContainer.innerHTML = recentBatches.map(batch => `
+                <div class="batch-item">
+                    <div class="batch-info">
+                        <h4>${batch.id}</h4>
+                        <p>${batch.cropType} - ${batch.quantity}kg</p>
+                        <small>Created: ${new Date(batch.timestamp).toLocaleDateString()}</small>
+                    </div>
+                    <div class="batch-status status-${batch.status.toLowerCase().replace(' ', '-')}">
+                        ${batch.status}
+                    </div>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+
+</html>
