@@ -94,6 +94,9 @@ async function signIn(actorId, password, role) {
             name: user.fullName || user.actorId
         };
         saveSession(sessionUser);
+
+        // Sync optional on-chain profile (non-blocking)
+        try { await syncOnChainProfile(sessionUser); } catch (e) { console.warn('Profile sync skipped:', e?.message || e); }
         return sessionUser;
     } catch (error) {
         console.error('Sign-in error:', error);
@@ -117,10 +120,40 @@ async function isAuthenticated() {
     return !!readSession();
 }
 
+// Sync profile to blockchain (optional, additive; no registration required)
+async function syncOnChainProfile(sessionUser) {
+    if (!window.Blockchain || !window.Blockchain.contractRW) return; // No chain yet
+    const name = sessionUser.name || sessionUser.actorId;
+    const username = sessionUser.actorId; // Use actorId as global username
+    const role = sessionUser.role;
+    
+    try {
+        await window.Blockchain.init();
+        const c = window.Blockchain.contractRW;
+
+        if (role === 'farmer') await c.setFarmerProfile(name, username);
+        else if (role === 'collector') await c.setCollectorProfile(name, username);
+        else if (role === 'auditor') await c.setAuditorProfile(name, username);
+        else if (role === 'manufacturer') await c.setManufacturerProfile(name, username);
+        else if (role === 'distributor') await c.setDistributorProfile(name, username);
+        
+        console.log(`✅ Synced ${role} profile: ${name} (${username})`);
+    } catch (e) {
+        console.warn(`⚠️ Profile sync failed for ${role}:`, e?.message || e);
+    }
+}
+
+// Get current user's actorId (username) for blockchain operations
+async function getCurrentActorId() {
+    const user = await getCurrentUser();
+    return user?.actorId || null;
+}
+
 // Expose globals
 window.signUp = signUp;
 window.signIn = signIn;
 window.signOut = signOut;
 window.getCurrentUser = getCurrentUser;
+window.getCurrentActorId = getCurrentActorId;
 window.isAuthenticated = isAuthenticated;
 window.supabaseClient = supabaseClient;

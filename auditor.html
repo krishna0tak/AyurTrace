@@ -352,10 +352,9 @@
 
                 const auditResult = document.getElementById('auditResult').value;
                 const auditNotes = document.getElementById('auditNotes').value;
-                const me = await getCurrentUser();
-                const inspectorId = me?.actorId || me?.actor_id || me?.name || 'AUD001';
+                const inspectorId = await getCurrentActorId();
                 try {
-                    await Blockchain.addInspection({ batchId: collectionIdInput.value, inspectorId, result: auditResult, notes: auditNotes });
+                    await Blockchain.addInspection({ batchId: collectionIdInput.value, inspectorId: inspectorId || 'unknown', result: auditResult, notes: auditNotes });
                     alert('Audit added on-chain and forwarded.');
                     
                     // Refresh timeline after audit

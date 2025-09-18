@@ -422,7 +422,7 @@
                 };
 
                 const user = await getCurrentUser();
-                const manufacturerId = user?.actorId || user?.actor_id || user?.name || 'MAN001';
+                const manufacturerId = await getCurrentActorId() || user?.actorId || user?.actor_id || user?.name || 'MAN001';
 
                 try {
                     const result = await Blockchain.createProduct({

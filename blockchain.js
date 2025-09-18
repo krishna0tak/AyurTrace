@@ -129,7 +129,19 @@
       const hash = photoHash && /^0x[0-9a-fA-F]{64}$/.test(photoHash)
         ? photoHash
         : ethers.id(`${batchId}:${Date.now()}`); // placeholder bytes32
-      // Let ethers manage nonce to avoid coalesce errors
+
+      // Try to attach user name/username from Supabase session and use V2
+      const session = (await (window.getCurrentUser ? window.getCurrentUser() : Promise.resolve(null))) || null;
+      const farmerName = session?.name || session?.actorId || '';
+      const farmerUsername = session?.actorId || ''; // Always use actorId as username
+
+      if (c.createBatchV2) {
+        const tx = await c.createBatchV2(batchId, cropType, BigInt(quantity), harvestDate, farmLocation, hash, farmerName, farmerUsername);
+        const receipt = await tx.wait();
+        return receipt;
+      }
+
+      // Fallback to legacy
       const tx = await c.createBatch(batchId, cropType, BigInt(quantity), harvestDate, farmLocation, hash);
       const receipt = await tx.wait();
       return receipt;
@@ -141,7 +153,12 @@
         return this.batchCache.get(cacheKey);
       }
       
-      const result = await this.contractRO.getBatchDetails(batchId);
+      let result;
+      if (this.contractRO.getBatchDetailsV2) {
+        result = await this.contractRO.getBatchDetailsV2(batchId);
+      } else {
+        result = await this.contractRO.getBatchDetails(batchId);
+      }
       
       // Cache the result for 5 minutes
       this.batchCache.set(cacheKey, result);
@@ -154,7 +171,7 @@
     async getFarmerBatches(fromBlock = 0n, toBlock = 'latest') {
       try {
         const batchCreatedLogs = await this.contractRO.queryFilter(
-          this.contractRO.filters.BatchCreated(), 
+          (this.contractRO.filters.BatchCreatedV2 ? this.contractRO.filters.BatchCreatedV2() : this.contractRO.filters.BatchCreated()), 
           fromBlock, 
           toBlock
         );
@@ -165,14 +182,18 @@
             const batchId = log.args.batchId;
             const batchDetails = await this.getBatchDetails(batchId);
             
-            if (batchDetails && batchDetails[0]) { // Check if batch exists
+            if (batchDetails && (batchDetails[0] || batchDetails.batchId)) { // Check if batch exists
+              const bd = batchDetails;
+              const asArr = Array.isArray(bd) ? bd : [bd.batchId, bd.cropType, bd.quantity, bd.harvestDate, bd.farmLocation, bd.photoHash, bd.status, bd.owner, bd.timestamp, bd.farmerName, bd.farmerUsername];
               batches.push({
-                id: batchId,
-                cropType: batchDetails[1] || 'Unknown',
-                quantity: batchDetails[2] ? batchDetails[2].toString() : '0',
-                harvestDate: batchDetails[3] || '',
-                farmLocation: batchDetails[4] || '',
-                timestamp: log.blockNumber ? new Date().toISOString() : new Date().toISOString(), // For now, use current time
+                id: asArr[0],
+                cropType: asArr[1] || 'Unknown',
+                quantity: asArr[2] ? asArr[2].toString() : '0',
+                harvestDate: asArr[3] || '',
+                farmLocation: asArr[4] || '',
+                farmerName: asArr[9] || '',
+                farmerUsername: asArr[10] || '',
+                timestamp: log.blockNumber ? new Date().toISOString() : new Date().toISOString(), // temp
                 status: 'Created',
                 blockNumber: log.blockNumber
               });
@@ -190,10 +211,93 @@
       }
     },
 
+    // Search by username/name via contract indexes
+    async findBatchesByFarmerUsername(username) {
+      if (!this.contractRO.getBatchIdsByFarmerUsername) return [];
+      try { return await this.contractRO.getBatchIdsByFarmerUsername(username); } catch { return []; }
+    },
+    async findBatchesByFarmerName(name) {
+      if (!this.contractRO.getBatchIdsByFarmerName) return [];
+      try { return await this.contractRO.getBatchIdsByFarmerName(name); } catch { return []; }
+    },
+
+    // High-level: fetch batches for a specific username in real time
+    async getBatchesForUsername(username) {
+      await this.init();
+      // If no username provided, try to get from current session
+      const actualUsername = username || (await (window.getCurrentActorId ? window.getCurrentActorId() : Promise.resolve('')));
+      if (!actualUsername) {
+        console.warn('No username available for batch fetch');
+        return [];
+      }
+      
+      console.log('Fetching batches for username:', actualUsername);
+      
+      // 1) Get IDs by username (V2 index) - only if function exists
+      let ids = [];
+      try { 
+        if (this.contractRO.getBatchIdsByFarmerUsername) {
+          ids = await this.findBatchesByFarmerUsername(actualUsername); 
+          console.log('V2 username index returned:', ids);
+        }
+      } catch (e) { 
+        console.warn('V2 username fetch failed:', e.message);
+      }
+      
+      // 2) Fallback: resolve address then get legacy address-indexed IDs
+      if ((!ids || ids.length === 0) && this.contractRO.getAccountByUsername) {
+        try {
+          const addr = await this.contractRO.getAccountByUsername(actualUsername);
+          console.log('Resolved username to address:', addr);
+          if (addr && addr !== ethers.ZeroAddress && this.contractRO.getFarmerBatchIds) {
+            ids = await this.contractRO.getFarmerBatchIds(addr);
+            console.log('Legacy address-based IDs:', ids);
+          }
+        } catch (e) {
+          console.warn('Address resolution failed:', e.message);
+        }
+      }
+      
+      if (!ids || ids.length === 0) {
+        console.warn('No batch IDs found for username:', actualUsername);
+        return [];
+      }
+
+      // 3) Load details for each ID (prefer V2 getter to get name/username)
+      const results = [];
+      for (const id of ids) {
+        try {
+          const d = (this.contractRO.getBatchDetailsV2)
+            ? await this.contractRO.getBatchDetailsV2(id)
+            : await this.contractRO.getBatchDetails(id);
+          const arr = Array.isArray(d) ? d : [d.batchId, d.cropType, d.quantity, d.harvestDate, d.farmLocation, d.photoHash, d.status, d.owner, d.timestamp, d.farmerName, d.farmerUsername];
+          results.push({
+            id: arr[0],
+            cropType: arr[1] || 'Unknown',
+            quantity: arr[2] ? String(arr[2]) : '0',
+            harvestDate: arr[3] || '',
+            farmLocation: arr[4] || '',
+            photoHash: arr[5],
+            status: 'Created',
+            timestamp: Number(arr[8] || Date.now()),
+            farmerName: arr[9] || '',
+            farmerUsername: arr[10] || ''
+          });
+        } catch (e) {
+          console.warn('Failed to load batch', id, e.message);
+        }
+      }
+      
+      console.log('Final batch results:', results);
+      return results;
+    },
+
     // --- Collector ---
     async addCollection({ farmerBatchId, farmerId, cropName, quantity, collectorId }) {
       const c = this.requireSigner();
-      const tx = await c.addCollection(farmerBatchId, farmerId, cropName, BigInt(quantity), collectorId);
+      // Use current actorId as collectorId if not provided
+      const actualCollectorId = collectorId || (await (window.getCurrentActorId ? window.getCurrentActorId() : Promise.resolve(''))) || 'unknown';
+      const tx = await c.addCollection(farmerBatchId, farmerId, cropName, BigInt(quantity), actualCollectorId);
       return await tx.wait();
     },
     async getCollection(farmerBatchId) {
@@ -203,7 +307,9 @@
     // --- Auditor ---
     async addInspection({ batchId, inspectorId, result, notes }) {
       const c = this.requireSigner();
-      const tx = await c.addInspection(batchId, inspectorId, result, notes);
+      // Use current actorId as inspectorId if not provided
+      const actualInspectorId = inspectorId || (await (window.getCurrentActorId ? window.getCurrentActorId() : Promise.resolve(''))) || 'unknown';
+      const tx = await c.addInspection(batchId, actualInspectorId, result, notes);
       return await tx.wait();
     },
     async getInspection(batchId) {
@@ -213,6 +319,8 @@
     // --- Manufacturer ---
     async createProduct({ productId, sourceBatchId, productType, quantityProcessed, wastage, processingDate, expiryDate, manufacturerId }) {
       const c = this.requireSigner();
+      // Use current actorId as manufacturerId if not provided
+      const actualManufacturerId = manufacturerId || (await (window.getCurrentActorId ? window.getCurrentActorId() : Promise.resolve(''))) || 'unknown';
       const tx = await c.createProduct(
         productId,
         sourceBatchId,
@@ -221,7 +329,7 @@
         BigInt(wastage),
         BigInt(processingDate),
         BigInt(expiryDate),
-        manufacturerId
+        actualManufacturerId
       );
       return await tx.wait();
     },
@@ -260,25 +368,28 @@
       // Use multicall pattern - batch all queries
       const queryPromises = [
         // BatchCreated query
-        this.contractRO.queryFilter(this.contractRO.filters.BatchCreated(batchId), fromBlock, toBlock)
+        this.contractRO.queryFilter((this.contractRO.filters.BatchCreatedV2 ? this.contractRO.filters.BatchCreatedV2(batchId) : this.contractRO.filters.BatchCreated(batchId)), fromBlock, toBlock)
           .then(async (bc) => {
             if (bc.length > 0) {
               const detailsRaw = await this.getBatchDetails(batchId);
               const statusNames = ['Pending', 'InTransit', 'Delivered', 'Processing'];
+              const asArr = Array.isArray(detailsRaw) ? detailsRaw : [detailsRaw.batchId, detailsRaw.cropType, detailsRaw.quantity, detailsRaw.harvestDate, detailsRaw.farmLocation, detailsRaw.photoHash, detailsRaw.status, detailsRaw.owner, detailsRaw.timestamp, detailsRaw.farmerName, detailsRaw.farmerUsername];
               return {
                 blockNumber: bc[0].blockNumber,
-                fragment: { name: 'BatchCreated' },
+                fragment: { name: (this.contractRO.filters.BatchCreatedV2 ? 'BatchCreatedV2' : 'BatchCreated') },
                 args: {
-                  batchId: detailsRaw.batchId ?? detailsRaw[0],
-                  cropType: detailsRaw.cropType ?? detailsRaw[1],
-                  quantity: detailsRaw.quantity ?? detailsRaw[2],
-                  harvestDate: detailsRaw.harvestDate ?? detailsRaw[3],
-                  farmLocation: detailsRaw.farmLocation ?? detailsRaw[4],
-                  photoHash: detailsRaw.photoHash ?? detailsRaw[5],
-                  status: detailsRaw.status ?? detailsRaw[6],
-                  owner: detailsRaw.owner ?? detailsRaw[7],
-                  timestamp: detailsRaw.timestamp ?? detailsRaw[8],
-                  statusText: statusNames[Number(detailsRaw.status ?? 0)] || 'Unknown'
+                  batchId: asArr[0],
+                  cropType: asArr[1],
+                  quantity: asArr[2],
+                  harvestDate: asArr[3],
+                  farmLocation: asArr[4],
+                  photoHash: asArr[5],
+                  status: asArr[6],
+                  owner: asArr[7],
+                  timestamp: asArr[8],
+                  farmerName: asArr[9] || '',
+                  farmerUsername: asArr[10] || '',
+                  statusText: statusNames[Number(asArr[6] ?? 0)] || 'Unknown'
                 }
               };
             }
