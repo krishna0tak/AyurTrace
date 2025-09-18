@@ -217,7 +217,6 @@
                 </div>
             </section>
 
-            <!-- Processed Batches History -->
             <section class="card">
                 <h3 class="card-header">
                     <i class="fas fa-history"></i>
@@ -637,5 +636,321 @@
             logout();
         });
     </script>
+                    }
+
+                    // Populate details
+                    document.getElementById('auditedInfo').value = `${batch.cropType} from ${batch.farmer}`;
+                    document.getElementById('availableQuantity').value = batch.collectedQuantity + ' kg';
+                    document.getElementById('quantityProcessed').value = batch.collectedQuantity;
+                    
+                    batchDetails.style.display = 'block';
+                    batchError.style.display = 'none';
+                    submitBtn.disabled = false;
+                    // show inline chain timeline
+                    showChainInline(batchId);
+                    
+                    fetchBtn.innerHTML = '<i class="fas fa-check"></i>';
+                    setTimeout(() => {
+                        fetchBtn.innerHTML = '<i class="fas fa-search"></i>';
+                    }, 2000);
+                } else {
+                    showError('Audited batch not found. Please check the Batch ID or ensure it has been audited.');
+                }
+            });
+
+            function showError(message) {
+                batchError.textContent = message;
+                batchError.style.display = 'block';
+                batchDetails.style.display = 'none';
+                submitBtn.disabled = true;
+            }
+
+            // Calculate wastage percentage when inputs change
+            const quantityInput = document.getElementById('quantityProcessed');
+            const wastageInput = document.getElementById('wastage');
+            
+            function updateWastagePercentage() {
+                const quantity = parseFloat(quantityInput.value) || 0;
+                const wastage = parseFloat(wastageInput.value) || 0;
+                
+                if (quantity > 0) {
+                    const percentage = ((wastage / quantity) * 100).toFixed(1);
+                    wastageInput.title = `${percentage}% wastage`;
+                }
+            }
+
+            quantityInput.addEventListener('input', updateWastagePercentage);
+            wastageInput.addEventListener('input', updateWastagePercentage);
+
+            // Form submission
+            const processForm = document.getElementById('processForm');
+            processForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                await Blockchain.init();
+
+                const productId = 'PROD_' + Date.now();
+                const sourceBatchId = batchIdInput.value;
+                const productType = document.getElementById('productType').value;
+                const quantityProcessed = document.getElementById('quantityProcessed').value;
+                const wastage = document.getElementById('wastage').value;
+                const processingDate = Math.floor(new Date(document.getElementById('processingDate').value + 'T00:00:00Z').getTime()/1000);
+                const expiryDate = Math.floor(new Date(document.getElementById('expiryDate').value + 'T00:00:00Z').getTime()/1000);
+                const manufacturerId = 'MAN001'; // TODO map from logged in user
+
+                try {
+                    await Blockchain.createProduct({ productId, sourceBatchId, productType, quantityProcessed, wastage, processingDate, expiryDate, manufacturerId });
+                    alert('Product created on-chain: ' + productId);
+                    // store lightweight history for stats
+                    const processed = JSON.parse(localStorage.getItem('processed_batches') || '[]');
+                    processed.unshift({
+                        id: productId,
+                        sourceBatchId,
+                        productType,
+                        finalQuantity: Number(quantityProcessed) - Number(wastage),
+                        processingDate: new Date(processingDate * 1000).toISOString(),
+                        expiryDate: new Date(expiryDate * 1000).toISOString(),
+                        status: 'Created'
+                    });
+                    localStorage.setItem('processed_batches', JSON.stringify(processed));
+                    // show QR to handoff downstream
+                    showProductQR(productId);
+                } catch (err) {
+                    console.error(err);
+                    alert(err.message || 'Failed to create product on-chain');
+                }
+
+                // Reset form UI only
+                processForm.reset();
+                batchDetails.style.display = 'none';
+                submitBtn.disabled = true;
+                document.getElementById('processingDate').value = new Date().toISOString().split('T')[0];
+                const oneYearFromNow2 = new Date();
+                oneYearFromNow2.setFullYear(oneYearFromNow2.getFullYear() + 1);
+                document.getElementById('expiryDate').value = oneYearFromNow2.toISOString().split('T')[0];
+
+                loadStats();
+                loadProcessedBatches();
+            });
+
+            // Load initial data
+            loadStats();
+            loadProcessedBatches();
+        });
+
+        function loadStats() {
+            const processed = JSON.parse(localStorage.getItem('processed_batches') || '[]');
+            
+            const totalProcessed = processed.length;
+            const inProduction = 0; // For demo purposes
+            const totalProducts = processed.length;
+            
+            // Calculate average wastage
+            let avgWastage = 0;
+            if (processed.length > 0) {
+                const totalWastagePercentage = processed.reduce((sum, batch) => {
+                    const quantity = parseFloat(batch.quantityProcessed);
+                    const wastage = parseFloat(batch.wastage);
+                    return sum + (quantity > 0 ? (wastage / quantity) * 100 : 0);
+                }, 0);
+                avgWastage = (totalWastagePercentage / processed.length).toFixed(1);
+            }
+
+            const statNumbers = document.querySelectorAll('.stat-number');
+            if (statNumbers.length >= 4) {
+                statNumbers[0].textContent = totalProcessed;
+                statNumbers[1].textContent = inProduction;
+                statNumbers[2].textContent = totalProducts;
+                statNumbers[3].textContent = avgWastage + '%';
+            }
+        }
+
+        function loadProcessedBatches() {
+            const processed = JSON.parse(localStorage.getItem('processed_batches') || '[]');
+            const container = document.getElementById('processedBatches');
+            
+            if (processed.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-industry"></i>
+                        <p>No batches processed yet</p>
+                        <span>Start processing audited batches</span>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = processed.map(batch => `
+                <div class="batch-item">
+                    <div class="batch-info">
+                        <h4>${batch.id}</h4>
+                        <p>${batch.productType} - ${batch.finalQuantity}kg (from ${batch.sourceBatchId})</p>
+                        <small>Processed: ${new Date(batch.processingDate).toLocaleDateString()} | Expires: ${new Date(batch.expiryDate).toLocaleDateString()}</small>
+                    </div>
+                    <div class="batch-status status-${batch.status.toLowerCase()}">
+                        ${batch.status}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Logout functionality
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                await signOut();
+            });
+        }
+
+        // ----- Timeline & QR helpers -----
+        async function showChainInline(batchId) {
+            if (!batchId) return;
+            const section = document.getElementById('chainResultsSection');
+            const idEl = document.getElementById('chainResultId');
+            const timeline = document.getElementById('chainTimeline');
+            if (idEl) idEl.textContent = `Batch ID: ${batchId}`;
+            if (timeline) timeline.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin" style="font-size:24px;color:#6366f1;"></i><p style="margin-top:12px;color:#64748b;">Loading supply chain history...</p></div>';
+            section.style.display = 'block';
+            try {
+                const logs = await Blockchain.getChainForBatch(batchId);
+                if (!logs || logs.length === 0) {
+                    timeline.innerHTML = `<div style="text-align:center;padding:40px;color:#ef4444;"><i class="fas fa-exclamation-triangle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i><p style="font-size:16px;margin:0;">No supply chain history found</p><p style="font-size:14px;margin:8px 0 0 0;opacity:0.8;">This batch hasn't been processed through the supply chain yet</p></div>`;
+                    return;
+                }
+                renderChainFromLogs(batchId, logs, timeline);
+            } catch (e) {
+                timeline.innerHTML = `<div style="text-align:center;padding:40px;color:#ef4444;"><i class="fas fa-exclamation-triangle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i><p style="font-size:16px;margin:0;">Error loading supply chain</p><p style="font-size:14px;margin:8px 0 0 0;opacity:0.8;">${e.message || 'Network or contract error'}</p></div>`;
+            }
+        }
+
+        function renderChainFromLogs(batchId, logs, container) {
+            const eventConfig = {
+                BatchCreated: { 
+                    icon: '🌾', 
+                    title: 'Batch Created', 
+                    color: '#10b981',
+                    getDescription: (args) => {
+                        const meta = Blockchain.parseFarmLocationMeta(args.farmLocation || '');
+                        const farmer = meta.farmer || 'Unknown Farmer';
+                        const baseLoc = meta.base || (args.farmLocation || 'Not specified');
+                        let desc = `${args.cropType || 'Unknown crop'} • ${args.quantity || '0'} kg • Location: ${baseLoc} • Farmer: ${farmer}`;
+                        const url = Blockchain.imageUrlFromArgs(args);
+                        if (url) {
+                            desc += ` • <a href="#" onclick="showBatchImage('${args.photoHash}')" style="color: #3b82f6; text-decoration: none;"><i class="fas fa-image"></i> View Image</a>`;
+                        }
+                        return desc;
+                    }
+                },
+                CollectionAdded: { 
+                    icon: '👷', 
+                    title: 'Collection Added', 
+                    color: '#3b82f6',
+                    getDescription: (args) => `Collected by ${args.collectorId || 'Unknown'} • ${args.quantity || '0'} kg of ${args.cropName || 'Unknown crop'}`
+                },
+                InspectionAdded: { 
+                    icon: '🕵️', 
+                    title: 'Quality Inspection', 
+                    color: '#8b5cf6',
+                    getDescription: (args) => `Result: ${args.result || 'Unknown'} • Inspector: ${args.inspectorId || 'Unknown'}${args.notes ? ` • Notes: ${args.notes}` : ''}`
+                },
+                ProductCreated: { 
+                    icon: '🏭', 
+                    title: 'Product Manufactured', 
+                    color: '#f59e0b',
+                    getDescription: (args) => `Product: ${args.productType || 'Unknown'} • Processed: ${args.quantityProcessed || '0'} kg • Manufacturer: ${args.manufacturerId || 'Unknown'}`
+                },
+                ProductReceived: { 
+                    icon: '📦', 
+                    title: 'Product Received', 
+                    color: '#06b6d4',
+                    getDescription: (args) => `${args.herbType || 'Product'} • ${args.quantity || '0'} kg • Storage: ${args.storageLocation || 'Unknown location'}`
+                },
+                ProductDispatched: { 
+                    icon: '🚚', 
+                    title: 'Product Dispatched', 
+                    color: '#ef4444',
+                    getDescription: (args) => `${args.quantityDispatched || args.quantityToDispatch || '0'} kg dispatched to ${args.destination || 'Unknown destination'}`
+                }
+            };
+
+            let html = `<div style="color:#94a3b8;font-size:14px;margin-bottom:16px;padding:12px;background:#f1f5f9;border-radius:8px;">
+                <strong>Supply Chain Journey for ${batchId}</strong><br>
+                <span style="font-size:12px;">${logs.length} events tracked on blockchain</span>
+            </div>`;
+            logs.forEach((l, index) => {
+                const name = l.fragment?.name || 'Event';
+                const config = eventConfig[name] || { icon: '⛓️', title: name, color: '#6b7280', getDescription: () => 'Event details' };
+                const tsRaw = (l.args && (l.args.timestamp ?? l.args.collectionDate ?? l.args.date ?? l.args.processingDate)) ?? null;
+                let when = 'Unknown time';
+                if (tsRaw !== null && tsRaw !== undefined) {
+                    const tsNum = typeof tsRaw === 'bigint' ? Number(tsRaw) : Number(tsRaw);
+                    const ms = tsNum > 1e12 ? tsNum : tsNum * 1000;
+                    if (!Number.isNaN(ms)) {
+                        const d = new Date(ms);
+                        when = d.toLocaleDateString() + ' at ' + d.toLocaleTimeString();
+                    }
+                }
+                const blockInfo = (l.blockNumber !== undefined && l.blockNumber !== null) ? `Block #${Number(l.blockNumber)}` : '';
+                const description = l.args ? config.getDescription(l.args) : 'No details available';
+                const isLast = index === logs.length - 1;
+                html += `
+                <div style="display:flex; gap:16px; padding-bottom:${isLast ? '0' : '20px'}; position:relative;">
+                    <div style="display:flex; flex-direction:column; align-items:center; z-index:2;">
+                        <div style="background:${config.color};color:#fff;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 2px 8px rgba(0,0,0,0.15);">${config.icon}</div>
+                        ${!isLast ? '<div style="width:3px;height:100%;background:linear-gradient(to bottom, #e2e8f0, #f1f5f9);position:absolute;top:48px;left:22.5px;"></div>' : ''}
+                    </div>
+                    <div style="background:white;padding:16px;border-radius:12px;flex:1;box-shadow:0 1px 3px rgba(0,0,0,0.1);border-left:4px solid ${config.color};">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+                            <h4 style="margin:0;font-weight:600;color:#1f2937;font-size:16px;">${config.title}</h4>
+                            ${blockInfo ? `<span style="background:#f3f4f6;color:#6b7280;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:500;">${blockInfo}</span>` : ''}
+                        </div>
+                        <p style="margin:0 0 8px 0;color:#374151;font-size:14px;line-height:1.5;">${description}</p>
+                        <p style="margin:0;color:#9ca3af;font-size:12px;"><i class="fas fa-clock"></i> ${when}</p>
+                    </div>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function showBatchImage(photoHash) {
+            if (!photoHash || photoHash === '0x' + '0'.repeat(64)) {
+                alert('No image available for this batch');
+                return;
+            }
+            const urlHash = Blockchain.getOriginalIPFSHash(photoHash);
+            const url = urlHash ? Blockchain.getImageFromPinata(urlHash) : null;
+            if (url) {
+                window.open(url, '_blank');
+            } else {
+                alert('Original IPFS hash not found for this photo');
+            }
+        }
+        window.showBatchImage = showBatchImage;
+
+        function showProductQR(productId) {
+            const sec = document.getElementById('productQRSection');
+            const img = document.getElementById('productQRImg');
+            const title = document.getElementById('productQRTitle');
+            const btn = document.getElementById('downloadProductQRBtn');
+            const url = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent('PRODUCT#'+productId)}`;
+            img.src = url;
+            title.textContent = `Product ID: ${productId}`;
+            sec.style.display = 'block';
+            btn.onclick = async () => {
+                try {
+                    const resp = await fetch(url);
+                    const blob = await resp.blob();
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `${productId}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                    a.remove();
+                } catch {}
+            };
+        }
+    </script>
 </body>
+
 </html>

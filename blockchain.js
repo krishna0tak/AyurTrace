@@ -82,6 +82,46 @@
       const mappings = JSON.parse(localStorage.getItem('ipfs_mappings') || '{}');
       return mappings[photoHash] || null;
     },
+    // Parse farmLocation augmented string like: "Village A ::FARMER=Ramesh ::IPFS=Qm..."
+    parseFarmLocationMeta(farmLocationStr) {
+      if (!farmLocationStr || typeof farmLocationStr !== 'string') {
+        return { base: farmLocationStr || '', farmer: null, ipfs: null };
+      }
+      let base = farmLocationStr;
+      let farmer = null;
+      let ipfs = null;
+      const parts = farmLocationStr.split('::').map(p => p.trim());
+      if (parts.length > 1) {
+        base = parts[0].trim();
+        for (let i = 1; i < parts.length; i++) {
+          const p = parts[i];
+          if (p.toUpperCase().startsWith('FARMER=')) {
+            farmer = p.substring(7).trim();
+          } else if (p.toUpperCase().startsWith('IPFS=')) {
+            ipfs = p.substring(5).trim();
+          }
+        }
+      }
+      return { base, farmer, ipfs };
+    },
+    // Build image URL for a BatchCreated args if possible (photoHash mapping or embedded ipfs)
+    imageUrlFromArgs(args) {
+      // prefer embedded IPFS if present in farmLocation meta
+      try {
+        const meta = this.parseFarmLocationMeta(args.farmLocation || '');
+        if (meta.ipfs) {
+          return this.getImageFromPinata(meta.ipfs);
+        }
+      } catch {}
+      // fallback: use stored mapping from photoHash -> ipfs hash if available
+      try {
+        if (args.photoHash) {
+          const original = this.getOriginalIPFSHash(args.photoHash);
+          if (original) return this.getImageFromPinata(original);
+        }
+      } catch {}
+      return null;
+    },
 
     // --- Farmer ---
     async createBatch({ batchId, cropType, quantity, harvestDate, farmLocation, photoHash }) {
@@ -89,9 +129,8 @@
       const hash = photoHash && /^0x[0-9a-fA-F]{64}$/.test(photoHash)
         ? photoHash
         : ethers.id(`${batchId}:${Date.now()}`); // placeholder bytes32
-      let overrides = {};
-      try { overrides.nonce = await this.provider.getTransactionCount(this.signer.address, 'pending'); } catch {}
-      const tx = await c.createBatch(batchId, cropType, BigInt(quantity), harvestDate, farmLocation, hash, overrides);
+      // Let ethers manage nonce to avoid coalesce errors
+      const tx = await c.createBatch(batchId, cropType, BigInt(quantity), harvestDate, farmLocation, hash);
       const receipt = await tx.wait();
       return receipt;
     },
@@ -154,9 +193,7 @@
     // --- Collector ---
     async addCollection({ farmerBatchId, farmerId, cropName, quantity, collectorId }) {
       const c = this.requireSigner();
-      let overrides = {};
-      try { overrides.nonce = await this.provider.getTransactionCount(this.signer.address, 'pending'); } catch {}
-      const tx = await c.addCollection(farmerBatchId, farmerId, cropName, BigInt(quantity), collectorId, overrides);
+      const tx = await c.addCollection(farmerBatchId, farmerId, cropName, BigInt(quantity), collectorId);
       return await tx.wait();
     },
     async getCollection(farmerBatchId) {
@@ -166,9 +203,7 @@
     // --- Auditor ---
     async addInspection({ batchId, inspectorId, result, notes }) {
       const c = this.requireSigner();
-      let overrides = {};
-      try { overrides.nonce = await this.provider.getTransactionCount(this.signer.address, 'pending'); } catch {}
-      const tx = await c.addInspection(batchId, inspectorId, result, notes, overrides);
+      const tx = await c.addInspection(batchId, inspectorId, result, notes);
       return await tx.wait();
     },
     async getInspection(batchId) {
@@ -178,8 +213,6 @@
     // --- Manufacturer ---
     async createProduct({ productId, sourceBatchId, productType, quantityProcessed, wastage, processingDate, expiryDate, manufacturerId }) {
       const c = this.requireSigner();
-      let overrides = {};
-      try { overrides.nonce = await this.provider.getTransactionCount(this.signer.address, 'pending'); } catch {}
       const tx = await c.createProduct(
         productId,
         sourceBatchId,
@@ -188,8 +221,7 @@
         BigInt(wastage),
         BigInt(processingDate),
         BigInt(expiryDate),
-        manufacturerId,
-        overrides
+        manufacturerId
       );
       return await tx.wait();
     },
@@ -200,16 +232,12 @@
     // --- Distributor ---
     async recordReception({ batchId, herbType, quantity, storageLocation }) {
       const c = this.requireSigner();
-      let overrides = {};
-      try { overrides.nonce = await this.provider.getTransactionCount(this.signer.address, 'pending'); } catch {}
-      const tx = await c.recordReception(batchId, herbType, BigInt(quantity), storageLocation, overrides);
+      const tx = await c.recordReception(batchId, herbType, BigInt(quantity), storageLocation);
       return await tx.wait();
     },
     async recordDispatch({ batchId, quantityToDispatch, destination }) {
       const c = this.requireSigner();
-      let overrides = {};
-      try { overrides.nonce = await this.provider.getTransactionCount(this.signer.address, 'pending'); } catch {}
-      const tx = await c.recordDispatch(batchId, BigInt(quantityToDispatch), destination, overrides);
+      const tx = await c.recordDispatch(batchId, BigInt(quantityToDispatch), destination);
       return await tx.wait();
     },
     async getInventory(batchId) {
@@ -380,6 +408,23 @@
       console.log(`Found ${logs.length} events for batch ${batchId}`);
       
       return logs;
+    }
+    ,
+
+    // --- Lightweight off-chain metadata helpers (for names & extras) ---
+    storeBatchMeta(batchId, meta) {
+      try {
+        const key = 'batch_meta';
+        const all = JSON.parse(localStorage.getItem(key) || '{}');
+        all[batchId] = { ...(all[batchId] || {}), ...meta };
+        localStorage.setItem(key, JSON.stringify(all));
+      } catch {}
+    },
+    getBatchMeta(batchId) {
+      try {
+        const all = JSON.parse(localStorage.getItem('batch_meta') || '{}');
+        return all[batchId] || null;
+      } catch { return null; }
     }
   };
 

@@ -6,6 +6,7 @@
     <title>Product Trace - AyurTrace</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Poppins', sans-serif; }
@@ -65,15 +66,23 @@
         },
 
         async search(serialNumber) {
+            this.currentSerialNumber = serialNumber;
             const traceContainer = document.getElementById('searchResultTrace');
             traceContainer.innerHTML = '<p>Searching blockchain for serial number...</p>';
 
             try {
-                // In this contract, productId is independent; assume hash contains a batchId directly for now
-                const batchId = serialNumber; // Until a mapping is added
+                // First check if this serial number maps to a batch ID
+                const serialMapping = JSON.parse(localStorage.getItem('serial_mapping') || '{}');
+                let batchId = serialMapping[serialNumber];
+                
+                // If no mapping found, assume serialNumber is directly a batch ID
+                if (!batchId) {
+                    batchId = serialNumber;
+                }
+                
                 const logs = await Blockchain.getChainForBatch(batchId);
                 if (!logs || logs.length === 0) {
-                    traceContainer.innerHTML = `<p class="text-red-500">No history found for Batch ID: ${batchId}</p>`;
+                    traceContainer.innerHTML = `<p class="text-red-500">No history found for Serial Number: ${serialNumber}</p><p class="text-sm text-gray-500">Mapped to Batch ID: ${batchId}</p>`;
                     return;
                 }
                 this.renderChainFromLogs(batchId, logs, traceContainer);
@@ -83,12 +92,34 @@
             }
         },
         renderChainFromLogs(batchId, logs, container) {
-            const icon = { BatchCreated: '🌾', CollectionAdded: '👷', InspectionAdded: '🕵️', ProductCreated: '🏭', ProductReceived: '📦', ProductDispatched: '🚚' };
+            const icon = { 
+                BatchCreated: '🌾', 
+                CollectionAdded: '👷', 
+                InspectionAdded: '🕵️', 
+                ProductCreated: '🏭', 
+                ProductReceived: '📦', 
+                ProductDispatched: '🚚' 
+            };
             let html = '';
             logs.forEach(l => {
                 const name = l.fragment?.name || 'Event';
                 const ts = l.args?.timestamp || l.args?.collectionDate || l.args?.date || null;
                 const when = ts ? new Date(Number(ts) * (ts > 1e12 ? 1 : 1000)).toLocaleString() : '';
+                
+                let description = '';
+                if (name === 'BatchCreated' && l.args) {
+                    const meta = Blockchain?.parseFarmLocationMeta ? Blockchain.parseFarmLocationMeta(l.args.farmLocation || '') : {};
+                    const farmer = meta.farmer || 'Unknown Farmer';
+                    const baseLoc = meta.base || (l.args.farmLocation || 'Not specified');
+                    description = `${l.args.cropType} • ${l.args.quantity} kg • Location: ${baseLoc} • Farmer: ${farmer}`;
+                    const imageHash = meta.ipfs || l.args.photoHash;
+                    if (imageHash && Blockchain?.getImageFromPinata) {
+                        description += `<br><div style="margin-top:8px;"><img src="${Blockchain.getImageFromPinata(imageHash)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:2px solid #e5e7eb;" onclick="showFullImage('${imageHash}')" title="Click to view full image" /><span style="margin-left:8px;color:#3b82f6;cursor:pointer;" onclick="showFullImage('${imageHash}')"><i class="fas fa-expand"></i> View Full</span></div>`;
+                    }
+                } else {
+                    description = JSON.stringify(l.args, null, 2);
+                }
+                
                 html += `
                 <div class="timeline-item flex gap-4 pb-8">
                     <div class="flex flex-col items-center">
@@ -98,15 +129,43 @@
                     <div class="bg-gray-50 p-4 rounded-lg flex-1">
                         <p class="font-bold text-gray-800">${name}</p>
                         ${when ? `<p class="text-xs text-gray-400 mb-2">${when}</p>` : ''}
-                        <pre class="text-xs text-gray-600 whitespace-pre-wrap">${JSON.stringify(l.args, null, 2)}</pre>
+                        <div class="text-xs text-gray-600">${description}</div>
                     </div>
                 </div>`;
             });
-            container.innerHTML = `<p class="text-sm text-gray-500 mb-4">History for Batch ID: ${batchId}</p>` + html;
+            container.innerHTML = `<p class="text-sm text-gray-500 mb-4">History for Serial Number: ${this.currentSerialNumber} (Batch ID: ${batchId})</p>` + html;
         }
     };
 
     document.addEventListener('DOMContentLoaded', () => App.init());
+
+    function showFullImage(ipfsHash) {
+        if (!ipfsHash) return;
+        const fullUrl = Blockchain.getImageFromPinata(ipfsHash);
+        
+        // Create modal overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        overlay.onclick = (e) => {
+            if (e.target === overlay) overlay.remove();
+        };
+        
+        // Create modal content
+        const modal = document.createElement('div');
+        modal.className = 'bg-white p-4 rounded-lg max-w-4xl max-h-[90vh] overflow-auto';
+        modal.innerHTML = `
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Image Preview</h3>
+                <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <img src="${fullUrl}" class="max-w-full h-auto rounded-lg" alt="Full image" />
+        `;
+        
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+    }
     </script>
 </body>
 </html>
