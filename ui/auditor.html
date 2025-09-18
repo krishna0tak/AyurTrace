@@ -8,6 +8,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="theme.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="supabase-auth.js"></script>
 </head>
 <body>
     <nav class="navbar">
@@ -22,9 +25,15 @@
                     <a href="#"><i class="fas fa-history"></i> History</a>
                 </div>
                 <div class="user-menu">
-                    <div class="user-avatar">AD</div>
-                    <span>Auditor</span>
-                    <i class="fas fa-chevron-down"></i>
+                    <div class="user-avatar" id="userAvatar">--</div>
+                    <span id="userName">Loading...</span>
+                    <div class="dropdown">
+                        <i class="fas fa-chevron-down"></i>
+                        <div class="dropdown-content">
+                            <a href="settings.html"><i class="fas fa-cog"></i> Settings</a>
+                            <a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -124,6 +133,35 @@
                     alert("Failed to submit inspection.");
                 }
             });
+        });
+
+        // Authentication and user management
+        async function initUserSession() {
+            const user = await getCurrentUser();
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // Update user display
+            const userAvatar = document.getElementById('userAvatar');
+            const userName = document.getElementById('userName');
+            
+            if (userAvatar && userName) {
+                userAvatar.textContent = user.name ? user.name.substring(0, 2).toUpperCase() : user.actorId.substring(0, 2).toUpperCase();
+                userName.textContent = user.name || user.actorId;
+            }
+        }
+
+        // Logout functionality
+        document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            await signOut();
+        });
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initUserSession();
         });
     </script>
 </body>
