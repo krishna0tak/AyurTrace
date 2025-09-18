@@ -100,24 +100,24 @@
             
             handleSuccessfulAuth(userData) {
                 // Store user session
-                sessionStorage.setItem('ayurtrace_user', JSON.stringify(userData));
+                localStorage.setItem('ayurtrace_user', JSON.stringify(userData));
                 
-                // Redirect based on role
+                // Redirect based on role (using string role format)
                 let redirectUrl = '';
                 switch (userData.role) {
-                    case 1: // Farmer
+                    case 'farmer':
                         redirectUrl = 'farmer.html';
                         break;
-                    case 2: // Collector
+                    case 'collector':
                         redirectUrl = 'collector.html';
                         break;
-                    case 3: // Auditor
+                    case 'auditor':
                         redirectUrl = 'auditor.html';
                         break;
-                    case 4: // Manufacturer
+                    case 'manufacturer':
                         redirectUrl = 'manufacturer_dash.html';
                         break;
-                    case 5: // Distributor
+                    case 'distributor':
                         redirectUrl = 'distributor.html';
                         break;
                     default:
