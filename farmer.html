@@ -306,40 +306,6 @@
                     </div>
                 </div>
             </section>
-
-            <!-- Debug Section for Troubleshooting -->
-            <section class="card" style="border: 2px dashed #94a3b8; background: #f8fafc;">
-                <h3 class="card-header" style="color: #6b7280;">
-                    <i class="fas fa-bug"></i>
-                    Debug Tools
-                </h3>
-                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                    <button onclick="debugBatchLoading()" style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                        <i class="fas fa-search"></i> Debug Batch Loading
-                    </button>
-                    <button onclick="checkContractFunctions()" style="padding: 8px 16px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                        <i class="fas fa-cogs"></i> Check Contract Functions
-                    </button>
-                    <button onclick="checkAllBatches()" style="padding: 8px 16px; background: #f59e0b; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                        <i class="fas fa-database"></i> Check All Batches
-                    </button>
-                    <button onclick="testBatchCreation()" style="padding: 8px 16px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                        <i class="fas fa-flask"></i> Test Batch Creation
-                    </button>
-                    <button onclick="forceProfileSync()" style="padding: 8px 16px; background: #8b5cf6; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                        <i class="fas fa-sync"></i> Force Profile Sync
-                    </button>
-                    <button onclick="connectWallet()" style="padding: 8px 16px; background: #f97316; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                        <i class="fas fa-wallet"></i> Connect Wallet
-                    </button>
-                    <button onclick="createTestBatch()" style="padding: 8px 16px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                        <i class="fas fa-vial"></i> Create Test Batch
-                    </button>
-                </div>
-                <div id="debugOutput" style="padding: 15px; background: white; border: 1px solid #d1d5db; border-radius: 6px; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto;">
-                    Click a debug button to see diagnostic information...
-                </div>
-            </section>
         </div>
     </main>
 
@@ -846,22 +812,30 @@
             };
             
             let html = '';
-            logs.forEach(l => {
+            logs.forEach((l, index) => {
                 const name = l.fragment?.name || 'Event';
                 const ts = l.args?.timestamp || l.args?.collectionDate || l.args?.date || null;
+                const owner = l.args?.owner || l.args?.farmer || 'Unknown';
+                const farmerUsername = l.args?.farmerUsername || 'N/A';
+                const statusText = l.args?.statusText || 'Pending';
+                
                 // Safe BigInt to number conversion for timestamps
                 let when = '';
+                let timestampValue = '';
                 if (ts) {
                     try {
                         // Handle BigInt properly - convert to string first, then parse
                         let numTs;
                         if (typeof ts === 'bigint') {
                             numTs = parseInt(ts.toString());
+                            timestampValue = ts.toString();
                         } else if (typeof ts === 'object' && ts._isBigNumber) {
                             // ethers.js BigNumber
                             numTs = parseInt(ts.toString());
+                            timestampValue = ts.toString();
                         } else {
                             numTs = parseInt(ts);
+                            timestampValue = ts.toString();
                         }
                         
                         // Check if timestamp is in seconds or milliseconds
@@ -870,46 +844,94 @@
                     } catch (e) {
                         console.warn('Timestamp conversion error:', e, 'for value:', ts);
                         when = 'Invalid date';
+                        timestampValue = 'Invalid';
                     }
                 }
                 
                 let description = '';
+                let imageSection = '';
+                
                 if (name === 'BatchCreated' && l.args) {
                     const meta = Blockchain?.parseFarmLocationMeta ? Blockchain.parseFarmLocationMeta(l.args.farmLocation || '') : {};
-                    const farmer = meta.farmer || 'Unknown Farmer';
+                    const farmer = meta.farmer || farmerUsername || 'Unknown Farmer';
                     const baseLoc = meta.base || (l.args.farmLocation || 'Not specified');
-                    description = `${l.args.cropType} • ${l.args.quantity} kg • Location: ${baseLoc} • Farmer: ${farmer}`;
+                    
+                    description = `
+                        <div style="margin-bottom: 12px;">
+                            <strong>Crop:</strong> ${l.args.cropType} • <strong>Quantity:</strong> ${l.args.quantity} kg<br>
+                            <strong>Location:</strong> ${baseLoc}<br>
+                            <strong>Farmer:</strong> ${farmer}
+                        </div>
+                    `;
+                    
                     const imageHash = meta.ipfs || l.args.photoHash;
                     if (imageHash && Blockchain?.getImageFromPinata) {
-                        description += `<br><div style="margin-top:8px;"><img src="${Blockchain.getImageFromPinata(imageHash)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:2px solid #e5e7eb;" onclick="showFullImage('${imageHash}')" title="Click to view full image" /><span style="margin-left:8px;color:#3b82f6;cursor:pointer;" onclick="showFullImage('${imageHash}')"><i class="fas fa-expand"></i> View Full</span></div>`;
+                        imageSection = `
+                            <div style="margin-top: 12px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+                                <img src="${Blockchain.getImageFromPinata(imageHash)}" 
+                                     style="width: 100%; max-height: 200px; object-fit: cover; cursor: pointer;" 
+                                     onclick="showFullImage('${imageHash}')" 
+                                     title="Click to view full image" 
+                                     alt="Batch Image" />
+                                <div style="padding: 8px; background: #f9fafb; font-size: 11px; color: #6b7280;">
+                                    📸 Click image to view full size
+                                </div>
+                            </div>
+                        `;
                     }
                 } else {
-                    // Safely stringify args, converting BigInt to string
-                    try {
-                        const argsStr = JSON.stringify(l.args, (key, value) => {
-                            if (typeof value === 'bigint') {
-                                return value.toString();
-                            } else if (value && typeof value === 'object' && value._isBigNumber) {
-                                return value.toString();
+                    // For other events, display key information in a structured way
+                    const eventInfo = [];
+                    
+                    if (l.args) {
+                        Object.keys(l.args).forEach(key => {
+                            if (key !== 'photoHash' && key !== 'timestamp' && key !== 'owner' && key !== 'farmerUsername' && key !== 'statusText') {
+                                let value = l.args[key];
+                                if (typeof value === 'bigint') {
+                                    value = value.toString();
+                                } else if (value && typeof value === 'object' && value._isBigNumber) {
+                                    value = value.toString();
+                                }
+                                eventInfo.push(`<strong>${key}:</strong> ${value}`);
                             }
-                            return value;
-                        }, 2);
-                        description = argsStr;
-                    } catch (e) {
-                        description = 'Event data (unable to display)';
+                        });
                     }
+                    
+                    description = eventInfo.length > 0 ? eventInfo.join('<br>') : 'Event processed successfully';
                 }
                 
+                // Status badge styling
+                let statusBadge = '';
+                let statusColor = '#6b7280';
+                if (statusText === 'Completed') statusColor = '#10b981';
+                else if (statusText === 'Processing') statusColor = '#f59e0b';
+                else if (statusText === 'Pending') statusColor = '#ef4444';
+                
+                statusBadge = `<span style="background: ${statusColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">${statusText}</span>`;
+                
                 html += `
-                <div class="timeline-item" style="display:flex;gap:16px;padding-bottom:32px;">
+                <div class="timeline-item" style="display:flex;gap:16px;padding-bottom:32px; position: relative;">
                     <div style="display:flex;flex-direction:column;align-items:center;">
-                        <div style="background:#6366f1;color:white;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;">${icon[name] || '⛓️'}</div>
-                        <div style="width:2px;height:100%;background:#e2e8f0;margin-top:8px;"></div>
+                        <div style="background:#6366f1;color:white;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);">${icon[name] || '⛓️'}</div>
+                        ${index < logs.length - 1 ? '<div style="width:2px;height:100%;background:#e2e8f0;margin-top:8px;"></div>' : ''}
                     </div>
-                    <div style="background:#f8fafc;padding:16px;border-radius:12px;flex:1;">
-                        <p style="font-weight:600;color:#1f2937;margin:0 0 4px 0;">${name}</p>
-                        ${when ? `<p style="font-size:12px;color:#6b7280;margin:0 0 8px 0;">${when}</p>` : ''}
-                        <div style="font-size:12px;color:#4b5563;">${description}</div>
+                    <div style="background:#f8fafc;padding:20px;border-radius:12px;flex:1;border: 1px solid #e2e8f0;box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <h4 style="font-weight:600;color:#1f2937;margin:0;font-size:16px;">${name}</h4>
+                            ${statusBadge}
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; font-size: 12px; color: #6b7280;">
+                            <div><strong>📅 Timestamp:</strong> ${timestampValue}</div>
+                            <div><strong>👤 Owner:</strong> ${owner.substring(0, 10)}...${owner.substring(owner.length - 8)}</div>
+                            <div><strong>🔗 Date/Time:</strong> ${when || 'Not available'}</div>
+                            <div><strong>👨‍🌾 Farmer ID:</strong> ${farmerUsername}</div>
+                        </div>
+                        
+                        <div style="border-top: 1px solid #e5e7eb; padding-top: 12px;">
+                            ${description}
+                            ${imageSection}
+                        </div>
                     </div>
                 </div>`;
             });
@@ -1159,299 +1181,6 @@
                     </div>
                 </div>
             `}).join('');
-        }
-
-        // Debug functions for troubleshooting
-        async function debugBatchLoading() {
-            const debugDiv = document.getElementById('debugOutput');
-            debugDiv.innerHTML = '<strong>🔍 Starting debug...</strong><br>';
-            
-            try {
-                // Check session
-                const user = await getCurrentUser();
-                debugDiv.innerHTML += `✅ Current user: ${user ? user.actorId : 'None'}<br>`;
-                
-                // Check blockchain connection
-                await Blockchain.init();
-                debugDiv.innerHTML += `✅ Blockchain initialized<br>`;
-                
-                // Try username-based fetch
-                const username = await getCurrentActorId();
-                debugDiv.innerHTML += `📝 Current actorId: ${username}<br>`;
-                
-                if (username) {
-                    const usernameBatches = await Blockchain.getBatchesForUsername(username);
-                    debugDiv.innerHTML += `📦 Batches by username: ${usernameBatches.length}<br>`;
-                    
-                    // Try legacy address-based fetch
-                    const legacyBatches = await Blockchain.getFarmerBatches();
-                    debugDiv.innerHTML += `📦 Legacy batches: ${legacyBatches.length}<br>`;
-                    
-                    // Show comparison
-                    debugDiv.innerHTML += `<br><strong>Username batches:</strong><br>`;
-                    usernameBatches.forEach((b, i) => {
-                        debugDiv.innerHTML += `${i+1}. ${b.id} - ${b.cropType}<br>`;
-                    });
-                    
-                    debugDiv.innerHTML += `<br><strong>Legacy batches:</strong><br>`;
-                    legacyBatches.forEach((b, i) => {
-                        debugDiv.innerHTML += `${i+1}. ${b.id} - ${b.cropType}<br>`;
-                    });
-                }
-                
-            } catch (error) {
-                debugDiv.innerHTML += `❌ Error: ${error.message}<br>`;
-            }
-        }
-        
-        async function checkContractFunctions() {
-            const debugDiv = document.getElementById('debugOutput');
-            debugDiv.innerHTML = '<strong>🔧 Checking contract functions...</strong><br>';
-            
-            try {
-                await Blockchain.init();
-                const contract = Blockchain.contractRO;
-                
-                const functionChecks = [
-                    'getBatchDetailsV2',
-                    'getBatchIdsByFarmerUsername', 
-                    'getAccountByUsername',
-                    'getFarmerBatchIds',
-                    'getBatchDetails'
-                ];
-                
-                functionChecks.forEach(func => {
-                    const exists = typeof contract[func] === 'function';
-                    debugDiv.innerHTML += `${exists ? '✅' : '❌'} ${func}: ${exists ? 'Available' : 'Missing'}<br>`;
-                });
-                
-            } catch (error) {
-                debugDiv.innerHTML += `❌ Error: ${error.message}<br>`;
-            }
-        }
-
-        async function checkAllBatches() {
-            const debugDiv = document.getElementById('debugOutput');
-            debugDiv.innerHTML = '<strong>🗄️ Checking all batches in contract...</strong><br>';
-            
-            try {
-                await Blockchain.init();
-                const contract = Blockchain.contractRO;
-                
-                // Try to get total batch count if such function exists
-                if (contract.totalBatches) {
-                    const total = await contract.totalBatches();
-                    debugDiv.innerHTML += `📊 Total batches in contract: ${total}<br>`;
-                }
-                
-                // Try to get batch IDs from different methods
-                const user = await getCurrentUser();
-                if (user && user.wallet_address) {
-                    debugDiv.innerHTML += `🔗 User wallet: ${user.wallet_address}<br>`;
-                    
-                    if (contract.getFarmerBatchIds) {
-                        const addressBatches = await contract.getFarmerBatchIds(user.wallet_address);
-                        debugDiv.innerHTML += `📦 Batches by address: ${addressBatches.length}<br>`;
-                        addressBatches.forEach((id, i) => {
-                            debugDiv.innerHTML += `&nbsp;&nbsp;${i+1}. ${id}<br>`;
-                        });
-                    }
-                }
-                
-                // Check username mapping
-                const username = await getCurrentActorId();
-                if (username && contract.getAccountByUsername) {
-                    const mappedAddress = await contract.getAccountByUsername(username);
-                    debugDiv.innerHTML += `🔗 Username "${username}" maps to: ${mappedAddress}<br>`;
-                    
-                    if (mappedAddress !== ethers.ZeroAddress) {
-                        if (contract.getFarmerBatchIds) {
-                            const mappedBatches = await contract.getFarmerBatchIds(mappedAddress);
-                            debugDiv.innerHTML += `📦 Mapped address batches: ${mappedBatches.length}<br>`;
-                        }
-                    } else {
-                        debugDiv.innerHTML += `⚠️ Username not registered in contract!<br>`;
-                    }
-                }
-                
-            } catch (error) {
-                debugDiv.innerHTML += `❌ Error: ${error.message}<br>`;
-            }
-        }
-
-        async function testBatchCreation() {
-            const debugDiv = document.getElementById('debugOutput');
-            debugDiv.innerHTML = '<strong>🧪 Testing batch creation process...</strong><br>';
-            
-            try {
-                await Blockchain.init();
-                
-                // Check if user is properly connected
-                const user = await getCurrentUser();
-                debugDiv.innerHTML += `👤 User: ${JSON.stringify(user)}<br>`;
-                
-                const username = await getCurrentActorId();
-                debugDiv.innerHTML += `📝 ActorId: ${username}<br>`;
-                
-                // Check wallet connection
-                if (window.ethereum) {
-                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                    debugDiv.innerHTML += `💼 Connected accounts: ${accounts.length}<br>`;
-                    if (accounts.length > 0) {
-                        debugDiv.innerHTML += `&nbsp;&nbsp;Active: ${accounts[0]}<br>`;
-                    }
-                } else {
-                    debugDiv.innerHTML += `❌ No Ethereum provider found<br>`;
-                }
-                
-                // Check contract write capability
-                const contract = Blockchain.contractRW;
-                if (contract) {
-                    debugDiv.innerHTML += `✅ Write contract available<br>`;
-                    
-                    // Test if setProfile would work (dry run)
-                    if (contract.setProfile && username) {
-                        debugDiv.innerHTML += `🔧 Profile function available for user "${username}"<br>`;
-                        debugDiv.innerHTML += `💡 Try creating a batch to see if it works!<br>`;
-                    }
-                } else {
-                    debugDiv.innerHTML += `❌ Write contract not available<br>`;
-                }
-                
-            } catch (error) {
-                debugDiv.innerHTML += `❌ Error: ${error.message}<br>`;
-            }
-        }
-
-        async function forceProfileSync() {
-            const debugDiv = document.getElementById('debugOutput');
-            debugDiv.innerHTML = '<strong>🔄 Force syncing profile...</strong><br>';
-            
-            try {
-                const user = await getCurrentUser();
-                if (!user) {
-                    debugDiv.innerHTML += `❌ No user session found<br>`;
-                    return;
-                }
-                
-                debugDiv.innerHTML += `👤 Syncing profile for: ${user.name} (${user.actorId}) [${user.role}]<br>`;
-                
-                await Blockchain.init();
-                const contract = Blockchain.contractRW;
-                
-                if (!contract) {
-                    debugDiv.innerHTML += `❌ No write contract available<br>`;
-                    return;
-                }
-                
-                // Force profile sync
-                const name = user.name || user.actorId;
-                const username = user.actorId;
-                const role = user.role;
-                
-                debugDiv.innerHTML += `🔧 Setting ${role} profile: "${name}" with username "${username}"<br>`;
-                
-                let tx;
-                if (role === 'farmer' && contract.setFarmerProfile) {
-                    tx = await contract.setFarmerProfile(name, username);
-                } else if (role === 'collector' && contract.setCollectorProfile) {
-                    tx = await contract.setCollectorProfile(name, username);
-                } else if (role === 'auditor' && contract.setAuditorProfile) {
-                    tx = await contract.setAuditorProfile(name, username);
-                } else if (role === 'manufacturer' && contract.setManufacturerProfile) {
-                    tx = await contract.setManufacturerProfile(name, username);
-                } else if (role === 'distributor' && contract.setDistributorProfile) {
-                    tx = await contract.setDistributorProfile(name, username);
-                } else {
-                    debugDiv.innerHTML += `❌ Unknown role or missing function: ${role}<br>`;
-                    return;
-                }
-                
-                debugDiv.innerHTML += `⏳ Transaction sent: ${tx.hash}<br>`;
-                const receipt = await tx.wait();
-                debugDiv.innerHTML += `✅ Profile synced! Block: ${receipt.blockNumber}<br>`;
-                
-                // Now test if username resolves correctly
-                if (contract.getAccountByUsername) {
-                    const mappedAddr = await contract.getAccountByUsername(username);
-                    debugDiv.innerHTML += `🔗 Username "${username}" now maps to: ${mappedAddr}<br>`;
-                }
-                
-            } catch (error) {
-                debugDiv.innerHTML += `❌ Error: ${error.message}<br>`;
-            }
-        }
-
-        async function connectWallet() {
-            const debugDiv = document.getElementById('debugOutput');
-            debugDiv.innerHTML = '<strong>🔗 Connecting wallet...</strong><br>';
-            
-            try {
-                if (!window.ethereum) {
-                    debugDiv.innerHTML += `❌ MetaMask not detected. For Ganache, ensure MetaMask is connected to local network<br>`;
-                    return;
-                }
-                
-                // Request account access
-                const accounts = await window.ethereum.request({
-                    method: 'eth_requestAccounts'
-                });
-                
-                debugDiv.innerHTML += `✅ Wallet connected: ${accounts[0]}<br>`;
-                
-                // Check network
-                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-                debugDiv.innerHTML += `🌐 Chain ID: ${chainId}<br>`;
-                
-                // Try to ping the blockchain
-                await Blockchain.init();
-                debugDiv.innerHTML += `✅ Blockchain connection established<br>`;
-                
-            } catch (error) {
-                debugDiv.innerHTML += `❌ Connection error: ${error.message}<br>`;
-            }
-        }
-
-        async function createTestBatch() {
-            const debugDiv = document.getElementById('debugOutput');
-            debugDiv.innerHTML = '<strong>🧪 Creating test batch...</strong><br>';
-            
-            try {
-                await Blockchain.init();
-                
-                const user = await getCurrentUser();
-                if (!user) {
-                    debugDiv.innerHTML += `❌ No user session<br>`;
-                    return;
-                }
-                
-                const testBatchId = 'TEST_BATCH_' + Date.now();
-                debugDiv.innerHTML += `📦 Creating batch: ${testBatchId}<br>`;
-                
-                const batchData = {
-                    batchId: testBatchId,
-                    cropType: 'Test Herb',
-                    quantity: '10',
-                    harvestDate: new Date().toISOString().split('T')[0],
-                    farmLocation: 'Test Farm Location',
-                    photoHash: '0x' + '0'.repeat(64) // placeholder
-                };
-                
-                debugDiv.innerHTML += `⏳ Submitting to blockchain...<br>`;
-                const receipt = await Blockchain.createBatch(batchData);
-                debugDiv.innerHTML += `✅ Batch created! Transaction: ${receipt.hash}<br>`;
-                debugDiv.innerHTML += `📋 Block number: ${receipt.blockNumber}<br>`;
-                
-                // Reload the batches to see if it appears
-                debugDiv.innerHTML += `🔄 Reloading batch list...<br>`;
-                await loadStats();
-                await loadRecentBatches();
-                debugDiv.innerHTML += `✅ Done! Check the recent batches section above.<br>`;
-                
-            } catch (error) {
-                debugDiv.innerHTML += `❌ Error: ${error.message}<br>`;
-                console.error('Test batch creation error:', error);
-            }
         }
 
         // Logout functionality
