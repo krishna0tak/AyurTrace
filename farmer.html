@@ -9,350 +9,42 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="theme.css">
     <style>
-        /* Image Upload Section Styles */
-        .image-upload-section {
-            border: 2px dashed #d1d5db;
+        .capture-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
             border-radius: 8px;
-            padding: 20px;
-            background: #f9fafb;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
         }
         
-        .upload-controls {
+        .capture-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .image-capture-section {
             display: flex;
+            flex-direction: column;
             gap: 12px;
-            margin-bottom: 16px;
         }
         
-        .btn {
-            padding: 10px 16px;
-            border-radius: 6px;
-            border: none;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s ease;
-        }
-        
-        .btn-primary {
-            background-color: #3b82f6;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background-color: #2563eb;
-        }
-        
-        .btn-secondary {
-            background-color: #6b7280;
-            color: white;
-        }
-        
-        .btn-secondary:hover {
-            background-color: #4b5563;
-        }
-        
-        .image-previews {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 12px;
-            margin-top: 16px;
-        }
-        
-        .image-preview-item {
-            position: relative;
-            border: 1px solid #e5e7eb;
+        .image-preview {
+            border: 2px dashed #e2e8f0;
             border-radius: 8px;
-            overflow: hidden;
-            background: white;
-        }
-        
-        .image-preview-item img {
-            width: 100%;
-            height: 120px;
-            object-fit: cover;
-        }
-        
-        .image-preview-item .remove-btn {
-            position: absolute;
-            top: 4px;
-            right: 4px;
-            background: rgba(239, 68, 68, 0.9);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            cursor: pointer;
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .image-preview-item .image-info {
-            padding: 8px;
-            font-size: 11px;
-            color: #6b7280;
-            background: #f9fafb;
-        }
-        
-        .upload-progress {
-            margin-top: 16px;
-        }
-        
-        .progress-bar-container {
-            width: 100%;
-            height: 8px;
-            background: #e5e7eb;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        
-        .progress-bar {
-            height: 100%;
-            background: #3b82f6;
-            transition: width 0.3s ease;
-            width: 0%;
-        }
-        
-        .upload-status {
-            margin-top: 8px;
-            font-size: 14px;
-            color: #6b7280;
+            padding: 16px;
             text-align: center;
+            background: #f8fafc;
         }
         
-        /* Enhanced Image Preview Styles */
-        .image-preview-item {
-            position: relative;
-            border: 2px solid #e5e7eb;
-            border-radius: 12px;
-            overflow: hidden;
-            background: white;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s ease;
-        }
-        
-        .image-preview-item:hover {
-            border-color: #3b82f6;
-            box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.15);
-            transform: translateY(-2px);
-        }
-        
-        .image-preview-item img {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-        
-        .image-preview-item .remove-btn {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: rgba(239, 68, 68, 0.9);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 28px;
-            height: 28px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-            backdrop-filter: blur(4px);
-        }
-        
-        .image-preview-item .remove-btn:hover {
-            background: rgba(239, 68, 68, 1);
-            transform: scale(1.1);
-        }
-        
-        .image-preview-item .image-info {
-            padding: 12px;
-            font-size: 11px;
-            color: #374151;
-            background: linear-gradient(to bottom, #f9fafb, #f3f4f6);
-            line-height: 1.4;
-        }
-        
-        .image-preview-item .image-info div {
-            margin-bottom: 3px;
-        }
-        
-        .image-preview-item .image-info div:last-child {
-            margin-bottom: 0;
-        }
-        
-        /* Status indicators */
-        .status-ready {
-            color: #059669 !important;
-            font-weight: bold;
-        }
-        
-        .status-processing {
-            color: #d97706 !important;
-            font-weight: bold;
-        }
-        
-        /* Enhanced Form Styling */
-        .form-section {
-            margin-bottom: 32px;
-            background: #fafafa;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 20px;
-        }
-        
-        .section-title {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 0 0 16px 0;
-            font-size: 16px;
-            font-weight: 600;
-            color: #374151;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #e5e7eb;
-        }
-        
-        .section-title i {
-            color: #10b981;
-        }
-        
-        .location-input-group {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        
-        .location-input-group input {
-            flex: 1;
-        }
-        
-        .location-btn {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white;
-            border: none;
+        .image-preview img {
             border-radius: 8px;
-            padding: 12px 16px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            min-width: 70px;
-            transition: all 0.2s ease;
-        }
-        
-        .location-btn:hover {
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            transform: translateY(-1px);
-        }
-        
-        .input-hint {
-            display: block;
-            margin-top: 6px;
-            color: #6b7280;
-            font-size: 12px;
-            font-style: italic;
-        }
-        
-        .upload-area {
-            border: 2px dashed #d1d5db;
-            border-radius: 12px;
-            padding: 24px;
-            text-align: center;
-            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-            transition: all 0.3s ease;
-        }
-        
-        .upload-area:hover {
-            border-color: #10b981;
-            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-        }
-        
-        .upload-prompt i {
-            font-size: 48px;
-            color: #9ca3af;
-            margin-bottom: 16px;
-        }
-        
-        .upload-prompt h5 {
-            margin: 0 0 8px 0;
-            font-size: 18px;
-            font-weight: 600;
-            color: #374151;
-        }
-        
-        .upload-prompt p {
-            margin: 0 0 20px 0;
-            color: #6b7280;
-            font-size: 14px;
-        }
-        
-        .upload-btn {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 12px 24px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-        }
-        
-        .upload-btn:hover {
-            background: linear-gradient(135deg, #059669 0%, #047857 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-        }
-        
-        .form-actions {
-            margin-top: 32px;
-            padding-top: 24px;
-            border-top: 1px solid #e5e7eb;
-            text-align: center;
-        }
-        
-        .submit-btn {
-            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 16px 32px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            min-width: 200px;
-            justify-content: center;
-            transition: all 0.3s ease;
-        }
-        
-        .submit-btn:hover {
-            background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
-        }
-        
-        .submit-btn:disabled {
-            background: #9ca3af;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
+            margin-bottom: 8px;
         }
         
         /* QR Code Section */
@@ -378,45 +70,6 @@
         #generatedQrCode:hover {
             transform: scale(1.05);
         }
-        
-        /* Storage Status Indicator */
-        .storage-status {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        }
-        
-        .storage-status i {
-            color: #6b7280;
-        }
-        
-        .storage-status span {
-            font-weight: 500;
-        }
-        
-        #storageProgress {
-            position: relative;
-            overflow: hidden;
-        }
-        
-        #storageProgressBar {
-            transition: all 0.3s ease;
-            position: relative;
-        }
-        
-        #storageProgressBar::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
-            animation: shimmer 2s infinite;
-        }
-        
-        @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-        }
     </style>
 </head>
 
@@ -428,151 +81,30 @@
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script src="blockchain.js"></script>
-    <script src="image-capture.js"></script>
-    <script src="image-capture-ui.js"></script>
     <script>
-        console.log('=== FARMER PAGE JAVASCRIPT STARTING ===');
-        
         // Check authentication using the proper auth system
         async function checkAuth() {
-            console.log('Auth check starting...');
             try {
                 const user = await getCurrentUser();
-                console.log('Current user:', user);
                 if (!user) {
-                    console.log('No user found, but continuing for testing...');
-                    // Temporarily comment out redirect for debugging
-                    // window.location.href = 'login.html';
-                    return;
+                    console.log('No user found, redirecting to login...');
+                    window.location.href = 'login.html';
+                    return false;
                 }
                 if (user.role !== 'farmer') {
-                    console.log('User is not a farmer, but continuing for testing...');
-                    // Temporarily comment out redirect for debugging  
-                    // window.location.href = 'login.html';
-                    return;
+                    console.log('User is not a farmer, redirecting to login...');
+                    window.location.href = 'login.html';
+                    return false;
                 }
                 console.log('Auth check passed for farmer:', user.name);
+                return true;
             } catch (error) {
                 console.error('Auth check failed:', error);
-                console.log('Continuing anyway for testing...');
-                // Comment out redirect for debugging
-                // window.location.href = 'login.html';
+                // Don't redirect on auth errors for debugging
+                console.log('Continuing for debugging purposes...');
+                return true;
             }
         }
-        
-        // Image compression function to reduce storage size
-        async function compressImageForStorage(dataUrl, quality = 0.3, maxWidth = 800) {
-            return new Promise((resolve) => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                const img = new Image();
-                
-                img.onload = () => {
-                    // Calculate new dimensions while maintaining aspect ratio
-                    let { width, height } = img;
-                    
-                    if (width > maxWidth) {
-                        height = (height * maxWidth) / width;
-                        width = maxWidth;
-                    }
-                    
-                    // Set canvas dimensions
-                    canvas.width = width;
-                    canvas.height = height;
-                    
-                    // Draw and compress
-                    ctx.drawImage(img, 0, 0, width, height);
-                    
-                    // Convert to compressed JPEG
-                    const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-                    console.log(`Image compressed: ${Math.round((dataUrl.length - compressedDataUrl.length) / 1024)}KB saved`);
-                    resolve(compressedDataUrl);
-                };
-                
-                img.src = dataUrl;
-            });
-        }
-        
-        // Clean up old batch data to free up storage space
-        async function cleanupOldBatchData() {
-            try {
-                const batchImages = JSON.parse(localStorage.getItem('batch_images') || '{}');
-                const farmerBatches = JSON.parse(localStorage.getItem('farmer_batches') || '[]');
-                
-                // Calculate current storage usage
-                const currentSize = JSON.stringify(batchImages).length + JSON.stringify(farmerBatches).length;
-                const maxSize = 4 * 1024 * 1024; // 4MB limit (localStorage is ~5-10MB)
-                
-                if (currentSize > maxSize * 0.7) { // Clean up when 70% full (more aggressive)
-                    console.log('Storage approaching limit, cleaning up old data...');
-                    
-                    // Keep only the most recent 15 batches with images (reduced from 20)
-                    const sortedBatches = Object.entries(batchImages)
-                        .sort(([,a], [,b]) => new Date(b.createdAt) - new Date(a.createdAt));
-                    
-                    const recentBatches = sortedBatches.slice(0, 15);
-                    const cleanedBatchImages = Object.fromEntries(recentBatches);
-                    
-                    localStorage.setItem('batch_images', JSON.stringify(cleanedBatchImages));
-                    
-                    // Also trim farmer_batches to match
-                    const trimmedFarmerBatches = farmerBatches.slice(0, 25);
-                    localStorage.setItem('farmer_batches', JSON.stringify(trimmedFarmerBatches));
-                    
-                    console.log(`Cleaned up storage: kept ${recentBatches.length} batch images and ${trimmedFarmerBatches.length} batch records`);
-                    
-                    // Show user notification about cleanup
-                    if (recentBatches.length < sortedBatches.length) {
-                        console.log(`Removed ${sortedBatches.length - recentBatches.length} old batch image sets to free up space`);
-                    }
-                }
-            } catch (error) {
-                console.warn('Storage cleanup failed:', error);
-            }
-        }
-        
-        // Emergency storage cleanup when quota is exceeded
-        async function emergencyStorageCleanup() {
-            try {
-                console.log('Emergency storage cleanup initiated...');
-                
-                // Remove oldest half of stored data
-                const batchImages = JSON.parse(localStorage.getItem('batch_images') || '{}');
-                const farmerBatches = JSON.parse(localStorage.getItem('farmer_batches') || '[]');
-                
-                // Keep only the most recent 8 batches with images (reduced from 10)
-                const sortedBatches = Object.entries(batchImages)
-                    .sort(([,a], [,b]) => new Date(b.createdAt) - new Date(a.createdAt));
-                
-                const emergencyBatches = sortedBatches.slice(0, 8);
-                const emergencyBatchImages = Object.fromEntries(emergencyBatches);
-                
-                localStorage.setItem('batch_images', JSON.stringify(emergencyBatchImages));
-                
-                // Keep only 12 farmer batch records
-                const emergencyFarmerBatches = farmerBatches.slice(0, 12);
-                localStorage.setItem('farmer_batches', JSON.stringify(emergencyFarmerBatches));
-                
-                console.log(`Emergency cleanup: kept ${emergencyBatches.length} batch images and ${emergencyFarmerBatches.length} batch records`);
-                
-                // Notify user about aggressive cleanup
-                const removedImages = sortedBatches.length - emergencyBatches.length;
-                if (removedImages > 0) {
-                    console.log(`Emergency cleanup removed ${removedImages} old batch image sets`);
-                }
-                
-            } catch (error) {
-                console.error('Emergency cleanup failed:', error);
-                // Clear all storage as last resort
-                localStorage.removeItem('batch_images');
-                localStorage.removeItem('farmer_batches');
-                console.log('Cleared all batch data as emergency measure');
-                alert('Storage was critically full. Cleared old data to make space for new batch. Recent batches may have been removed.');
-            }
-        }
-        
-        // Run auth check when page loads
-        document.addEventListener('DOMContentLoaded', checkAuth);
     </script>
 
     <nav class="navbar">
@@ -676,159 +208,141 @@
             </div>
 
             <section class="card" id="createBatchSection" style="display: none;">
-                <div class="card-header" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 20px; border-radius: 12px 12px 0 0;">
-                    <h3 style="margin: 0; display: flex; align-items: center; gap: 12px; font-size: 20px;">
+                <div class="card-header-section">
+                    <h3 class="card-header">
                         <i class="fas fa-plus-circle"></i>
                         Create New Batch
                     </h3>
-                    <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 14px;">Record your harvest details and capture images for blockchain verification</p>
+                    <p class="card-subtitle">Fill in the details to create a new batch for your crop</p>
                 </div>
                 
-                <div style="padding: 24px;">
-                    <form id="newBatchForm">
-                        <!-- Primary Information Section -->
-                        <div class="form-section">
-                            <h4 class="section-title">
+                <form id="newBatchForm" class="batch-form">
+                    <div class="form-grid">
+                        <!-- Row 1: Basic Information -->
+                        <div class="form-group">
+                            <label for="cropName">
                                 <i class="fas fa-seedling"></i>
-                                Crop Information
-                            </h4>
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label for="cropName">Crop Name *</label>
-                                    <input type="text" id="cropName" name="cropName" class="form-input" 
-                                        placeholder="e.g., Basmati Rice, Wheat, Cotton" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="quantity">Quantity (kg) *</label>
-                                    <input type="number" id="quantity" name="quantity" class="form-input"
-                                        placeholder="Enter weight in kilograms" required min="1">
-                                </div>
-                                <div class="form-group">
-                                    <label for="harvestDate">Harvest Date *</label>
-                                    <input type="date" id="harvestDate" name="harvestDate" class="form-input" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="expectedQuality">Quality Grade *</label>
-                                    <select id="expectedQuality" name="expectedQuality" class="form-input" required>
-                                        <option value="">Select Expected Quality</option>
-                                        <option value="Premium">🏆 Premium</option>
-                                        <option value="Standard">⭐ Standard</option>
-                                        <option value="Basic">📦 Basic</option>
-                                    </select>
-                                </div>
-                            </div>
+                                Crop Name
+                            </label>
+                            <input type="text" id="cropName" name="cropName" class="form-input" 
+                                placeholder="Enter crop name (e.g., Rice, Wheat, Cotton)" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="quantity">
+                                <i class="fas fa-weight-hanging"></i>
+                                Quantity (kg)
+                            </label>
+                            <input type="number" id="quantity" name="quantity" class="form-input"
+                                placeholder="e.g., 100" required min="1" step="0.1">
                         </div>
 
-                        <!-- Location Section -->
-                        <div class="form-section">
-                            <h4 class="section-title">
+                        <!-- Row 2: Date and Quality -->
+                        <div class="form-group">
+                            <label for="harvestDate">
+                                <i class="fas fa-calendar-alt"></i>
+                                Harvest Date
+                            </label>
+                            <input type="date" id="harvestDate" name="harvestDate" class="form-input" required 
+                                value="2024-01-15">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="expectedQuality">
+                                <i class="fas fa-star"></i>
+                                Expected Quality Grade
+                            </label>
+                            <select id="expectedQuality" name="expectedQuality" class="form-input" required>
+                                <option value="">Select Quality</option>
+                                <option value="Premium">🏆 Premium</option>
+                                <option value="Standard">⭐ Standard</option>
+                                <option value="Basic">📋 Basic</option>
+                            </select>
+                        </div>
+
+                        <!-- Row 3: Location (Full Width) -->
+                        <div class="form-group form-group-full">
+                            <label for="farmLocation">
                                 <i class="fas fa-map-marker-alt"></i>
-                                Location Details
-                            </h4>
-                            <div class="form-group">
-                                <label for="farmLocation">Farm Location *</label>
-                                <div class="location-input-group">
-                                    <input type="text" id="farmLocation" name="farmLocation" class="form-input"
-                                        placeholder="Village name or address" required>
-                                    <button type="button" class="location-btn" id="getLocationBtn" title="Get current GPS location">
-                                        <i class="fas fa-crosshairs"></i>
-                                        <span>GPS</span>
-                                    </button>
-                                </div>
-                                <small class="input-hint">You can enter your village/area name or use GPS to get precise coordinates</small>
+                                Farm Location
+                            </label>
+                            <div class="input-group">
+                                <input type="text" id="farmLocation" name="farmLocation" class="form-input"
+                                    placeholder="Village name or GPS coordinates" required>
+                                <button type="button" class="get-location-btn" id="getLocationBtn" title="Get Current Location">
+                                    <i class="fas fa-crosshairs"></i>
+                                </button>
                             </div>
+                            <small class="form-hint">You can enter a village name or use GPS to get precise coordinates</small>
                         </div>
 
-                        <!-- Image Upload Section -->
-                        <div class="form-section">
-                            <h4 class="section-title">
-                                <i class="fas fa-camera"></i>
-                                Crop Images
-                            </h4>
-                            <div class="image-upload-section">
-                                <div class="upload-area">
-                                    <div class="upload-prompt">
-                                        <i class="fas fa-cloud-upload-alt"></i>
-                                        <h5>Add Images of Your Crop</h5>
-                                        <p>Upload photos to verify your batch quality</p>
-                                        <button type="button" id="uploadImageBtn" class="upload-btn">
-                                            <i class="fas fa-plus"></i>
-                                            Choose Images or Take Photo
-                                        </button>
-                                        <input type="file" id="imageFileInput" accept="image/*" multiple capture="environment" style="display: none;">
-                                    </div>
-                                </div>
-                                
-                                <!-- Image Preview Container -->
-                                <div id="imagePreviewContainer" class="image-previews">
-                                    <!-- Images will be displayed here -->
-                                </div>
-                                
-                                <!-- Upload Progress -->
-                                <div id="uploadProgressSection" class="upload-progress" style="display: none;">
-                                    <div class="progress-bar-container">
-                                        <div id="uploadProgressBar" class="progress-bar"></div>
-                                    </div>
-                                    <div id="uploadStatus" class="upload-status">Processing images...</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Additional Information -->
-                        <div class="form-section">
-                            <h4 class="section-title">
+                        <!-- Row 4: Description (Full Width) -->
+                        <div class="form-group form-group-full">
+                            <label for="description">
                                 <i class="fas fa-file-alt"></i>
-                                Additional Details
-                            </h4>
-                            <div class="form-group">
-                                <label for="description">Description (Optional)</label>
-                                <textarea id="description" name="description" class="form-input"
-                                    placeholder="Add any additional details about this batch (farming methods, certifications, etc.)" rows="3"></textarea>
+                                Description
+                            </label>
+                            <textarea id="description" name="description" class="form-input description-textarea"
+                                placeholder="Additional details about the batch (farming methods, certifications, etc.)" rows="3"></textarea>
+                        </div>
+
+                        <!-- Row 5: Image Upload (Full Width) -->
+                        <div class="form-group form-group-full">
+                            <label for="cropImage">
+                                <i class="fas fa-camera"></i>
+                                Crop Image with Location & Time
+                            </label>
+                            <div class="image-capture-section">
+                                <button type="button" id="captureImageBtn" class="capture-btn">
+                                    <i class="fas fa-camera"></i>
+                                    <span>Capture Image</span>
+                                    <small>Location & timestamp will be embedded</small>
+                                </button>
+                                <input type="file" id="imageFileInput" accept="image/*" style="display: none;">
+                                <div id="imagePreview" class="image-preview" style="display: none;">
+                                    <div class="image-preview-container">
+                                        <img id="previewImg" alt="Crop preview">
+                                        <button type="button" class="remove-image-btn" title="Remove image">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <div id="imageMetadata" class="image-metadata">
+                                        <i class="fas fa-info-circle"></i>
+                                        <span>Image metadata will appear here</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        
-                        <div class="form-actions">
-                            <button type="submit" class="submit-btn">
-                                <i class="fas fa-blockchain"></i>
-                                Create Batch on Blockchain
-                            </button>
-                        </div>
-                        
-                        <!-- Storage Status Indicator -->
-                        <div id="storageStatus" class="storage-status" style="margin-top: 16px; padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #10b981;">
-                            <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #6b7280;">
-                                <i class="fas fa-database"></i>
-                                <span>Local Storage: <span id="storageUsageText">Calculating...</span></span>
-                            </div>
-                            <div id="storageProgress" style="margin-top: 8px; background: #e5e7eb; border-radius: 4px; height: 6px;">
-                                <div id="storageProgressBar" style="background: #10b981; height: 100%; border-radius: 4px; width: 0%; transition: width 0.3s ease;"></div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelBatchBtn">
+                            <i class="fas fa-times"></i>
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary submit-btn">
+                            <i class="fas fa-plus"></i>
+                            Create Batch
+                        </button>
+                    </div>
+                </form>
             </section>
 
             <!-- QR Code Output Section -->
             <section class="card" id="qrCodeOutput" style="display: none;">
                 <h3 class="card-header">
-                    <i class="fas fa-check-circle"></i>
+                    <i class="fas fa-qrcode"></i>
                     Batch Created Successfully
                 </h3>
-                
                 <div style="text-align: center; padding: 20px;">
                     <div style="margin-bottom: 20px;">
-                        <h4 style="color: #10b981; margin-bottom: 10px;">
-                            Batch ID: <span id="generatedBatchId" style="font-family: monospace; background: #f3f4f6; padding: 4px 8px; border-radius: 4px;"></span>
-                        </h4>
-                        <p style="color: #6b7280; margin-bottom: 20px;">
-                            Scan this QR code to view the complete supply chain
-                        </p>
+                        <h4 style="color: #10b981; margin-bottom: 10px;">Batch ID: <span id="generatedBatchId"></span></h4>
+                        <p style="color: #6b7280; margin-bottom: 20px;">Scan this QR code to view the complete supply chain</p>
                     </div>
-                    
                     <div style="display: inline-block; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
                         <img id="generatedQrCode" src="" alt="QR Code" style="width: 200px; height: 200px; cursor: pointer;" title="Click to view supply chain">
                     </div>
-                    
                     <div style="margin-top: 20px;">
                         <button type="button" id="viewChainBtn" class="submit-btn" style="background: #3b82f6; margin-right: 12px;">
                             <i class="fas fa-link"></i>
@@ -871,54 +385,20 @@
     </div>
 
     <script>
-        // Update storage usage indicator
-        function updateStorageIndicator() {
-            try {
-                const batchImages = localStorage.getItem('batch_images') || '{}';
-                const farmerBatches = localStorage.getItem('farmer_batches') || '[]';
-                const otherData = Object.keys(localStorage).reduce((total, key) => {
-                    if (key !== 'batch_images' && key !== 'farmer_batches') {
-                        return total + (localStorage.getItem(key) || '').length;
-                    }
-                    return total;
-                }, 0);
-                
-                const totalUsed = batchImages.length + farmerBatches.length + otherData;
-                const maxSize = 5 * 1024 * 1024; // 5MB approximate localStorage limit
-                const usagePercent = Math.min((totalUsed / maxSize) * 100, 100);
-                
-                const statusText = document.getElementById('storageUsageText');
-                const progressBar = document.getElementById('storageProgressBar');
-                const storageStatus = document.getElementById('storageStatus');
-                
-                if (statusText && progressBar && storageStatus) {
-                    const usedMB = (totalUsed / (1024 * 1024)).toFixed(2);
-                    const maxMB = (maxSize / (1024 * 1024)).toFixed(0);
-                    statusText.textContent = `${usedMB}MB / ${maxMB}MB (${usagePercent.toFixed(1)}%)`;
-                    progressBar.style.width = `${usagePercent}%`;
-                    
-                    // Update color based on usage
-                    if (usagePercent > 80) {
-                        progressBar.style.background = '#ef4444'; // Red
-                        storageStatus.style.borderLeftColor = '#ef4444';
-                    } else if (usagePercent > 60) {
-                        progressBar.style.background = '#f59e0b'; // Orange
-                        storageStatus.style.borderLeftColor = '#f59e0b';
-                    } else {
-                        progressBar.style.background = '#10b981'; // Green
-                        storageStatus.style.borderLeftColor = '#10b981';
-                    }
-                }
-            } catch (error) {
-                console.warn('Failed to update storage indicator:', error);
-            }
-        }
-        
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', async function() {
-            // Update storage indicator
-            updateStorageIndicator();
+            console.log('🚀 Farmer Dashboard initializing...');
             
+            // First, always set up the Create Batch button regardless of auth status
+            setupCreateBatchButton();
+            
+            // Then handle authentication
+            const authPassed = await checkAuth();
+            if (!authPassed) {
+                console.log('Auth failed, but button should still work for testing');
+                return;
+            }
+
             // Get user data using the proper auth system
             const user = await getCurrentUser();
             if (user && user.name) {
@@ -927,15 +407,204 @@
                 document.querySelector('.dashboard-header h1').textContent = `Welcome back, ${user.name}!`;
             }
 
-            // Show/hide create batch form
+            // Continue with other initializations...
+            await initializeRestOfDashboard();
+        });
+
+        // Separate function to ensure Create Batch button always works
+        function setupCreateBatchButton() {
+            console.log('🔧 Setting up Create Batch button...');
+            
             const showFormBtn = document.getElementById('showCreateBatchFormBtn');
             const createBatchSection = document.getElementById('createBatchSection');
+            const cancelBatchBtn = document.getElementById('cancelBatchBtn');
+            
+            console.log('Button element:', showFormBtn);
+            console.log('Section element:', createBatchSection);
             
             if (showFormBtn && createBatchSection) {
-                showFormBtn.addEventListener('click', function() {
-                    createBatchSection.style.display = createBatchSection.style.display === 'none' ? 'block' : 'none';
+                // Remove any existing event listeners
+                const newBtn = showFormBtn.cloneNode(true);
+                showFormBtn.parentNode.replaceChild(newBtn, showFormBtn);
+                
+                newBtn.addEventListener('click', function() {
+                    console.log('🖱️ Create Batch button clicked!');
+                    const currentDisplay = createBatchSection.style.display;
+                    console.log('Current display:', currentDisplay);
+                    
+                    if (currentDisplay === 'none' || currentDisplay === '') {
+                        createBatchSection.style.display = 'block';
+                        createBatchSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        console.log('✅ Form section shown');
+                    } else {
+                        createBatchSection.style.display = 'none';
+                        console.log('📴 Form section hidden');
+                    }
+                });
+                console.log('✅ Create Batch button event listener attached');
+            } else {
+                console.error('❌ Could not find Create Batch button or section elements');
+                console.error('Button:', showFormBtn);
+                console.error('Section:', createBatchSection);
+            }
+
+            // Setup cancel button
+            if (cancelBatchBtn) {
+                cancelBatchBtn.addEventListener('click', function() {
+                    console.log('🔄 Cancel button clicked');
+                    createBatchSection.style.display = 'none';
+                    
+                    // Reset form
+                    const form = document.getElementById('newBatchForm');
+                    if (form) {
+                        form.reset();
+                        
+                        // Clear image preview
+                        const imagePreview = document.getElementById('imagePreview');
+                        if (imagePreview) {
+                            imagePreview.style.display = 'none';
+                        }
+                        
+                        console.log('✅ Form reset and section hidden');
+                    }
                 });
             }
+
+            // Setup image removal functionality
+            setupImagePreviewHandlers();
+        }
+
+        // Enhanced image preview handlers
+        function setupImagePreviewHandlers() {
+            console.log('🖼️ Setting up image preview handlers...');
+            
+            const captureBtn = document.getElementById('captureImageBtn');
+            const fileInput = document.getElementById('imageFileInput');
+            const imagePreview = document.getElementById('imagePreview');
+            const previewImg = document.getElementById('previewImg');
+            const metadataDiv = document.getElementById('imageMetadata');
+            
+            if (captureBtn && fileInput) {
+                captureBtn.addEventListener('click', function() {
+                    fileInput.click();
+                });
+                
+                fileInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        handleImageSelection(file, previewImg, imagePreview, metadataDiv);
+                    }
+                });
+            }
+
+            // Setup remove image button (will be created dynamically)
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('remove-image-btn') || e.target.parentElement.classList.contains('remove-image-btn')) {
+                    removeSelectedImage();
+                }
+            });
+        }
+
+        function handleImageSelection(file, previewImg, imagePreview, metadataDiv) {
+            console.log('📸 Image selected:', file.name);
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                if (previewImg && imagePreview) {
+                    previewImg.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                    
+                    // Get location and time metadata
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                            function(position) {
+                                const lat = position.coords.latitude.toFixed(6);
+                                const lng = position.coords.longitude.toFixed(6);
+                                const timestamp = new Date().toLocaleString();
+                                const fileSize = (file.size / 1024).toFixed(1);
+                                
+                                if (metadataDiv) {
+                                    metadataDiv.innerHTML = `
+                                        <i class="fas fa-info-circle"></i>
+                                        <span><strong>Location:</strong> ${lat}, ${lng} | <strong>Time:</strong> ${timestamp} | <strong>Size:</strong> ${fileSize} KB</span>
+                                    `;
+                                }
+                                
+                                // Store metadata for form submission
+                                window.currentImageMetadata = {
+                                    latitude: lat,
+                                    longitude: lng,
+                                    timestamp: timestamp,
+                                    filename: file.name,
+                                    size: fileSize
+                                };
+                                
+                                console.log('📍 Image metadata captured:', window.currentImageMetadata);
+                            },
+                            function(error) {
+                                console.warn('⚠️ Could not get location:', error);
+                                const timestamp = new Date().toLocaleString();
+                                const fileSize = (file.size / 1024).toFixed(1);
+                                
+                                if (metadataDiv) {
+                                    metadataDiv.innerHTML = `
+                                        <i class="fas fa-info-circle"></i>
+                                        <span><strong>Time:</strong> ${timestamp} | <strong>Size:</strong> ${fileSize} KB | <em>Location not available</em></span>
+                                    `;
+                                }
+                                
+                                window.currentImageMetadata = {
+                                    timestamp: timestamp,
+                                    filename: file.name,
+                                    size: fileSize
+                                };
+                            }
+                        );
+                    } else {
+                        const timestamp = new Date().toLocaleString();
+                        const fileSize = (file.size / 1024).toFixed(1);
+                        
+                        if (metadataDiv) {
+                            metadataDiv.innerHTML = `
+                                <i class="fas fa-info-circle"></i>
+                                <span><strong>Time:</strong> ${timestamp} | <strong>Size:</strong> ${fileSize} KB | <em>Geolocation not supported</em></span>
+                            `;
+                        }
+                        
+                        window.currentImageMetadata = {
+                            timestamp: timestamp,
+                            filename: file.name,
+                            size: fileSize
+                        };
+                    }
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeSelectedImage() {
+            console.log('🗑️ Removing selected image');
+            
+            const imagePreview = document.getElementById('imagePreview');
+            const fileInput = document.getElementById('imageFileInput');
+            
+            if (imagePreview) {
+                imagePreview.style.display = 'none';
+            }
+            
+            if (fileInput) {
+                fileInput.value = '';
+            }
+            
+            // Clear metadata
+            window.currentImageMetadata = null;
+            
+            console.log('✅ Image removed successfully');
+        }
+
+        // Rest of the dashboard initialization
+        async function initializeRestOfDashboard() {
+            console.log('🔧 Initializing rest of dashboard...');
 
             // Get location functionality
             const getLocationBtn = document.getElementById('getLocationBtn');
@@ -963,500 +632,220 @@
                 });
             }
 
-            // === IMAGE UPLOAD FUNCTIONALITY ===
-            console.log('=== INITIALIZING IMAGE UPLOAD ===');
-            let capturedImages = [];
-            
-            // Wait for DOM to be ready
-            setTimeout(function() {
-                console.log('Setting up image upload functionality...');
-                
-                const uploadImageBtn = document.getElementById('uploadImageBtn');
-                const imageFileInput = document.getElementById('imageFileInput');
-                
-                console.log('Upload button found:', uploadImageBtn);
-                console.log('File input found:', imageFileInput);
-                
-                if (uploadImageBtn && imageFileInput) {
-                    uploadImageBtn.onclick = function() {
-                        console.log('Upload button clicked - opening file picker with camera option');
-                        imageFileInput.click();
-                    };
-                    
-                    imageFileInput.onchange = function(e) {
-                        console.log('Files selected:', e.target.files);
-                        if (e.target.files.length > 0) {
-                            // Hide upload prompt and show processing
-                            const uploadArea = document.querySelector('.upload-area');
-                            if (uploadArea && e.target.files.length > 0) {
-                                uploadArea.style.display = 'none';
-                            }
-                            handleImageFiles(e.target.files);
-                        }
-                    };
-                    
-                    console.log('Upload button configured for both camera and file selection');
-                } else {
-                    console.error('Could not find upload elements');
-                }
-            }, 1000);
-            
-            // Handle image files (both upload and camera)
-            function handleImageFiles(files) {
-                console.log('Processing', files.length, 'files');
-                for (let i = 0; i < files.length; i++) {
-                    const file = files[i];
-                    if (file.type.startsWith('image/')) {
-                        processImage(file);
-                    }
-                }
-            }
-            
-            // Process individual image with location and metadata
-            function processImage(file) {
-                console.log('Processing image:', file.name);
-                
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const imageData = {
-                        file: file,
-                        dataUrl: e.target.result,
-                        timestamp: new Date().toISOString(),
-                        location: null,
-                        processed: false
-                    };
-                    
-                    // Get location first, then add to preview
-                    getLocationForImage(imageData);
-                };
-                reader.readAsDataURL(file);
-            }
-            
-            // Get location for image
-            function getLocationForImage(imageData) {
-                if (navigator.geolocation) {
-                    console.log('Getting location...');
-                    navigator.geolocation.getCurrentPosition(
-                        function(position) {
-                            imageData.location = {
-                                lat: position.coords.latitude,
-                                lng: position.coords.longitude,
-                                accuracy: position.coords.accuracy
-                            };
-                            console.log('Location obtained:', imageData.location);
-                            createImageWithOverlay(imageData);
-                        },
-                        function(error) {
-                            console.log('Location error:', error.message);
-                            imageData.location = { lat: 0, lng: 0, accuracy: 0, error: error.message };
-                            createImageWithOverlay(imageData);
-                        },
-                        { timeout: 10000, enableHighAccuracy: true }
-                    );
-                } else {
-                    console.log('Geolocation not supported');
-                    imageData.location = { lat: 0, lng: 0, accuracy: 0, error: 'Geolocation not supported' };
-                    createImageWithOverlay(imageData);
-                }
-            }
-            
-            // Create image with overlay (date, time, location)
-            function createImageWithOverlay(imageData) {
-                console.log('Creating image with overlay');
-                
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                const img = new Image();
-                
-                img.onload = function() {
-                    // Set canvas size
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    
-                    // Draw original image
-                    ctx.drawImage(img, 0, 0);
-                    
-                    // Prepare overlay text
-                    const date = new Date(imageData.timestamp);
-                    const dateStr = date.toLocaleDateString();
-                    const timeStr = date.toLocaleTimeString();
-                    const locationStr = imageData.location.error 
-                        ? `Location: ${imageData.location.error}`
-                        : `Lat: ${imageData.location.lat.toFixed(6)}, Lng: ${imageData.location.lng.toFixed(6)}`;
-                    
-                    // Style for overlay
-                    const fontSize = Math.max(16, Math.min(canvas.width / 25, 32));
-                    ctx.font = `bold ${fontSize}px Arial`;
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-                    ctx.strokeStyle = 'white';
-                    ctx.lineWidth = 2;
-                    
-                    // Position overlay at bottom
-                    const padding = 10;
-                    const lineHeight = fontSize + 5;
-                    let y = canvas.height - padding - (lineHeight * 3);
-                    
-                    // Draw background rectangle
-                    const textWidth = Math.max(
-                        ctx.measureText(dateStr).width,
-                        ctx.measureText(timeStr).width,
-                        ctx.measureText(locationStr).width
-                    );
-                    ctx.fillRect(padding - 5, y - fontSize - 5, textWidth + 20, lineHeight * 3 + 10);
-                    
-                    // Draw text with stroke for visibility
-                    ctx.fillStyle = 'white';
-                    ctx.strokeText(dateStr, padding, y);
-                    ctx.fillText(dateStr, padding, y);
-                    
-                    y += lineHeight;
-                    ctx.strokeText(timeStr, padding, y);
-                    ctx.fillText(timeStr, padding, y);
-                    
-                    y += lineHeight;
-                    ctx.strokeText(locationStr, padding, y);
-                    ctx.fillText(locationStr, padding, y);
-                    
-                    // Convert canvas to blob and update imageData
-                    canvas.toBlob(function(blob) {
-                        imageData.processedBlob = blob;
-                        imageData.processedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-                        imageData.processed = true;
-                        
-                        console.log('Image processed with overlay');
-                        addImageToPreview(imageData);
-                    }, 'image/jpeg', 0.9);
-                };
-                
-                img.src = imageData.dataUrl;
-            }
-            
-            // Add image to preview container
-            function addImageToPreview(imageData) {
-                console.log('Adding image to preview');
-                capturedImages.push(imageData);
-                
-                const container = document.getElementById('imagePreviewContainer');
-                if (!container) {
-                    console.error('Image preview container not found!');
-                    return;
-                }
-                
-                const imageDiv = document.createElement('div');
-                imageDiv.className = 'image-preview-item';
-                imageDiv.style.position = 'relative';
-                
-                const locationText = imageData.location.error 
-                    ? `Error: ${imageData.location.error}`
-                    : `${imageData.location.lat.toFixed(6)}, ${imageData.location.lng.toFixed(6)}`;
-                
-                imageDiv.innerHTML = `
-                    <img src="${imageData.processedDataUrl}" alt="Crop image with overlay" style="width: 100%; border-radius: 8px;">
-                    <button class="remove-btn" onclick="removeImage(${capturedImages.length - 1})" style="position: absolute; top: 5px; right: 5px; background: red; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer;">×</button>
-                    <div class="image-info" style="padding: 8px; font-size: 12px; background: #f9fafb;">
-                        <div><strong>File:</strong> ${imageData.file.name}</div>
-                        <div><strong>Time:</strong> ${new Date(imageData.timestamp).toLocaleString()}</div>
-                        <div><strong>Location:</strong> ${locationText}</div>
-                        <div><strong>Status:</strong> <span style="color: green;">✓ Ready for blockchain</span></div>
-                    </div>
-                `;
-                
-                container.appendChild(imageDiv);
-                console.log('Image added to preview, total images:', capturedImages.length);
-                
-                // Update image count display if it exists
-                updateImageCount();
-            }
-            
-            // Remove image from preview
-            window.removeImage = function(index) {
-                console.log('Removing image at index:', index);
-                if (index >= 0 && index < capturedImages.length) {
-                    capturedImages.splice(index, 1);
-                    refreshImagePreviews();
-                    updateImageCount();
-                    
-                    // Show upload area again if no images left
-                    if (capturedImages.length === 0) {
-                        const uploadArea = document.querySelector('.upload-area');
-                        if (uploadArea) {
-                            uploadArea.style.display = 'block';
-                        }
-                    }
-                }
-            };
-            
-            // Refresh all image previews
-            function refreshImagePreviews() {
-                const container = document.getElementById('imagePreviewContainer');
-                if (!container) return;
-                
-                container.innerHTML = '';
-                capturedImages.forEach((imageData, index) => {
-                    const imageDiv = document.createElement('div');
-                    imageDiv.className = 'image-preview-item';
-                    imageDiv.style.position = 'relative';
-                    
-                    const locationText = imageData.location.error 
-                        ? `Error: ${imageData.location.error}`
-                        : `${imageData.location.lat.toFixed(6)}, ${imageData.location.lng.toFixed(6)}`;
-                    
-                    imageDiv.innerHTML = `
-                        <img src="${imageData.processedDataUrl}" alt="Crop image with overlay" style="width: 100%; border-radius: 8px;">
-                        <button class="remove-btn" onclick="removeImage(${index})" style="position: absolute; top: 5px; right: 5px; background: red; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer;">×</button>
-                        <div class="image-info" style="padding: 8px; font-size: 12px; background: #f9fafb;">
-                            <div><strong>File:</strong> ${imageData.file.name}</div>
-                            <div><strong>Time:</strong> ${new Date(imageData.timestamp).toLocaleString()}</div>
-                            <div><strong>Location:</strong> ${locationText}</div>
-                            <div><strong>Status:</strong> <span style="color: green;">✓ Ready for blockchain</span></div>
-                        </div>
-                    `;
-                    
-                    container.appendChild(imageDiv);
-                });
-            }
-            
-            // Update image count
-            function updateImageCount() {
-                const count = capturedImages.length;
-                console.log('Image count updated:', count);
-                
-                // Update any image count displays
-                const countElements = document.querySelectorAll('.image-count');
-                countElements.forEach(el => {
-                    el.textContent = count;
-                });
-            }
-            
-            // Make captured images available globally for blockchain submission
-            window.getCapturedImages = function() {
-                console.log('Getting captured images for blockchain:', capturedImages.length);
-                return capturedImages.map(img => ({
-                    file: img.file,
-                    processedBlob: img.processedBlob,
-                    processedDataUrl: img.processedDataUrl,
-                    timestamp: img.timestamp,
-                    location: img.location,
-                    originalDataUrl: img.dataUrl
-                }));
-            };
-            
-            // Clear all images
-            window.clearCapturedImages = function() {
-                capturedImages = [];
-                const container = document.getElementById('imagePreviewContainer');
-                if (container) container.innerHTML = '';
-                updateImageCount();
-                
-                // Show upload area again
-                const uploadArea = document.querySelector('.upload-area');
-                if (uploadArea) {
-                    uploadArea.style.display = 'block';
-                }
-                
-                console.log('All images cleared');
-            };
+            // Image capture functionality
+            let capturedImageBlob = null;
+            let imageMetadata = null;
 
-            // Form submission -> on-chain createBatch
+            const captureBtn = document.getElementById('captureImageBtn');
+            const fileInput = document.getElementById('imageFileInput');
+            const imagePreview = document.getElementById('imagePreview');
+            const previewImg = document.getElementById('previewImg');
+            const metadataDiv = document.getElementById('imageMetadata');
+
+            captureBtn.addEventListener('click', function() {
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    capturedImageBlob = file;
+                    
+                    // Get current location and time
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                            function(position) {
+                                const lat = position.coords.latitude.toFixed(6);
+                                const lng = position.coords.longitude.toFixed(6);
+                                const timestamp = new Date().toLocaleString();
+                                
+                                imageMetadata = {
+                                    location: `${lat}, ${lng}`,
+                                    timestamp: timestamp,
+                                    coordinates: { lat: parseFloat(lat), lng: parseFloat(lng) }
+                                };
+                                
+                                // Show preview
+                                const reader = new FileReader();
+                                reader.onload = function(e) {
+                                    previewImg.src = e.target.result;
+                                    metadataDiv.innerHTML = `📍 Location: ${imageMetadata.location}<br>🕒 Time: ${imageMetadata.timestamp}`;
+                                    imagePreview.style.display = 'block';
+                                };
+                                reader.readAsDataURL(file);
+                            },
+                            function(error) {
+                                // Still show image but without location
+                                const timestamp = new Date().toLocaleString();
+                                imageMetadata = {
+                                    location: 'Location unavailable',
+                                    timestamp: timestamp
+                                };
+                                
+                                const reader = new FileReader();
+                                reader.onload = function(e) {
+                                    previewImg.src = e.target.result;
+                                    metadataDiv.innerHTML = `📍 Location: ${imageMetadata.location}<br>🕒 Time: ${imageMetadata.timestamp}`;
+                                    imagePreview.style.display = 'block';
+                                };
+                                reader.readAsDataURL(file);
+                            }
+                        );
+                    } else {
+                        // No geolocation, just timestamp
+                        const timestamp = new Date().toLocaleString();
+                        imageMetadata = {
+                            location: 'Location unavailable',
+                            timestamp: timestamp
+                        };
+                        
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            previewImg.src = e.target.result;
+                            metadataDiv.innerHTML = `📍 Location: ${imageMetadata.location}<br>🕒 Time: ${imageMetadata.timestamp}`;
+                            imagePreview.style.display = 'block';
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                }
+            });
+
+            // Enhanced form submission handler
             const newBatchForm = document.getElementById('newBatchForm');
             if (newBatchForm) {
                 newBatchForm.addEventListener('submit', async function(e) {
                     e.preventDefault();
-                    await Blockchain.init();
-
-                    const formData = new FormData(newBatchForm);
-                    const batchId = 'BATCH_' + Date.now();
-                    const cropName = formData.get('cropName');
-                    const quantity = formData.get('quantity');
-                    const harvestDate = formData.get('harvestDate');
-                    let farmLocation = formData.get('farmLocation');
+                    console.log('📝 Form submission started...');
+                    
+                    const submitBtn = e.target.querySelector('button[type="submit"]');
+                    const originalBtnText = submitBtn.innerHTML;
+                    
+                    // Disable form and show loading
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Batch...';
                     
                     try {
-                        let photoHash = '0x' + '0'.repeat(64); // default placeholder
-                        
-                        // Get captured images with overlays from the complete system
-                        const capturedImages = window.getCapturedImages ? window.getCapturedImages() : [];
-                        console.log('Form submission - captured images:', capturedImages.length);
-                        
-                        // Process images if any were captured
-                        if (capturedImages.length > 0) {
-                            const uploadBtn = document.querySelector('#newBatchForm button[type="submit"]');
-                            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing Images for Blockchain...';
-                            uploadBtn.disabled = true;
-                            
-                            try {
-                                console.log(`Processing ${capturedImages.length} processed images for batch:`, batchId);
-                                
-                                // Create a simple hash from the processed images for blockchain
-                                let imageHashData = '';
-                                capturedImages.forEach((img, index) => {
-                                    const locationStr = img.location.error ? 'NO_LOCATION' : `${img.location.lat},${img.location.lng}`;
-                                    imageHashData += `IMG${index}_${img.timestamp}_${locationStr}_`;
-                                });
-                                
-                                // Create a simple hash (in real implementation, upload to IPFS)
-                                photoHash = '0x' + btoa(imageHashData).substring(0, 64).padEnd(64, '0');
-                                console.log('Generated photo hash:', photoHash);
-                                
-                                // Augment farmLocation with farmer name + detailed image info
-                                if (typeof farmLocation === 'string') {
-                                    const u = await getCurrentUser();
-                                    const farmerName = (u && u.name) ? u.name : 'Unknown';
-                                    const tagParts = [];
-                                    tagParts.push(`FARMER=${farmerName}`);
-                                    tagParts.push(`IMAGES=${capturedImages.length}`);
-                                    
-                                    // Add location info from first image if available
-                                    if (capturedImages[0] && !capturedImages[0].location.error) {
-                                        tagParts.push(`GPS=${capturedImages[0].location.lat.toFixed(4)},${capturedImages[0].location.lng.toFixed(4)}`);
-                                    }
-                                    
-                                    // Add timestamp info
-                                    tagParts.push(`CAPTURED=${new Date(capturedImages[0].timestamp).toISOString().substring(0, 19)}`);
-                                    
-                                    if (tagParts.length) {
-                                        farmLocation = `${farmLocation} ::${tagParts.join(' ::')}`;
-                                    }
-                                }
-                            } catch (err) {
-                                console.warn('Image processing failed, proceeding without image:', err);
-                                // Continue with default photoHash
-                            }
-                            
-                            uploadBtn.innerHTML = '<i class="fas fa-plus"></i> Create Batch';
-                            uploadBtn.disabled = false;
-                        }
+                        await Blockchain.init();
 
-                        // Ensure FARMER name is embedded even if no image
-                        if (typeof farmLocation === 'string') {
-                            try {
-                                const u = await getCurrentUser();
-                                const farmerName = (u && u.name) ? u.name : '';
-                                if (farmerName && !/::\s*FARMER=/i.test(farmLocation)) {
-                                    farmLocation = `${farmLocation} ::FARMER=${farmerName}`;
-                                }
-                            } catch {}
-                        }
-
-                        await Blockchain.createBatch({ batchId, cropType: cropName, quantity, harvestDate, farmLocation, photoHash });
+                        const formData = new FormData(newBatchForm);
+                        const batchId = 'BATCH_' + Date.now();
                         
-                        // Store lightweight meta off-chain too (farmer name, ipfs)
-                        try {
-                            const u = await getCurrentUser();
-                            const meta = { farmer: (u && u.name) ? u.name : null };
-                            if (capturedImages.length > 0) {
-                                meta.images = capturedImages.length;
-                                meta.imageData = capturedImages.map(img => ({
-                                    timestamp: img.timestamp,
-                                    location: img.location,
-                                    fileName: img.file.name
-                                }));
-                            }
-                            Blockchain.storeBatchMeta(batchId, meta);
-                        } catch {}
-                        
-<<<<<<< HEAD
-                        // Store complete batch data with images for search functionality
+                        // Extract form data
                         const batchData = {
                             id: batchId,
-                            cropType: cropName,
-                            quantity,
-                            harvestDate,
-                            farmLocation,
-                            status: 'Created',
-                            timestamp: new Date().toISOString(),
-                            farmer: user.name,
-                            capturedImages: capturedImages.length,
-                            photoHash: photoHash
+                            cropName: formData.get('cropName'),
+                            quantity: formData.get('quantity'),
+                            harvestDate: formData.get('harvestDate'),
+                            farmLocation: formData.get('farmLocation'),
+                            description: formData.get('description'),
+                            expectedQuality: formData.get('expectedQuality'),
+                            timestamp: new Date().toISOString()
                         };
                         
-                        // Store images separately for search retrieval with compression
-                        if (capturedImages.length > 0) {
+                        console.log('📊 Batch data prepared:', batchData);
+                        
+                        let photoHash = '0x' + '0'.repeat(64); // default placeholder
+                        
+                        // Handle image upload if image was selected
+                        const fileInput = document.getElementById('imageFileInput');
+                        if (fileInput.files[0] && window.currentImageMetadata) {
+                            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading Image...';
+                            
                             try {
-                                const compressedImages = await Promise.all(
-                                    capturedImages.map(async (img) => {
-                                        const compressed = await compressImageForStorage(img.processedDataUrl, 0.3, 800);
-                                        return {
-                                            processedDataUrl: compressed,
-                                            timestamp: img.timestamp,
-                                            location: img.location,
-                                            fileName: img.file.name
-                                        };
-                                    })
-                                );
-                                
-                                const imageStorage = {
-                                    batchId: batchId,
-                                    images: compressedImages,
-                                    createdAt: new Date().toISOString()
-                                };
-                                
-                                // Clean old storage if needed before storing new data
-                                await cleanupOldBatchData();
-                                
-                                // Store in localStorage for local retrieval
-                                let batchImages = JSON.parse(localStorage.getItem('batch_images') || '{}');
-                                batchImages[batchId] = imageStorage;
-                                
-                                try {
-                                    localStorage.setItem('batch_images', JSON.stringify(batchImages));
-                                    console.log(`Stored ${compressedImages.length} compressed images for batch ${batchId}`);
-                                } catch (storageError) {
-                                    console.warn('Storage full, cleaning up and retrying...', storageError);
-                                    // Emergency cleanup and retry
-                                    await emergencyStorageCleanup();
-                                    batchImages = JSON.parse(localStorage.getItem('batch_images') || '{}');
-                                    batchImages[batchId] = imageStorage;
-                                    localStorage.setItem('batch_images', JSON.stringify(batchImages));
-                                    console.log(`Successfully stored images after cleanup for batch ${batchId}`);
-                                }
-                            } catch (compressionError) {
-                                console.error('Image compression failed:', compressionError);
-                                // Store without images if compression fails
-                                alert('Warning: Images could not be stored due to size limitations. Batch created successfully without image storage.');
+                                const imageFile = fileInput.files[0];
+                                const ipfsHash = await Blockchain.uploadImageToPinata(imageFile, window.currentImageMetadata);
+                                photoHash = ethers.id(ipfsHash); // Convert IPFS hash to bytes32
+                                // Store the mapping for later retrieval
+                                Blockchain.storeIPFSMapping(photoHash, ipfsHash);
+                                console.log('📸 Image uploaded to IPFS:', ipfsHash);
+                                batchData.imageHash = ipfsHash;
+                            } catch (uploadError) {
+                                console.warn('⚠️ Image upload failed, continuing without image:', uploadError);
+                                alert('Image upload failed, but batch will be created without image.');
                             }
                         }
                         
-                        // Store batch data locally
+                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating on Blockchain...';
+                        
+                        // Create batch on blockchain
+                        const user = await getCurrentUser();
+                        const farmerName = (user && user.name) ? user.name : '';
+                        
+                        // Embed farmer info in location if available
+                        if (farmerName) {
+                            batchData.farmLocation = `${batchData.farmLocation} ::FARMER=${farmerName}`;
+                        }
+                        
+                        // Create batch on blockchain
+                        await Blockchain.createBatch({
+                            batchId: batchData.id,
+                            cropType: batchData.cropName,
+                            quantity: batchData.quantity,
+                            harvestDate: batchData.harvestDate,
+                            farmLocation: batchData.farmLocation,
+                            photoHash: photoHash
+                        });
+                        
+                        console.log('✅ Batch created on blockchain:', batchData.id);
+                        
+                        // Store metadata off-chain
+                        try {
+                            const meta = { 
+                                farmer: farmerName,
+                                description: batchData.description,
+                                expectedQuality: batchData.expectedQuality
+                            };
+                            if (batchData.imageHash) meta.ipfs = batchData.imageHash;
+                            Blockchain.storeBatchMeta(batchData.id, meta);
+                        } catch (metaError) {
+                            console.warn('⚠️ Failed to store metadata:', metaError);
+                        }
+                        
+                        // For UI stats, cache minimal record locally
+                        const localBatchData = {
+                            id: batchData.id,
+                            cropType: batchData.cropName,
+                            quantity: batchData.quantity,
+                            harvestDate: batchData.harvestDate,
+                            farmLocation: batchData.farmLocation,
+                            status: 'Created',
+                            timestamp: batchData.timestamp,
+                            farmer: farmerName,
+                            description: batchData.description,
+                            expectedQuality: batchData.expectedQuality
+                        };
+                        
                         let batches = JSON.parse(localStorage.getItem('farmer_batches') || '[]');
-                        batches.unshift(batchData);
+                        batches.unshift(localBatchData);
                         localStorage.setItem('farmer_batches', JSON.stringify(batches));
-=======
-                        // No local persistence: always fetch real-time from blockchain
->>>>>>> a375d15ad329eddf7f37cf32d3f05ed55df95428
 
+                        // Reset form and hide section
                         newBatchForm.reset();
                         createBatchSection.style.display = 'none';
                         
-                        // Clear captured images after successful submission
-                        window.clearCapturedImages();
-                        
-                        // Enhanced success message
-                        const imageCount = capturedImages.length;
-                        let successMessage = `✅ Batch Created Successfully!\n\n`;
-                        successMessage += `📦 Batch ID: ${batchId}\n`;
-                        successMessage += `⛓️ Blockchain: Verified and stored\n`;
-                        
-                        if (imageCount > 0) {
-                            successMessage += `📸 Images: ${imageCount} processed with timestamp & location overlays\n`;
-                            successMessage += `🌍 GPS Data: Embedded in images\n`;
-                            successMessage += `🔒 Photo Hash: ${photoHash.substring(0, 16)}...\n`;
-                        } else {
-                            successMessage += `📸 Images: None captured\n`;
+                        // Clear image preview
+                        const imagePreview = document.getElementById('imagePreview');
+                        if (imagePreview) {
+                            imagePreview.style.display = 'none';
                         }
+                        window.currentImageMetadata = null;
                         
-                        successMessage += `\n✨ Your batch is now part of the supply chain record and ready for collection!`;
+                        // Show success message
+                        alert(`✅ Batch ${batchData.id} created successfully!`);
                         
-                        alert(successMessage);
-                        
-                        // Update storage indicator after successful save
-                        updateStorageIndicator();
-                        
+                        // Refresh stats and batches
                         await loadStats();
                         await loadRecentBatches();
-                    } catch (err) {
-                        console.error(err);
-                        alert(err.message || 'Failed to create batch on blockchain');
+                        
+                        console.log('🎉 Batch creation completed successfully');
+                        
+                    } catch (error) {
+                        console.error('❌ Error creating batch:', error);
+                        alert('❌ Error creating batch: ' + error.message);
+                    } finally {
+                        // Re-enable form
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalBtnText;
                     }
                 });
             }
@@ -1631,7 +1020,13 @@
                     }
                 });
             }
-        });
+
+            // Call initialization functions
+            await loadStats();
+            await loadRecentBatches();
+            await loadStorageInfo();
+            console.log('✅ Dashboard initialization complete');
+        }
 
         // Initialize blockchain and load data
         async function initializeBlockchainAndLoadData() {
@@ -1647,82 +1042,20 @@
             await loadRecentBatches();
         }
 
-        // Enhanced QR Code generation function
+        // Generate QR Code function
         function generateQRCode(batchId) {
             const qrCodeData = `${window.location.origin}/search.html#${batchId}`;
             const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeData)}`;
             
-            // Update batch ID and QR code
             document.getElementById('generatedBatchId').textContent = batchId;
             document.getElementById('generatedQrCode').src = qrCodeImageUrl;
-            
-            // Update creation timestamp
-            const timestampElement = document.getElementById('creationTimestamp');
-            if (timestampElement) {
-                timestampElement.textContent = new Date().toLocaleString();
-            }
-            
-            // Update image count status
-            const imageCountElement = document.getElementById('imageCountStatus');
-            if (imageCountElement && window.imageCaptureUI) {
-                const capturedImages = window.imageCaptureUI.getCapturedImages();
-                const imageCount = capturedImages.length;
-                imageCountElement.textContent = imageCount > 0 ? `${imageCount} Images` : 'None';
-            }
-            
-            // Show the enhanced QR section
             document.getElementById('qrCodeOutput').style.display = 'block';
             
-            // Add enhanced button event listeners
-            setupEnhancedQRButtons(batchId);
-            
-            // Scroll to QR code section with enhanced animation
-            setTimeout(() => {
-                document.getElementById('qrCodeOutput').scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'center' 
-                });
-            }, 300);
-            
-            console.log('🎯 Enhanced QR Code generated for batch:', batchId);
-        }
-        
-        // Setup enhanced QR button functionality
-        function setupEnhancedQRButtons(batchId) {
-            // View Images button
-            const viewImagesBtn = document.getElementById('viewImagesBtn');
-            if (viewImagesBtn) {
-                viewImagesBtn.addEventListener('click', function() {
-                    if (window.imageCaptureUI) {
-                        window.imageCaptureUI.showImageGallery();
-                    } else {
-                        alert('📸 No images available for this batch');
-                    }
-                });
-            }
-            
-            // Enhanced View Chain button
-            const viewChainBtn = document.getElementById('viewChainBtn');
-            if (viewChainBtn) {
-                viewChainBtn.removeEventListener('click', arguments.callee); // Remove old listeners
-                viewChainBtn.addEventListener('click', function() {
-                    console.log('🔗 Viewing blockchain records for:', batchId);
-                    searchBatch(batchId);
-                });
-            }
-            
-            // Enhanced Download QR button
-            const downloadQrBtn = document.getElementById('downloadQrBtn');
-            if (downloadQrBtn) {
-                downloadQrBtn.addEventListener('click', function() {
-                    const qrImg = document.getElementById('generatedQrCode');
-                    const link = document.createElement('a');
-                    link.download = `AyurTrace_Batch_${batchId}_QR.png`;
-                    link.href = qrImg.src;
-                    link.click();
-                    console.log('📥 QR Code downloaded for batch:', batchId);
-                });
-            }
+            // Scroll to QR code section
+            document.getElementById('qrCodeOutput').scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
         }
 
         // Search batch function (inline, no redirect)
@@ -1786,7 +1119,7 @@
             }
         }
 
-        // Render chain events with dynamic, user-friendly timeline including images
+        // Render chain events with dynamic, user-friendly timeline
         function renderChainFromLogs(batchId, logs, container) {
             const icon = { 
                 BatchCreated: '🌾', 
@@ -1798,177 +1131,35 @@
             };
             
             let html = '';
-            logs.forEach((l, index) => {
+            logs.forEach(l => {
                 const name = l.fragment?.name || 'Event';
                 const ts = l.args?.timestamp || l.args?.collectionDate || l.args?.date || null;
-                const owner = l.args?.owner || l.args?.farmer || 'Unknown';
-                const farmerUsername = l.args?.farmerUsername || 'N/A';
-                const statusText = l.args?.statusText || 'Pending';
+                const when = ts ? new Date(Number(ts) * (ts > 1e12 ? 1 : 1000)).toLocaleString() : '';
                 
-<<<<<<< HEAD
                 let description = '';
-                let imageGallery = '';
-                
                 if (name === 'BatchCreated' && l.args) {
                     const meta = Blockchain?.parseFarmLocationMeta ? Blockchain.parseFarmLocationMeta(l.args.farmLocation || '') : {};
                     const farmer = meta.farmer || 'Unknown Farmer';
                     const baseLoc = meta.base || (l.args.farmLocation || 'Not specified');
                     description = `${l.args.cropType} • ${l.args.quantity} kg • Location: ${baseLoc} • Farmer: ${farmer}`;
-                    
-                    // Check for stored images for this batch
-                    const storedImages = getStoredImagesForBatch(batchId);
-                    if (storedImages && storedImages.length > 0) {
-                        imageGallery = '<div style="margin-top:12px;"><h5 style="margin:0 0 8px 0;color:#374151;font-size:13px;">📸 Batch Images:</h5><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;">';
-                        
-                        storedImages.forEach((img, index) => {
-                            const locationText = img.location.error 
-                                ? 'Location: Error' 
-                                : `📍 ${img.location.lat.toFixed(4)}, ${img.location.lng.toFixed(4)}`;
-                            
-                            imageGallery += `
-                                <div style="position:relative;border-radius:8px;overflow:hidden;box-shadow:0 2px 4px rgba(0,0,0,0.1);cursor:pointer;" onclick="showBatchImageModal('${batchId}', ${index})">
-                                    <img src="${img.processedDataUrl}" style="width:100%;height:80px;object-fit:cover;" alt="Batch Image ${index + 1}">
-                                    <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.7));color:white;padding:4px;font-size:10px;">
-                                        <div>${new Date(img.timestamp).toLocaleDateString()}</div>
-                                        <div>${locationText}</div>
-                                    </div>
-                                    <div style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;">
-                                        <i class="fas fa-expand"></i>
-                                    </div>
-                                </div>
-                            `;
-                        });
-                        
-                        imageGallery += '</div></div>';
-                    }
-                    
-                    // Legacy image support (if exists)
-                    const imageHash = meta.ipfs || l.args.photoHash;
-                    if (imageHash && imageHash !== '0x' + '0'.repeat(64) && Blockchain?.getImageFromPinata) {
-                        description += `<br><div style="margin-top:8px;"><img src="${Blockchain.getImageFromPinata(imageHash)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:2px solid #e5e7eb;" onclick="showFullImage('${imageHash}')" title="Click to view full image" /><span style="margin-left:8px;color:#3b82f6;cursor:pointer;" onclick="showFullImage('${imageHash}')"><i class="fas fa-expand"></i> View Full</span></div>`;
-=======
-                // Safe BigInt to number conversion for timestamps
-                let when = '';
-                let timestampValue = '';
-                if (ts) {
-                    try {
-                        // Handle BigInt properly - convert to string first, then parse
-                        let numTs;
-                        if (typeof ts === 'bigint') {
-                            numTs = parseInt(ts.toString());
-                            timestampValue = ts.toString();
-                        } else if (typeof ts === 'object' && ts._isBigNumber) {
-                            // ethers.js BigNumber
-                            numTs = parseInt(ts.toString());
-                            timestampValue = ts.toString();
-                        } else {
-                            numTs = parseInt(ts);
-                            timestampValue = ts.toString();
-                        }
-                        
-                        // Check if timestamp is in seconds or milliseconds
-                        const timestampMs = numTs > 1e12 ? numTs : numTs * 1000;
-                        when = new Date(timestampMs).toLocaleString();
-                    } catch (e) {
-                        console.warn('Timestamp conversion error:', e, 'for value:', ts);
-                        when = 'Invalid date';
-                        timestampValue = 'Invalid';
->>>>>>> a375d15ad329eddf7f37cf32d3f05ed55df95428
-                    }
-                }
-                
-                let description = '';
-                let imageSection = '';
-                
-                if (name === 'BatchCreated' && l.args) {
-                    const meta = Blockchain?.parseFarmLocationMeta ? Blockchain.parseFarmLocationMeta(l.args.farmLocation || '') : {};
-                    const farmer = meta.farmer || farmerUsername || 'Unknown Farmer';
-                    const baseLoc = meta.base || (l.args.farmLocation || 'Not specified');
-                    
-                    description = `
-                        <div style="margin-bottom: 12px;">
-                            <strong>Crop:</strong> ${l.args.cropType} • <strong>Quantity:</strong> ${l.args.quantity} kg<br>
-                            <strong>Location:</strong> ${baseLoc}<br>
-                            <strong>Farmer:</strong> ${farmer}
-                        </div>
-                    `;
-                    
                     const imageHash = meta.ipfs || l.args.photoHash;
                     if (imageHash && Blockchain?.getImageFromPinata) {
-                        imageSection = `
-                            <div style="margin-top: 12px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
-                                <img src="${Blockchain.getImageFromPinata(imageHash)}" 
-                                     style="width: 100%; max-height: 200px; object-fit: cover; cursor: pointer;" 
-                                     onclick="showFullImage('${imageHash}')" 
-                                     title="Click to view full image" 
-                                     alt="Batch Image" />
-                                <div style="padding: 8px; background: #f9fafb; font-size: 11px; color: #6b7280;">
-                                    📸 Click image to view full size
-                                </div>
-                            </div>
-                        `;
+                        description += `<br><div style="margin-top:8px;"><img src="${Blockchain.getImageFromPinata(imageHash)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:2px solid #e5e7eb;" onclick="showFullImage('${imageHash}')" title="Click to view full image" /><span style="margin-left:8px;color:#3b82f6;cursor:pointer;" onclick="showFullImage('${imageHash}')"><i class="fas fa-expand"></i> View Full</span></div>`;
                     }
                 } else {
-                    // For other events, display key information in a structured way
-                    const eventInfo = [];
-                    
-                    if (l.args) {
-                        Object.keys(l.args).forEach(key => {
-                            if (key !== 'photoHash' && key !== 'timestamp' && key !== 'owner' && key !== 'farmerUsername' && key !== 'statusText') {
-                                let value = l.args[key];
-                                if (typeof value === 'bigint') {
-                                    value = value.toString();
-                                } else if (value && typeof value === 'object' && value._isBigNumber) {
-                                    value = value.toString();
-                                }
-                                eventInfo.push(`<strong>${key}:</strong> ${value}`);
-                            }
-                        });
-                    }
-                    
-                    description = eventInfo.length > 0 ? eventInfo.join('<br>') : 'Event processed successfully';
+                    description = JSON.stringify(l.args, null, 2);
                 }
                 
-                // Status badge styling
-                let statusBadge = '';
-                let statusColor = '#6b7280';
-                if (statusText === 'Completed') statusColor = '#10b981';
-                else if (statusText === 'Processing') statusColor = '#f59e0b';
-                else if (statusText === 'Pending') statusColor = '#ef4444';
-                
-                statusBadge = `<span style="background: ${statusColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">${statusText}</span>`;
-                
                 html += `
-                <div class="timeline-item" style="display:flex;gap:16px;padding-bottom:32px; position: relative;">
+                <div class="timeline-item" style="display:flex;gap:16px;padding-bottom:32px;">
                     <div style="display:flex;flex-direction:column;align-items:center;">
-                        <div style="background:#6366f1;color:white;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);">${icon[name] || '⛓️'}</div>
-                        ${index < logs.length - 1 ? '<div style="width:2px;height:100%;background:#e2e8f0;margin-top:8px;"></div>' : ''}
+                        <div style="background:#6366f1;color:white;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;">${icon[name] || '⛓️'}</div>
+                        <div style="width:2px;height:100%;background:#e2e8f0;margin-top:8px;"></div>
                     </div>
-<<<<<<< HEAD
                     <div style="background:#f8fafc;padding:16px;border-radius:12px;flex:1;">
                         <p style="font-weight:600;color:#1f2937;margin:0 0 4px 0;">${name}</p>
                         ${when ? `<p style="font-size:12px;color:#6b7280;margin:0 0 8px 0;">${when}</p>` : ''}
                         <div style="font-size:12px;color:#4b5563;">${description}</div>
-                        ${imageGallery}
-=======
-                    <div style="background:#f8fafc;padding:20px;border-radius:12px;flex:1;border: 1px solid #e2e8f0;box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                            <h4 style="font-weight:600;color:#1f2937;margin:0;font-size:16px;">${name}</h4>
-                            ${statusBadge}
-                        </div>
-                        
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; font-size: 12px; color: #6b7280;">
-                            <div><strong>📅 Timestamp:</strong> ${timestampValue}</div>
-                            <div><strong>👤 Owner:</strong> ${owner.substring(0, 10)}...${owner.substring(owner.length - 8)}</div>
-                            <div><strong>🔗 Date/Time:</strong> ${when || 'Not available'}</div>
-                            <div><strong>👨‍🌾 Farmer ID:</strong> ${farmerUsername}</div>
-                        </div>
-                        
-                        <div style="border-top: 1px solid #e5e7eb; padding-top: 12px;">
-                            ${description}
-                            ${imageSection}
-                        </div>
->>>>>>> a375d15ad329eddf7f37cf32d3f05ed55df95428
                     </div>
                 </div>`;
             });
@@ -2001,67 +1192,6 @@
             
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
-        }
-        
-        // Helper function to get stored images for a batch
-        function getStoredImagesForBatch(batchId) {
-            try {
-                const batchImages = JSON.parse(localStorage.getItem('batch_images') || '{}');
-                return batchImages[batchId]?.images || [];
-            } catch (e) {
-                console.error('Error retrieving stored images:', e);
-                return [];
-            }
-        }
-        
-        // Show batch image in modal
-        function showBatchImageModal(batchId, imageIndex) {
-            const storedImages = getStoredImagesForBatch(batchId);
-            if (!storedImages || !storedImages[imageIndex]) {
-                alert('Image not found');
-                return;
-            }
-            
-            const image = storedImages[imageIndex];
-            const locationText = image.location.error 
-                ? `❌ Location: ${image.location.error}`
-                : `📍 Location: ${image.location.lat.toFixed(6)}, ${image.location.lng.toFixed(6)}`;
-            
-            // Create modal overlay
-            const modal = document.createElement('div');
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.9);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 10000;
-                cursor: pointer;
-            `;
-            
-            modal.innerHTML = `
-                <div style="max-width: 90vw; max-height: 90vh; position: relative;" onclick="event.stopPropagation()">
-                    <button onclick="this.closest('div[style*=\"position: fixed\"]').remove()" 
-                            style="position: absolute; top: -40px; right: 0; background: rgba(255,255,255,0.9); border: none; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; font-size: 18px; color: #333;">×</button>
-                    <img src="${image.processedDataUrl}" 
-                         style="width: 100%; height: auto; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);" 
-                         alt="Batch Image">
-                    <div style="background: rgba(255,255,255,0.95); padding: 16px; border-radius: 8px; margin-top: 12px; color: #333;">
-                        <h4 style="margin: 0 0 8px 0; color: #1f2937;">🌾 Batch: ${batchId}</h4>
-                        <p style="margin: 4px 0; font-size: 14px;"><strong>📁 File:</strong> ${image.fileName}</p>
-                        <p style="margin: 4px 0; font-size: 14px;"><strong>⏰ Captured:</strong> ${new Date(image.timestamp).toLocaleString()}</p>
-                        <p style="margin: 4px 0; font-size: 14px;"><strong>${locationText}</strong></p>
-                        <p style="margin: 8px 0 0 0; font-size: 12px; color: #6b7280;">Click anywhere outside the image to close</p>
-                    </div>
-                </div>
-            `;
-            
-            modal.onclick = function() { modal.remove(); };
-            document.body.appendChild(modal);
         }
 
         // BigInt-safe JSON stringify
@@ -2158,30 +1288,24 @@
         // Make downloadQRCode globally accessible
         window.downloadQRCode = downloadQRCode;
 
+        // Function definitions at top level
         async function loadStats() {
-            const username = await getCurrentActorId();
-            console.log('Loading stats for username:', username);
             let batches = [];
+            
             try {
-                if (username) {
-                    // Try new username-based fetch first
-                    batches = await Blockchain.getBatchesForUsername(username);
-                    console.log('Batches from username:', batches);
-                }
-                
-                // Fallback: try loading all farmer batches if username-based fails
-                if (batches.length === 0) {
-                    console.log('Fallback: loading all farmer batches...');
-                    batches = await Blockchain.getFarmerBatches();
-                    console.log('Batches from getFarmerBatches:', batches);
+                // Try to fetch from blockchain first
+                const blockchainBatches = await Blockchain.getFarmerBatches();
+                if (blockchainBatches && blockchainBatches.length > 0) {
+                    batches = blockchainBatches;
+                } else {
+                    // Fallback to localStorage
+                    batches = JSON.parse(localStorage.getItem('farmer_batches') || '[]');
                 }
             } catch (error) {
-                console.warn('Failed to fetch stats from blockchain:', error);
-                // Last resort: check localStorage
+                console.warn('Failed to fetch stats from blockchain, using localStorage:', error);
                 batches = JSON.parse(localStorage.getItem('farmer_batches') || '[]');
-                console.log('Batches from localStorage fallback:', batches);
             }
-
+            
             const total = batches.length;
             const transit = batches.filter(b => b.status === 'In Transit').length;
             const delivered = batches.filter(b => b.status === 'Delivered').length;
@@ -2197,7 +1321,7 @@
             }
         }
 
-    async function loadRecentBatches() {
+        async function loadRecentBatches() {
             const recentBatchesContainer = document.getElementById('recentBatches');
             
             // Show loading state
@@ -2210,36 +1334,25 @@
             `;
             
             let batches = [];
+            
             try {
                 console.time('Load recent batches');
-                const username = await getCurrentActorId();
-                console.log('Loading recent batches for username:', username);
-                
-                if (username) {
-                    // Try new username-based fetch first
-                    batches = await Blockchain.getBatchesForUsername(username);
-                    console.log('Batches from username fetch:', batches);
-                }
-                
-                // Fallback: try loading all farmer batches if username-based fails or returns empty
-                if (batches.length === 0) {
-                    console.log('Username fetch returned empty, trying getFarmerBatches...');
-                    batches = await Blockchain.getFarmerBatches();
-                    console.log('Batches from getFarmerBatches:', batches);
-                }
-                
+                await Blockchain.init();
+                const blockchainBatches = await Blockchain.getFarmerBatches();
                 console.timeEnd('Load recent batches');
-                console.log(`✅ Loaded ${batches.length} batches from blockchain (username: ${username})`);
                 
-                // Store successful fetch for emergency fallback only
-                if (batches.length > 0) {
-                    localStorage.setItem('farmer_batches_backup', JSON.stringify(batches));
+                if (blockchainBatches && blockchainBatches.length > 0) {
+                    batches = blockchainBatches;
+                    localStorage.setItem('farmer_batches', JSON.stringify(batches));
+                    console.log(`✅ Loaded ${batches.length} batches from blockchain`);
+                } else {
+                    batches = JSON.parse(localStorage.getItem('farmer_batches') || '[]');
+                    console.log(`📦 Fallback: ${batches.length} batches from localStorage`);
                 }
             } catch (error) {
                 console.warn('❌ Blockchain fetch failed:', error.message);
-                // Emergency fallback to localStorage backup
-                batches = JSON.parse(localStorage.getItem('farmer_batches_backup') || '[]');
-                console.log('Using emergency backup:', batches.length, 'batches');
+                batches = JSON.parse(localStorage.getItem('farmer_batches') || '[]');
+                console.log(`📦 Using localStorage: ${batches.length} batches`);
             }
             
             if (batches.length === 0) {
