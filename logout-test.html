@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logout Test - AyurTrace</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="supabase-auth.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #10B981;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #059669;
+        }
+        .logout-test {
+            background: #EF4444;
+        }
+        .logout-test:hover {
+            background: #DC2626;
+        }
+        .status {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 6px;
+            font-family: monospace;
+        }
+        .success { background: #D1FAE5; color: #065F46; }
+        .error { background: #FEE2E2; color: #991B1B; }
+        .info { background: #DBEAFE; color: #1E40AF; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Logout Functionality Test</h1>
+        <p>This page tests the logout functionality and verifies it redirects to index.html</p>
+        
+        <button onclick="createTestSession()">Create Test Session</button>
+        <button onclick="checkSession()">Check Current Session</button>
+        <button onclick="testLogout()" class="logout-test">Test Logout</button>
+        <button onclick="directLogout()" class="logout-test">Direct signOut()</button>
+        
+        <div id="status" class="status info">
+            Ready to test logout functionality...
+        </div>
+    </div>
+
+    <script>
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type}`;
+            statusDiv.innerHTML = message;
+        }
+
+        function createTestSession() {
+            const testUser = {
+                id: 'test123',
+                actorId: 'TEST001',
+                role: 'farmer',
+                roleId: 1,
+                name: 'Test User'
+            };
+            
+            localStorage.setItem('ayurtrace_user', JSON.stringify(testUser));
+            updateStatus('✓ Test session created. User: Test User (TEST001)', 'success');
+        }
+
+        async function checkSession() {
+            try {
+                const user = await getCurrentUser();
+                if (user) {
+                    updateStatus(`✓ Session active: ${user.name} (${user.actorId}) - Role: ${user.role}`, 'success');
+                } else {
+                    updateStatus('No active session found', 'info');
+                }
+            } catch (error) {
+                updateStatus(`Error checking session: ${error.message}`, 'error');
+            }
+        }
+
+        async function testLogout() {
+            updateStatus('Testing logout... (Note: This will redirect to index.html)', 'info');
+            
+            // Add a small delay so user can read the message
+            setTimeout(async () => {
+                try {
+                    await signOut();
+                } catch (error) {
+                    updateStatus(`Logout error: ${error.message}`, 'error');
+                }
+            }, 1000);
+        }
+
+        async function directLogout() {
+            updateStatus('Executing direct signOut()... (Will redirect to index.html)', 'info');
+            
+            setTimeout(async () => {
+                await signOut();
+            }, 1000);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            updateStatus('Logout test page loaded. Create a test session first, then test logout.', 'info');
+        });
+    </script>
+</body>
+</html>

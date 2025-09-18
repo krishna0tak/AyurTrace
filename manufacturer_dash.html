@@ -12,17 +12,25 @@
 
 <body>
     <!-- Auth Check Script -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="supabase-auth.js"></script>
     <script>
-        // Check authentication
-        const user = localStorage.getItem('ayurtrace_user');
-        if (!user) {
-            window.location.href = 'login.html';
-        } else {
-            const userData = JSON.parse(user);
-            if (userData.role !== 'manufacturer') {
+        // Check authentication using the proper auth system
+        async function checkAuth() {
+            const user = await getCurrentUser();
+            if (!user) {
                 window.location.href = 'login.html';
+                return;
+            }
+            if (user.role !== 'manufacturer') {
+                window.location.href = 'login.html';
+                return;
             }
         }
+        
+        // Run auth check when page loads
+        document.addEventListener('DOMContentLoaded', checkAuth);
     </script>
 
     <nav class="navbar">
@@ -38,7 +46,7 @@
                 <div class="user-menu">
                     <div class="user-avatar">MN</div>
                     <span>Manufacturer Name</span>
-                    <a href="logout.html" class="logout-btn"><i class="fas fa-sign-out-alt"></i></a>
+                    <a href="#" id="logoutBtn" class="logout-btn"><i class="fas fa-sign-out-alt"></i></a>
                 </div>
             </div>
         </div>
@@ -177,9 +185,9 @@
 
     <script>
         // Initialize dashboard
-        document.addEventListener('DOMContentLoaded', function() {
-            // Get user data
-            const user = JSON.parse(localStorage.getItem('ayurtrace_user'));
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Get user data using the proper auth system
+            const user = await getCurrentUser();
             if (user && user.name) {
                 document.querySelector('.user-menu span').textContent = user.name;
                 document.querySelector('.user-avatar').textContent = user.name.substring(0, 2).toUpperCase();
@@ -373,6 +381,15 @@
                     </div>
                 </div>
             `).join('');
+        }
+
+        // Logout functionality
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                await signOut();
+            });
         }
     </script>
 </body>

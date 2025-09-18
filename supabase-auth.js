@@ -6,15 +6,25 @@ const supabaseClient = window.supabase.createClient(
 
 // Local session helpers
 const SESSION_KEY = 'ayurtrace_user';
+
+// Role mapping for consistent role handling
+const ROLE_MAPPING = {
+    1: 'farmer',
+    2: 'collector', 
+    3: 'auditor',
+    4: 'manufacturer',
+    5: 'distributor'
+};
+
 function saveSession(user) {
-    try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(user)); } catch {}
+    try { localStorage.setItem(SESSION_KEY, JSON.stringify(user)); } catch {}
 }
 function clearSession() {
-    try { sessionStorage.removeItem(SESSION_KEY); } catch {}
+    try { localStorage.removeItem(SESSION_KEY); } catch {}
 }
 function readSession() {
     try {
-        const raw = sessionStorage.getItem(SESSION_KEY);
+        const raw = localStorage.getItem(SESSION_KEY);
         return raw ? JSON.parse(raw) : null;
     } catch { return null; }
 }
@@ -79,7 +89,8 @@ async function signIn(actorId, password, role) {
         const sessionUser = {
             id: user.id,
             actorId: user.actorId,
-            role: user.role,
+            role: ROLE_MAPPING[user.role] || 'unknown', // Convert numeric role to string
+            roleId: user.role, // Keep numeric role for reference
             name: user.fullName || user.actorId
         };
         saveSession(sessionUser);
@@ -93,7 +104,7 @@ async function signIn(actorId, password, role) {
 /** Sign out: clear local session only */
 async function signOut() {
     clearSession();
-    window.location.href = 'login.html';
+    window.location.href = 'index.html';
 }
 
 /** Get current user from local session */
