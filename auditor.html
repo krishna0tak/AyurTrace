@@ -11,6 +11,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script src="supabase-auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
+    <script src="blockchain.js"></script>
 </head>
 
 <body>
@@ -85,18 +87,43 @@
                 </div>
             </section>
 
+            <!-- Supply Chain Timeline (First) -->
+            <section class="card" id="auditorChainSection" style="display: block;">
+                <h3 class="card-header">
+                    <i class="fas fa-route"></i>
+                    Supply Chain Timeline
+                </h3>
+                <div style="padding: 16px;">
+                    <div class="form-group">
+                        <label for="searchInput">Search Batch or Collection ID</label>
+                        <div class="input-group">
+                            <input type="text" id="searchInput" class="form-input" placeholder="Enter Batch ID (e.g., BATCH_... or COL_...)" required>
+                            <button type="button" id="searchBtn" class="get-location-btn">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        <p id="searchError" class="error-message" style="color: #ef4444; margin-top: 8px; display: none;"></p>
+                    </div>
+                    <div id="timelineResults" style="margin-top: 20px;">
+                        <p id="auditorChainId" class="text-sm" style="color:#64748b; margin-bottom: 12px;">Enter a Batch ID to view supply chain history</p>
+                        <div id="auditorTimeline" class="relative" style="padding-left: 16px; border-left: 2px solid #e2e8f0;"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Audit Form (Second) -->
             <section class="card">
                 <h3 class="card-header">
                     <i class="fas fa-plus-circle"></i>
-                    Audit Batch
+                    Create Audit Entry
                 </h3>
                 <form id="auditForm">
                     <div class="form-group">
-                        <label for="collectionId">Scan/Enter Collection ID</label>
+                        <label for="collectionId">Collection ID (from search above)</label>
                         <div class="input-group">
-                            <input type="text" id="collectionId" class="form-input" placeholder="e.g., COL_1234567890" required>
+                            <input type="text" id="collectionId" class="form-input" placeholder="Collection ID will be filled from search" readonly>
                             <button type="button" id="fetchCollectionBtn" class="get-location-btn">
-                                <i class="fas fa-search"></i>
+                                <i class="fas fa-sync"></i>
                             </button>
                         </div>
                         <p id="collectionError" class="error-message" style="color: #ef4444; margin-top: 8px; display: none;"></p>
@@ -198,23 +225,64 @@
             // Set current date
             document.getElementById('auditDate').value = new Date().toISOString().split('T')[0];
 
+            await Blockchain.init();
+
+            // Search functionality 
+            const searchBtn = document.getElementById('searchBtn');
+            const searchInput = document.getElementById('searchInput');
+            const collectionIdInput = document.getElementById('collectionId');
+            
+            searchBtn.addEventListener('click', async function() {
+                const searchId = searchInput.value.trim();
+                if (!searchId) {
+                    showSearchError('Please enter a Batch or Collection ID');
+                    return;
+                }
+                
+                await searchAndDisplayChain(searchId);
+                // Auto-fill collection ID for audit form if it's a collection
+                collectionIdInput.value = searchId;
+            });
+
+            // Enter key support for search
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchBtn.click();
+                }
+            });
+
             // Fetch collection details
             const fetchBtn = document.getElementById('fetchCollectionBtn');
-            const collectionIdInput = document.getElementById('collectionId');
             const collectionDetails = document.getElementById('collectionDetails');
             const collectionError = document.getElementById('collectionError');
             const submitBtn = document.getElementById('submitBtn');
 
-            fetchBtn.addEventListener('click', function() {
+            fetchBtn.addEventListener('click', async function() {
                 const collectionId = collectionIdInput.value.trim();
                 if (!collectionId) {
                     showError('Please enter a collection ID');
                     return;
                 }
 
-                // Check if collection exists and is pending audit
-                const collections = JSON.parse(localStorage.getItem('collected_batches') || '[]');
-                const collection = collections.find(c => c.id === collectionId && c.status === 'Pending Audit');
+                // Look up collection or batch on-chain and render full chain for preview
+                let collection;
+                try {
+                    const c = await Blockchain.getCollection(collectionId);
+                    // c tuple: [farmerBatchId, farmerId, cropName, quantity, collectorId, collectionDate, status]
+                    if (c && c[5] && BigInt(c[5]) > 0n) {
+                        collection = {
+                            id: c[0],
+                            cropType: c[2],
+                            collectedQuantity: c[3].toString(),
+                            collector: c[4],
+                            collectionDate: Number(c[5]) * 1000,
+                            condition: '—',
+                            status: c[6] || 'Pending Audit'
+                        };
+                    }
+                } catch (e) {
+                    console.warn('On-chain getCollection failed', e);
+                }
 
                 if (collection) {
                     // Check if already audited
@@ -238,7 +306,7 @@
                     
                     fetchBtn.innerHTML = '<i class="fas fa-check"></i>';
                     setTimeout(() => {
-                        fetchBtn.innerHTML = '<i class="fas fa-search"></i>';
+                        fetchBtn.innerHTML = '<i class="fas fa-sync"></i>';
                     }, 2000);
                 } else {
                     showError('Collection not found or not pending audit. Please check the Collection ID.');
@@ -250,6 +318,15 @@
                 collectionError.style.display = 'block';
                 collectionDetails.style.display = 'none';
                 submitBtn.disabled = true;
+            }
+
+            function showSearchError(message) {
+                const searchError = document.getElementById('searchError');
+                searchError.textContent = message;
+                searchError.style.display = 'block';
+                setTimeout(() => {
+                    searchError.style.display = 'none';
+                }, 3000);
             }
 
             // Update quality grade based on audit result
@@ -270,48 +347,32 @@
 
             // Form submission
             const auditForm = document.getElementById('auditForm');
-            auditForm.addEventListener('submit', function(e) {
+            auditForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
-                
-                const auditData = {
-                    id: 'AUDIT_' + Date.now(),
-                    collectionId: collectionIdInput.value,
-                    collectionInfo: document.getElementById('collectionInfo').value,
-                    collector: document.getElementById('collectorName').value,
-                    auditDate: document.getElementById('auditDate').value,
-                    auditResult: document.getElementById('auditResult').value,
-                    qualityGrade: document.getElementById('qualityGrade').value,
-                    moistureContent: document.getElementById('moistureContent').value,
-                    auditNotes: document.getElementById('auditNotes').value,
-                    recommendations: document.getElementById('recommendations').value,
-                    auditor: user.name,
-                    timestamp: new Date().toISOString()
-                };
 
-                // Store audit
-                let audits = JSON.parse(localStorage.getItem('audit_history') || '[]');
-                audits.unshift(auditData);
-                localStorage.setItem('audit_history', JSON.stringify(audits));
-
-                // Update collection status
-                let collections = JSON.parse(localStorage.getItem('collected_batches') || '[]');
-                const collectionIndex = collections.findIndex(c => c.id === collectionIdInput.value);
-                if (collectionIndex !== -1) {
-                    collections[collectionIndex].status = 'Audited';
-                    collections[collectionIndex].auditResult = auditData.auditResult;
-                    collections[collectionIndex].qualityGrade = auditData.qualityGrade;
-                    localStorage.setItem('collected_batches', JSON.stringify(collections));
+                const auditResult = document.getElementById('auditResult').value;
+                const auditNotes = document.getElementById('auditNotes').value;
+                const me = await getCurrentUser();
+                const inspectorId = me?.actorId || me?.actor_id || me?.name || 'AUD001';
+                try {
+                    await Blockchain.addInspection({ batchId: collectionIdInput.value, inspectorId, result: auditResult, notes: auditNotes });
+                    alert('Audit added on-chain and forwarded.');
+                    
+                    // Refresh timeline after audit
+                    if (collectionIdInput.value) {
+                        await searchAndDisplayChain(collectionIdInput.value);
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert(err.message || 'Failed to record audit on-chain');
                 }
 
-                // Reset form
+                // Reset form UI
                 auditForm.reset();
                 collectionDetails.style.display = 'none';
                 submitBtn.disabled = true;
                 document.getElementById('auditDate').value = new Date().toISOString().split('T')[0];
 
-                alert(`Audit completed successfully!\nResult: ${auditData.auditResult}\nGrade: ${auditData.qualityGrade}\nForwarded to manufacturer.`);
-                
-                // Refresh data
                 loadStats();
                 loadAuditHistory();
             });
@@ -320,6 +381,103 @@
             loadStats();
             loadAuditHistory();
         });
+
+        // Search and display chain function
+        async function searchAndDisplayChain(batchId) {
+            const idEl = document.getElementById('auditorChainId');
+            const timeline = document.getElementById('auditorTimeline');
+            
+            idEl.textContent = `Batch ID: ${batchId}`;
+            timeline.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin" style="font-size:24px;color:#6366f1;"></i><p style="margin-top:12px;color:#64748b;">Loading supply chain...</p></div>';
+
+            try {
+                const logs = await Blockchain.getChainForBatch(batchId);
+                if (!logs || logs.length === 0) {
+                    timeline.innerHTML = `<div style="text-align:center;padding:40px;color:#ef4444;"><i class="fas fa-exclamation-triangle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i><p>No events found for ${batchId}</p></div>`;
+                    return;
+                }
+                
+                renderTimelineWithImages(timeline, logs);
+            } catch (e) {
+                console.error('Search chain error', e);
+                timeline.innerHTML = `<div style="text-align:center;padding:40px;color:#ef4444;">${e.message || 'Failed to load chain'}</div>`;
+            }
+        }
+
+        // Timeline renderer with images
+        function renderTimelineWithImages(container, logs) {
+            container.innerHTML = '';
+            const eventConfig = {
+                BatchCreated: { icon: '🌾', title: 'Batch Created', color: '#10b981', getDescription: (args) => {
+                    const meta = Blockchain.parseFarmLocationMeta(args.farmLocation || '');
+                    const farmer = meta.farmer || 'Unknown Farmer';
+                    const baseLoc = meta.base || (args.farmLocation || 'Not specified');
+                    let desc = `${args.cropType || 'Unknown crop'} • ${args.quantity || '0'} kg • Location: ${baseLoc} • Farmer: ${farmer}`;
+                    const imageHash = meta.ipfs || args.photoHash;
+                    if (imageHash) {
+                        desc += `<br><div style="margin-top:8px;"><img src="${Blockchain.getImageFromPinata(imageHash)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:2px solid #e5e7eb;" onclick="showFullImage('${imageHash}')" title="Click to view full image" /><span style="margin-left:8px;color:#3b82f6;cursor:pointer;" onclick="showFullImage('${imageHash}')"><i class="fas fa-expand"></i> View Full</span></div>`;
+                    }
+                    return desc; 
+                } },
+                CollectionAdded: { icon: '👷', title: 'Collection Added', color: '#3b82f6', getDescription: (args) => `Collected by ${args.collectorId || 'Unknown'} • ${args.quantity || '0'} kg of ${args.cropName || 'Unknown crop'}` },
+                InspectionAdded: { icon: '🕵️', title: 'Quality Inspection', color: '#8b5cf6', getDescription: (args) => `Result: ${args.result || 'Unknown'} • Inspector: ${args.inspectorId || 'Unknown'}${args.notes ? ` • Notes: ${args.notes}` : ''}` },
+                ProductCreated: { icon: '🏭', title: 'Product Manufactured', color: '#f59e0b', getDescription: (args) => `Product: ${args.productType || 'Unknown'} • Processed: ${args.quantityProcessed || '0'} kg • Manufacturer: ${args.manufacturerId || 'Unknown'}` },
+                ProductReceived: { icon: '📦', title: 'Product Received', color: '#06b6d4', getDescription: (args) => `${args.herbType || 'Product'} • ${args.quantity || '0'} kg • Storage: ${args.storageLocation || 'Unknown location'}` },
+                ProductDispatched: { icon: '🚚', title: 'Product Dispatched', color: '#ef4444', getDescription: (args) => `${args.quantityDispatched || args.quantityToDispatch || '0'} kg dispatched to ${args.destination || 'Unknown destination'}` }
+            };
+
+            let html = '';
+            logs.forEach((l, index) => {
+                const name = l.fragment?.name || 'Event';
+                const config = eventConfig[name] || { icon: '⛓️', title: name, color: '#6b7280', getDescription: () => 'Event details' };
+                const description = l.args ? config.getDescription(l.args) : 'No details';
+                const isLast = index === logs.length - 1;
+                const blockInfo = (l.blockNumber !== undefined && l.blockNumber !== null) ? `Block #${Number(l.blockNumber)}` : '';
+                html += `
+                <div style="display:flex; gap:16px; padding-bottom:${isLast ? '0' : '20px'}; position:relative;">
+                    <div style="background:${config.color};color:#fff;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;">${config.icon}</div>
+                    <div style="background:white;padding:12px;border-radius:10px;flex:1;border-left:4px solid ${config.color};">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+                            <h4 style="margin:0;font-weight:600;color:#1f2937;font-size:15px;">${config.title}</h4>
+                            ${blockInfo ? `<span style=\"background:#f3f4f6;color:#6b7280;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:500;\">${blockInfo}</span>` : ''}
+                        </div>
+                        <p style="margin:0;color:#374151;font-size:13px;line-height:1.5;">${description}</p>
+                    </div>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        // Image modal functions
+        function showFullImage(ipfsHash) {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                background: rgba(0,0,0,0.8); z-index: 10000; display: flex; 
+                align-items: center; justify-content: center; cursor: pointer;
+            `;
+            
+            const img = document.createElement('img');
+            img.src = Blockchain.getImageFromPinata(ipfsHash);
+            img.style.cssText = `
+                max-width: 90%; max-height: 90%; border-radius: 12px; 
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            `;
+            
+            modal.appendChild(img);
+            document.body.appendChild(modal);
+            
+            modal.onclick = () => document.body.removeChild(modal);
+            
+            // Close on Escape key
+            const closeOnEscape = (e) => {
+                if (e.key === 'Escape') {
+                    document.body.removeChild(modal);
+                    document.removeEventListener('keydown', closeOnEscape);
+                }
+            };
+            document.addEventListener('keydown', closeOnEscape);
+        }
 
         function loadStats() {
             const audits = JSON.parse(localStorage.getItem('audit_history') || '[]');
@@ -368,14 +526,16 @@
             `).join('');
         }
 
-        // Logout functionality
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                await signOut();
-            });
-        }
+        // Logout functionality (single, using signOut from supabase-auth.js)
+        (function() {
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    await signOut();
+                });
+            }
+        })();
     </script>
 </body>
 

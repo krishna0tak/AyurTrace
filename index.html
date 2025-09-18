@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="theme.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
+    <script src="blockchain.js"></script>
     <script src="supabase-auth.js"></script>
 </head>
 <body class="bg-white">
@@ -85,29 +87,29 @@
         <!-- How It Works Section -->
         <section id="how-it-works" class="py-12 sm:py-16 lg:py-20">
             <div class="container mx-auto px-4 sm:px-6">
-                <h3 class="section-title text-2xl sm:text-3xl lg:text-4xl">How AyurTrace Works</h3>
-                <p class="section-subtitle text-base sm:text-lg max-w-3xl mx-auto">Our blockchain-powered platform ensures complete transparency in the Ayurvedic supply chain, from cultivation to consumer.</p>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-10 text-center">
-                    <div class="card p-4 sm:p-6">
+                <h3 class="section-title text-2xl sm:text-3xl lg:text-4xl text-center">How AyurTrace Works</h3>
+                <p class="section-subtitle text-base sm:text-lg max-w-3xl mx-auto text-center mb-8 sm:mb-12">Our blockchain-powered platform ensures complete transparency in the Ayurvedic supply chain, from cultivation to consumer.</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-10">
+                    <div class="card p-4 sm:p-6 text-center">
                         <div class="flex justify-center mb-4">
                             <img src="assets/icons/scan-icon.svg" alt="Scan QR Code Icon" class="w-16 h-16 sm:w-20 sm:h-20">
                         </div>
-                        <h4 class="text-lg sm:text-xl font-semibold mb-2">1. Scan QR Code</h4>
-                        <p class="text-gray-600 text-sm sm:text-base">Simply scan the QR code on your Ayurvedic product packaging to begin the traceability journey.</p>
+                        <h4 class="text-lg sm:text-xl font-semibold mb-3 text-center">1. Scan QR Code</h4>
+                        <p class="text-gray-600 text-sm sm:text-base text-center leading-relaxed">Simply scan the QR code on your Ayurvedic product packaging to begin the traceability journey.</p>
                     </div>
-                    <div class="card p-4 sm:p-6">
+                    <div class="card p-4 sm:p-6 text-center">
                         <div class="flex justify-center mb-4">
                             <img src="assets/icons/journey-icon.svg" alt="View Journey Icon" class="w-16 h-16 sm:w-20 sm:h-20">
                         </div>
-                        <h4 class="text-lg sm:text-xl font-semibold mb-2">2. View Journey</h4>
-                        <p class="text-gray-600 text-sm sm:text-base">Explore the complete supply chain journey with detailed information about each step and stakeholder.</p>
+                        <h4 class="text-lg sm:text-xl font-semibold mb-3 text-center">2. View Journey</h4>
+                        <p class="text-gray-600 text-sm sm:text-base text-center leading-relaxed">Explore the complete supply chain journey with detailed information about each step and stakeholder.</p>
                     </div>
-                    <div class="card p-4 sm:p-6">
+                    <div class="card p-4 sm:p-6 text-center">
                         <div class="flex justify-center mb-4">
                             <img src="assets/icons/verify-icon.svg" alt="Verify Authenticity Icon" class="w-16 h-16 sm:w-20 sm:h-20">
                         </div>
-                        <h4 class="text-lg sm:text-xl font-semibold mb-2">3. Verify Authenticity</h4>
-                        <p class="text-gray-600 text-sm sm:text-base">Confirm product authenticity and quality with blockchain-verified information from trusted sources.</p>
+                        <h4 class="text-lg sm:text-xl font-semibold mb-3 text-center">3. Verify Authenticity</h4>
+                        <p class="text-gray-600 text-sm sm:text-base text-center leading-relaxed">Confirm product authenticity and quality with blockchain-verified information from trusted sources.</p>
                     </div>
                 </div>
             </div>
