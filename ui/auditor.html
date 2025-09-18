@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auditor Dashboard - AyurTrace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="theme.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-content">
+                <a href="index.html" class="logo">
+                    <i class="fas fa-seedling"></i>
+                    AyuTrace
+                </a>
+                <div class="nav-links">
+                    <a href="#" class="active"><i class="fas fa-home"></i> Dashboard</a>
+                    <a href="#"><i class="fas fa-history"></i> History</a>
+                </div>
+                <div class="user-menu">
+                    <div class="user-avatar">AD</div>
+                    <span>Auditor</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container">
+            <section class="welcome-section">
+                <div class="welcome-content">
+                    <div class="welcome-text">
+                        <h1>Auditor Dashboard</h1>
+                        <p>Inspect and verify batches on the blockchain.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-search"></i> Inspect a Batch</h2>
+                </div>
+                <div class="form-group">
+                    <label for="batchId">Batch ID</label>
+                    <input type="text" id="batchId" class="input-field" placeholder="Enter Batch ID to inspect...">
+                </div>
+                <button id="inspectBtn" class="submit-btn">Inspect</button>
+            </section>
+
+            <section id="inspectionDetails" class="card hidden">
+                <div class="card-header">
+                    <h2><i class="fas fa-info-circle"></i> Batch Details</h2>
+                </div>
+                <div id="batchInfo"></div>
+
+                <div class="form-group mt-6">
+                    <label for="inspectionResult">Inspection Result</label>
+                    <select id="inspectionResult" class="input-field">
+                        <option value="Approved">Approved</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="inspectionNotes">Notes</label>
+                    <textarea id="inspectionNotes" class="input-field" placeholder="Add inspection notes..."></textarea>
+                </div>
+                <button id="submitInspectionBtn" class="submit-btn">Submit Inspection</button>
+            </section>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.7.3/dist/web3.min.js"></script>
+    <script src="config.js"></script>
+    <script src="supabase-auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            const web3 = new Web3(window.config.GANACHE_URL);
+            const contract = new web3.eth.Contract(window.config.CONTRACT_ABI, window.config.CONTRACT_ADDRESS);
+
+            const inspectBtn = document.getElementById('inspectBtn');
+            const inspectionDetails = document.getElementById('inspectionDetails');
+            const batchInfo = document.getElementById('batchInfo');
+            const submitInspectionBtn = document.getElementById('submitInspectionBtn');
+
+            inspectBtn.addEventListener('click', async () => {
+                const batchId = document.getElementById('batchId').value;
+                if (!batchId) return;
+
+                try {
+                    const batch = await contract.methods.getBatchDetails(batchId).call();
+                    batchInfo.innerHTML = `
+                        <p><strong>Batch ID:</strong> ${batch.batchId}</p>
+                        <p><strong>Crop Type:</strong> ${batch.cropType}</p>
+                        <p><strong>Quantity:</strong> ${batch.quantity} kg</p>
+                        <p><strong>Harvest Date:</strong> ${batch.harvestDate}</p>
+                        <p><strong>Farm Location:</strong> ${batch.farmLocation}</p>
+                        <p><strong>Status:</strong> ${batch.status}</p>
+                    `;
+                    inspectionDetails.classList.remove('hidden');
+                } catch (error) {
+                    console.error("Error fetching batch details:", error);
+                    alert("Batch not found.");
+                }
+            });
+
+            submitInspectionBtn.addEventListener('click', async () => {
+                const batchId = document.getElementById('batchId').value;
+                const result = document.getElementById('inspectionResult').value;
+                const notes = document.getElementById('inspectionNotes').value;
+                const inspectorId = "AUD001"; // Placeholder
+
+                try {
+                    const accounts = await web3.eth.getAccounts();
+                    await contract.methods.addInspection(batchId, inspectorId, result, notes).send({ from: accounts[0] });
+                    alert("Inspection submitted successfully!");
+                    inspectionDetails.classList.add('hidden');
+                } catch (error) {
+                    console.error("Error submitting inspection:", error);
+                    alert("Failed to submit inspection.");
+                }
+            });
+        });
+    </script>
+</body>
+</html>
