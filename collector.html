@@ -237,8 +237,11 @@
                 document.querySelector('.user-menu span').textContent = user.name;
                 document.querySelector('.user-avatar').textContent = user.name.substring(0, 2).toUpperCase();
                 document.querySelector('.dashboard-header h1').textContent = `Welcome back, ${user.name}!`;
-                // Set collector ID
-                document.getElementById('collectorId').value = user.actorId || 'COL001';
+                // Set collector ID to actorId dynamically
+                const collectorIdField = document.getElementById('collectorId');
+                if (collectorIdField) {
+                    collectorIdField.value = user.actorId || 'COL001';
+                }
             }
 
             // Initialize blockchain
@@ -583,12 +586,13 @@
                 e.preventDefault();
                 
                 const formData = new FormData(collectionForm);
+                const currentActorId = await getCurrentActorId();
                 const collectionData = {
                     farmerBatchId: formData.get('selectedBatchId'),
                     farmerId: formData.get('selectedFarmerId'),
                     cropName: formData.get('selectedCropName'),
                     quantity: parseFloat(formData.get('collectionQuantity')),
-                    collectorId: formData.get('collectorId')
+                    collectorId: currentActorId || formData.get('collectorId') || 'unknown'
                 };
                 
                 try {

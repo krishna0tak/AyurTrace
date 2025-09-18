@@ -16,6 +16,9 @@ contract AyurTraceUnified {
         BatchStatus status;
         address owner;
         uint timestamp; // Creation timestamp
+    // Add-on metadata (does not affect legacy behavior)
+    string farmerName;      // Optional snapshot of the farmer's name
+    string farmerUsername;  // Optional snapshot of the farmer's username
     }
 
     mapping(string => CropBatch) public batches;
@@ -28,6 +31,19 @@ contract AyurTraceUnified {
         uint quantity,
         string farmLocation,
         bytes32 photoHash,
+        uint timestamp
+    );
+
+    // Additive event with name+username snapshot at creation (does not replace the legacy one)
+    event BatchCreatedV2(
+        string indexed batchId,
+        address indexed owner,
+        string cropType,
+        uint quantity,
+        string farmLocation,
+        bytes32 photoHash,
+        string farmerName,
+        string farmerUsername,
         uint timestamp
     );
 
@@ -119,6 +135,194 @@ contract AyurTraceUnified {
         string manufacturerId
     );
 
+    // -----------------------------
+    // Stakeholder Profiles (generic)
+    // -----------------------------
+    // Supports saving name + username for all stakeholders and fetching by
+    // address, username, or name.
+
+    enum Role { Unknown, Farmer, Auditor, Collector, Manufacturer, Distributor }
+
+    struct Profile {
+        string name;        // Full name to display
+        string username;    // Unique username (global uniqueness)
+        Role role;          // Stakeholder role
+        address account;    // Account address (owner of this profile)
+        uint256 createdAt;  // First time profile was created
+    }
+
+    // Address => Profile
+    mapping(address => Profile) public profiles;
+
+    // keccak256(username) => address (enforces global uniqueness)
+    mapping(bytes32 => address) public usernameToAddress;
+
+    // keccak256(name) => addresses (multiple users can share the same name)
+    mapping(bytes32 => address[]) private nameToAddresses;
+
+    event ProfileSet(
+        address indexed account,
+        string name,
+        string username,
+        Role role,
+        uint256 timestamp
+    );
+
+    // -----------------------------
+    // Batch indexes by farmer username/name (for search)
+    // -----------------------------
+    // These enable querying batches by farmer username/name without relying on address.
+    mapping(bytes32 => string[]) private batchIdsByFarmerUsername; // keccak256(username) => batchIds
+    mapping(bytes32 => string[]) private batchIdsByFarmerName;     // keccak256(name) => batchIds
+
+    function _setProfile(
+        string memory _name,
+        string memory _username,
+        Role _role
+    ) internal {
+        require(bytes(_name).length > 0, "Name required");
+        require(bytes(_username).length > 0, "Username required");
+
+        bytes32 unameHash = keccak256(bytes(_username));
+        address currentOwner = usernameToAddress[unameHash];
+        require(
+            currentOwner == address(0) || currentOwner == msg.sender,
+            "Username already taken"
+        );
+
+        // If user had a previous username, free it when changing
+        Profile storage p = profiles[msg.sender];
+        if (bytes(p.username).length > 0) {
+            bytes32 oldHash = keccak256(bytes(p.username));
+            if (oldHash != unameHash && usernameToAddress[oldHash] == msg.sender) {
+                usernameToAddress[oldHash] = address(0);
+            }
+        }
+
+        // Update profile
+        p.name = _name;
+        p.username = _username;
+        p.role = _role;
+        p.account = msg.sender;
+        if (p.createdAt == 0) {
+            p.createdAt = block.timestamp;
+        }
+
+        // Indexes
+        usernameToAddress[unameHash] = msg.sender;
+        nameToAddresses[keccak256(bytes(_name))].push(msg.sender);
+
+        emit ProfileSet(msg.sender, _name, _username, _role, block.timestamp);
+    }
+
+    // Convenience role-specific setters
+    function setFarmerProfile(string memory _name, string memory _username) public {
+        _setProfile(_name, _username, Role.Farmer);
+    }
+
+    function setAuditorProfile(string memory _name, string memory _username) public {
+        _setProfile(_name, _username, Role.Auditor);
+    }
+
+    function setCollectorProfile(string memory _name, string memory _username) public {
+        _setProfile(_name, _username, Role.Collector);
+    }
+
+    function setManufacturerProfile(string memory _name, string memory _username) public {
+        _setProfile(_name, _username, Role.Manufacturer);
+    }
+
+    function setDistributorProfile(string memory _name, string memory _username) public {
+        _setProfile(_name, _username, Role.Distributor);
+    }
+
+    // Getters
+    function getProfile(address _account)
+        public
+        view
+        returns (
+            string memory name_,
+            string memory username_,
+            Role role_,
+            address account_,
+            uint256 createdAt_
+        )
+    {
+        Profile storage p = profiles[_account];
+        return (p.name, p.username, p.role, p.account, p.createdAt);
+    }
+
+    function getAccountByUsername(string memory _username) public view returns (address) {
+        return usernameToAddress[keccak256(bytes(_username))];
+    }
+
+    function getProfileByUsername(string memory _username)
+        public
+        view
+        returns (
+            string memory name_,
+            string memory username_,
+            Role role_,
+            address account_,
+            uint256 createdAt_
+        )
+    {
+        address account = usernameToAddress[keccak256(bytes(_username))];
+        require(account != address(0), "Username not found");
+        Profile storage p = profiles[account];
+        return (p.name, p.username, p.role, p.account, p.createdAt);
+    }
+
+    function getAddressesByName(string memory _name) public view returns (address[] memory) {
+        // Filter to only current matches (avoid stale entries if a user changed name)
+        bytes32 key = keccak256(bytes(_name));
+        address[] storage list = nameToAddresses[key];
+
+        // First pass: count matches
+        uint256 count = 0;
+        for (uint256 i = 0; i < list.length; i++) {
+            if (keccak256(bytes(profiles[list[i]].name)) == key) {
+                count++;
+            }
+        }
+
+        // Second pass: collect matches
+        address[] memory out = new address[](count);
+        uint256 idx = 0;
+        for (uint256 i = 0; i < list.length; i++) {
+            if (keccak256(bytes(profiles[list[i]].name)) == key) {
+                out[idx++] = list[i];
+            }
+        }
+        return out;
+    }
+
+    // Convenience: get a farmer's batches by username directly
+    function getFarmerBatchIdsByUsername(string memory _username) public view returns (string[] memory) {
+        address farmer = usernameToAddress[keccak256(bytes(_username))];
+        require(farmer != address(0), "Username not found");
+        return farmerBatchIds[farmer];
+    }
+
+    function getFarmerBatchIdsByName(string memory _name) public view returns (string[] memory) {
+        address[] memory addrs = getAddressesByName(_name);
+        // Count total batches across all addresses
+        uint256 total = 0;
+        for (uint256 i = 0; i < addrs.length; i++) {
+            total += farmerBatchIds[addrs[i]].length;
+        }
+        // Collect
+        string[] memory out = new string[](total);
+        uint256 k = 0;
+        for (uint256 i = 0; i < addrs.length; i++) {
+            string[] storage ids = farmerBatchIds[addrs[i]];
+            for (uint256 j = 0; j < ids.length; j++) {
+                out[k++] = ids[j];
+            }
+        }
+        return out;
+    }
+
     // --- FUNCTIONS ---
 
     // From FarmerDashboard.sol
@@ -141,7 +345,9 @@ contract AyurTraceUnified {
             photoHash: _photoHash,
             status: BatchStatus.Pending,
             owner: msg.sender,
-            timestamp: block.timestamp
+            timestamp: block.timestamp,
+            farmerName: "",
+            farmerUsername: ""
         });
 
         farmerBatchIds[msg.sender].push(_batchId);
@@ -155,6 +361,71 @@ contract AyurTraceUnified {
             _photoHash,
             block.timestamp
         );
+    }
+
+    // Backward-compatible new function that also captures farmer name + username snapshot.
+    // If not provided, it will try to use the profile of msg.sender, if available.
+    function createBatchV2(
+        string memory _batchId,
+        string memory _cropType,
+        uint _quantity,
+        string memory _harvestDate,
+        string memory _farmLocation,
+        bytes32 _photoHash,
+        string memory _farmerName,
+        string memory _farmerUsername
+    ) public {
+        require(bytes(batches[_batchId].batchId).length == 0, "Batch ID already exists.");
+
+        // Resolve name and username: prefer explicit args, otherwise pull from profile (no hard registration required)
+        string memory nameToSet = bytes(_farmerName).length > 0 ? _farmerName : profiles[msg.sender].name;
+        string memory unameToSet = bytes(_farmerUsername).length > 0 ? _farmerUsername : profiles[msg.sender].username;
+
+        batches[_batchId] = CropBatch({
+            batchId: _batchId,
+            cropType: _cropType,
+            quantity: _quantity,
+            harvestDate: _harvestDate,
+            farmLocation: _farmLocation,
+            photoHash: _photoHash,
+            status: BatchStatus.Pending,
+            owner: msg.sender,
+            timestamp: block.timestamp,
+            farmerName: nameToSet,
+            farmerUsername: unameToSet
+        });
+
+        farmerBatchIds[msg.sender].push(_batchId);
+
+        // Emit both events for broader compatibility
+        emit BatchCreated(
+            _batchId,
+            msg.sender,
+            _cropType,
+            _quantity,
+            _farmLocation,
+            _photoHash,
+            block.timestamp
+        );
+        emit BatchCreatedV2(
+            _batchId,
+            msg.sender,
+            _cropType,
+            _quantity,
+            _farmLocation,
+            _photoHash,
+            nameToSet,
+            unameToSet,
+            block.timestamp
+        );
+
+        // Index this batch by username and name if available
+        if (bytes(unameToSet).length > 0) {
+            batchIdsByFarmerUsername[keccak256(bytes(unameToSet))].push(_batchId);
+        }
+        if (bytes(nameToSet).length > 0) {
+            batchIdsByFarmerName[keccak256(bytes(nameToSet))].push(_batchId);
+        }
     }
 
     function updateBatchStatus(string memory _batchId, BatchStatus _newStatus) public {
@@ -191,6 +462,45 @@ contract AyurTraceUnified {
             batch.owner,
             batch.timestamp
         );
+    }
+
+    // Extended getter including farmer name and username snapshot
+    function getBatchDetailsV2(string memory _batchId) public view returns (
+        string memory batchId,
+        string memory cropType,
+        uint quantity,
+        string memory harvestDate,
+        string memory farmLocation,
+        bytes32 photoHash,
+        BatchStatus status,
+        address owner,
+        uint timestamp,
+        string memory farmerName,
+        string memory farmerUsername
+    ) {
+        require(bytes(batches[_batchId].batchId).length > 0, "Batch ID does not exist.");
+        CropBatch storage batch = batches[_batchId];
+        return (
+            batch.batchId,
+            batch.cropType,
+            batch.quantity,
+            batch.harvestDate,
+            batch.farmLocation,
+            batch.photoHash,
+            batch.status,
+            batch.owner,
+            batch.timestamp,
+            batch.farmerName,
+            batch.farmerUsername
+        );
+    }
+
+    // Batch search helpers
+    function getBatchIdsByFarmerUsername(string memory _username) public view returns (string[] memory) {
+        return batchIdsByFarmerUsername[keccak256(bytes(_username))];
+    }
+    function getBatchIdsByFarmerName(string memory _name) public view returns (string[] memory) {
+        return batchIdsByFarmerName[keccak256(bytes(_name))];
     }
 
     function getFarmerBatchIds(address _farmerAddress) public view returns (string[] memory) {

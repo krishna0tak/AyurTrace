@@ -1355,6 +1355,7 @@
                             Blockchain.storeBatchMeta(batchId, meta);
                         } catch {}
                         
+<<<<<<< HEAD
                         // Store complete batch data with images for search functionality
                         const batchData = {
                             id: batchId,
@@ -1420,6 +1421,9 @@
                         let batches = JSON.parse(localStorage.getItem('farmer_batches') || '[]');
                         batches.unshift(batchData);
                         localStorage.setItem('farmer_batches', JSON.stringify(batches));
+=======
+                        // No local persistence: always fetch real-time from blockchain
+>>>>>>> a375d15ad329eddf7f37cf32d3f05ed55df95428
 
                         newBatchForm.reset();
                         createBatchSection.style.display = 'none';
@@ -1794,11 +1798,14 @@
             };
             
             let html = '';
-            logs.forEach(l => {
+            logs.forEach((l, index) => {
                 const name = l.fragment?.name || 'Event';
                 const ts = l.args?.timestamp || l.args?.collectionDate || l.args?.date || null;
-                const when = ts ? new Date(Number(ts) * (ts > 1e12 ? 1 : 1000)).toLocaleString() : '';
+                const owner = l.args?.owner || l.args?.farmer || 'Unknown';
+                const farmerUsername = l.args?.farmerUsername || 'N/A';
+                const statusText = l.args?.statusText || 'Pending';
                 
+<<<<<<< HEAD
                 let description = '';
                 let imageGallery = '';
                 
@@ -1839,22 +1846,129 @@
                     const imageHash = meta.ipfs || l.args.photoHash;
                     if (imageHash && imageHash !== '0x' + '0'.repeat(64) && Blockchain?.getImageFromPinata) {
                         description += `<br><div style="margin-top:8px;"><img src="${Blockchain.getImageFromPinata(imageHash)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:2px solid #e5e7eb;" onclick="showFullImage('${imageHash}')" title="Click to view full image" /><span style="margin-left:8px;color:#3b82f6;cursor:pointer;" onclick="showFullImage('${imageHash}')"><i class="fas fa-expand"></i> View Full</span></div>`;
+=======
+                // Safe BigInt to number conversion for timestamps
+                let when = '';
+                let timestampValue = '';
+                if (ts) {
+                    try {
+                        // Handle BigInt properly - convert to string first, then parse
+                        let numTs;
+                        if (typeof ts === 'bigint') {
+                            numTs = parseInt(ts.toString());
+                            timestampValue = ts.toString();
+                        } else if (typeof ts === 'object' && ts._isBigNumber) {
+                            // ethers.js BigNumber
+                            numTs = parseInt(ts.toString());
+                            timestampValue = ts.toString();
+                        } else {
+                            numTs = parseInt(ts);
+                            timestampValue = ts.toString();
+                        }
+                        
+                        // Check if timestamp is in seconds or milliseconds
+                        const timestampMs = numTs > 1e12 ? numTs : numTs * 1000;
+                        when = new Date(timestampMs).toLocaleString();
+                    } catch (e) {
+                        console.warn('Timestamp conversion error:', e, 'for value:', ts);
+                        when = 'Invalid date';
+                        timestampValue = 'Invalid';
+>>>>>>> a375d15ad329eddf7f37cf32d3f05ed55df95428
                     }
-                } else {
-                    description = JSON.stringify(l.args, null, 2);
                 }
                 
+                let description = '';
+                let imageSection = '';
+                
+                if (name === 'BatchCreated' && l.args) {
+                    const meta = Blockchain?.parseFarmLocationMeta ? Blockchain.parseFarmLocationMeta(l.args.farmLocation || '') : {};
+                    const farmer = meta.farmer || farmerUsername || 'Unknown Farmer';
+                    const baseLoc = meta.base || (l.args.farmLocation || 'Not specified');
+                    
+                    description = `
+                        <div style="margin-bottom: 12px;">
+                            <strong>Crop:</strong> ${l.args.cropType} • <strong>Quantity:</strong> ${l.args.quantity} kg<br>
+                            <strong>Location:</strong> ${baseLoc}<br>
+                            <strong>Farmer:</strong> ${farmer}
+                        </div>
+                    `;
+                    
+                    const imageHash = meta.ipfs || l.args.photoHash;
+                    if (imageHash && Blockchain?.getImageFromPinata) {
+                        imageSection = `
+                            <div style="margin-top: 12px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+                                <img src="${Blockchain.getImageFromPinata(imageHash)}" 
+                                     style="width: 100%; max-height: 200px; object-fit: cover; cursor: pointer;" 
+                                     onclick="showFullImage('${imageHash}')" 
+                                     title="Click to view full image" 
+                                     alt="Batch Image" />
+                                <div style="padding: 8px; background: #f9fafb; font-size: 11px; color: #6b7280;">
+                                    📸 Click image to view full size
+                                </div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    // For other events, display key information in a structured way
+                    const eventInfo = [];
+                    
+                    if (l.args) {
+                        Object.keys(l.args).forEach(key => {
+                            if (key !== 'photoHash' && key !== 'timestamp' && key !== 'owner' && key !== 'farmerUsername' && key !== 'statusText') {
+                                let value = l.args[key];
+                                if (typeof value === 'bigint') {
+                                    value = value.toString();
+                                } else if (value && typeof value === 'object' && value._isBigNumber) {
+                                    value = value.toString();
+                                }
+                                eventInfo.push(`<strong>${key}:</strong> ${value}`);
+                            }
+                        });
+                    }
+                    
+                    description = eventInfo.length > 0 ? eventInfo.join('<br>') : 'Event processed successfully';
+                }
+                
+                // Status badge styling
+                let statusBadge = '';
+                let statusColor = '#6b7280';
+                if (statusText === 'Completed') statusColor = '#10b981';
+                else if (statusText === 'Processing') statusColor = '#f59e0b';
+                else if (statusText === 'Pending') statusColor = '#ef4444';
+                
+                statusBadge = `<span style="background: ${statusColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">${statusText}</span>`;
+                
                 html += `
-                <div class="timeline-item" style="display:flex;gap:16px;padding-bottom:32px;">
+                <div class="timeline-item" style="display:flex;gap:16px;padding-bottom:32px; position: relative;">
                     <div style="display:flex;flex-direction:column;align-items:center;">
-                        <div style="background:#6366f1;color:white;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;">${icon[name] || '⛓️'}</div>
-                        <div style="width:2px;height:100%;background:#e2e8f0;margin-top:8px;"></div>
+                        <div style="background:#6366f1;color:white;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);">${icon[name] || '⛓️'}</div>
+                        ${index < logs.length - 1 ? '<div style="width:2px;height:100%;background:#e2e8f0;margin-top:8px;"></div>' : ''}
                     </div>
+<<<<<<< HEAD
                     <div style="background:#f8fafc;padding:16px;border-radius:12px;flex:1;">
                         <p style="font-weight:600;color:#1f2937;margin:0 0 4px 0;">${name}</p>
                         ${when ? `<p style="font-size:12px;color:#6b7280;margin:0 0 8px 0;">${when}</p>` : ''}
                         <div style="font-size:12px;color:#4b5563;">${description}</div>
                         ${imageGallery}
+=======
+                    <div style="background:#f8fafc;padding:20px;border-radius:12px;flex:1;border: 1px solid #e2e8f0;box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <h4 style="font-weight:600;color:#1f2937;margin:0;font-size:16px;">${name}</h4>
+                            ${statusBadge}
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; font-size: 12px; color: #6b7280;">
+                            <div><strong>📅 Timestamp:</strong> ${timestampValue}</div>
+                            <div><strong>👤 Owner:</strong> ${owner.substring(0, 10)}...${owner.substring(owner.length - 8)}</div>
+                            <div><strong>🔗 Date/Time:</strong> ${when || 'Not available'}</div>
+                            <div><strong>👨‍🌾 Farmer ID:</strong> ${farmerUsername}</div>
+                        </div>
+                        
+                        <div style="border-top: 1px solid #e5e7eb; padding-top: 12px;">
+                            ${description}
+                            ${imageSection}
+                        </div>
+>>>>>>> a375d15ad329eddf7f37cf32d3f05ed55df95428
                     </div>
                 </div>`;
             });
@@ -2045,22 +2159,29 @@
         window.downloadQRCode = downloadQRCode;
 
         async function loadStats() {
+            const username = await getCurrentActorId();
+            console.log('Loading stats for username:', username);
             let batches = [];
-            
             try {
-                // Try to fetch from blockchain first
-                const blockchainBatches = await Blockchain.getFarmerBatches();
-                if (blockchainBatches && blockchainBatches.length > 0) {
-                    batches = blockchainBatches;
-                } else {
-                    // Fallback to localStorage
-                    batches = JSON.parse(localStorage.getItem('farmer_batches') || '[]');
+                if (username) {
+                    // Try new username-based fetch first
+                    batches = await Blockchain.getBatchesForUsername(username);
+                    console.log('Batches from username:', batches);
+                }
+                
+                // Fallback: try loading all farmer batches if username-based fails
+                if (batches.length === 0) {
+                    console.log('Fallback: loading all farmer batches...');
+                    batches = await Blockchain.getFarmerBatches();
+                    console.log('Batches from getFarmerBatches:', batches);
                 }
             } catch (error) {
-                console.warn('Failed to fetch stats from blockchain, using localStorage:', error);
+                console.warn('Failed to fetch stats from blockchain:', error);
+                // Last resort: check localStorage
                 batches = JSON.parse(localStorage.getItem('farmer_batches') || '[]');
+                console.log('Batches from localStorage fallback:', batches);
             }
-            
+
             const total = batches.length;
             const transit = batches.filter(b => b.status === 'In Transit').length;
             const delivered = batches.filter(b => b.status === 'Delivered').length;
@@ -2076,7 +2197,7 @@
             }
         }
 
-        async function loadRecentBatches() {
+    async function loadRecentBatches() {
             const recentBatchesContainer = document.getElementById('recentBatches');
             
             // Show loading state
@@ -2089,25 +2210,36 @@
             `;
             
             let batches = [];
-            
             try {
                 console.time('Load recent batches');
-                await Blockchain.init();
-                const blockchainBatches = await Blockchain.getFarmerBatches();
-                console.timeEnd('Load recent batches');
+                const username = await getCurrentActorId();
+                console.log('Loading recent batches for username:', username);
                 
-                if (blockchainBatches && blockchainBatches.length > 0) {
-                    batches = blockchainBatches;
-                    localStorage.setItem('farmer_batches', JSON.stringify(batches));
-                    console.log(`✅ Loaded ${batches.length} batches from blockchain`);
-                } else {
-                    batches = JSON.parse(localStorage.getItem('farmer_batches') || '[]');
-                    console.log(`📦 Fallback: ${batches.length} batches from localStorage`);
+                if (username) {
+                    // Try new username-based fetch first
+                    batches = await Blockchain.getBatchesForUsername(username);
+                    console.log('Batches from username fetch:', batches);
+                }
+                
+                // Fallback: try loading all farmer batches if username-based fails or returns empty
+                if (batches.length === 0) {
+                    console.log('Username fetch returned empty, trying getFarmerBatches...');
+                    batches = await Blockchain.getFarmerBatches();
+                    console.log('Batches from getFarmerBatches:', batches);
+                }
+                
+                console.timeEnd('Load recent batches');
+                console.log(`✅ Loaded ${batches.length} batches from blockchain (username: ${username})`);
+                
+                // Store successful fetch for emergency fallback only
+                if (batches.length > 0) {
+                    localStorage.setItem('farmer_batches_backup', JSON.stringify(batches));
                 }
             } catch (error) {
                 console.warn('❌ Blockchain fetch failed:', error.message);
-                batches = JSON.parse(localStorage.getItem('farmer_batches') || '[]');
-                console.log(`📦 Using localStorage: ${batches.length} batches`);
+                // Emergency fallback to localStorage backup
+                batches = JSON.parse(localStorage.getItem('farmer_batches_backup') || '[]');
+                console.log('Using emergency backup:', batches.length, 'batches');
             }
             
             if (batches.length === 0) {
