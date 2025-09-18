@@ -5,10 +5,10 @@ const AppConfig = {
 
     // Replace with the private key of a funded account on your Ganache instance
     // IMPORTANT: This is for development only. Never expose private keys in production.
-    SENDER_PRIVATE_KEY: "YOUR_GANACHE_PRIVATE_KEY",
+    SENDER_PRIVATE_KEY: "0x40e57a95f510a8c1a5a64f2c77f082394d0602af0460fc21c4007ece30fd5ad1",
 
     // Replace with your deployed AyurTrace contract address
-    CONTRACT_ADDRESS: "YOUR_CONTRACT_ADDRESS",
+    CONTRACT_ADDRESS: "0x34D4c8923697e931a05617BCB3bdd03B15306F71",
 
     // IMPORTANT: Replace this with the actual ABI of your deployed AyurTrace contract.
     // The ABI (Application Binary Interface) is a JSON array that describes your contract's functions and events.
