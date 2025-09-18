@@ -1,164 +1,144 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AyurTrace - Login</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Poppins', sans-serif; }
-    .hero-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-    label { color: #374151; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - AyurTrace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="theme.css">
+    <style>
+        body {
+            background-image: url('https://images.unsplash.com/photo-1536-252533360388-152694355435?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1920&q=80');
+            background-size: cover;
+            background-position: center;
+        }
+        .login-card {
+            background-color: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+        }
+    </style>
 </head>
-<body class="bg-gray-50 min-h-screen flex flex-col">
-  <!-- Header -->
-  <header class="bg-white shadow-sm">
-    <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-      <div class="flex items-center space-x-3">
-        <span class="text-2xl">🌿</span>
-        <a href="index.html" class="text-2xl font-bold text-gray-800">AyurTrace</a>
-      </div>
-      <a href="index.html" class="text-indigo-600 font-semibold hover:text-indigo-800 transition">Home</a>
+<body class="bg-gray-100">
+
+    <div class="min-h-screen flex flex-col items-center justify-center p-4">
+        <div class="w-full max-w-2xl bg-white rounded-2xl shadow-2xl p-8 login-card">
+            <div class="mb-8 text-center">
+                <a href="index.html" class="flex items-center justify-center space-x-3">
+                    <img src="https://placehold.co/50x50/006A4E/FFFFFF?text=A" alt="AyurTrace Logo" class="rounded-full">
+                    <h1 class="text-3xl font-bold text-gray-800">AyurTrace</h1>
+                </a>
+            </div>
+
+            <h2 class="text-3xl font-bold text-dark-gray mb-4 text-center">Welcome Back</h2>
+            <p class="text-lg text-medium-gray mb-10 text-center">Sign in to your account</p>
+
+            <div id="loginForm">
+                <div class="space-y-6">
+                    <div>
+                        <label for="loginActorId" class="block text-base font-medium text-gray-700">Actor ID / Email</label>
+                        <input id="loginActorId" type="text" placeholder="e.g., FARM001" class="mt-2 block w-full input-field text-base">
+                    </div>
+                    <div>
+                        <label for="loginPassword" class="block text-base font-medium text-gray-700">Password</label>
+                        <input id="loginPassword" type="password" placeholder="********" class="mt-2 block w-full input-field text-base">
+                    </div>
+                    <div>
+                        <label for="loginActorRole" class="block text-base font-medium text-gray-700">Select Your Role</label>
+                        <select id="loginActorRole" class="mt-2 block w-full input-field text-base">
+                            <option value="1">Farmer</option>
+                            <option value="2">Collector</option>
+                            <option value="3">Auditor</option>
+                            <option value="4">Manufacturer</option>
+                            <option value="5">Distributor</option>
+                        </select>
+                    </div>
+                </div>
+                <button id="btnLogin" class="mt-8 w-full btn btn-primary text-lg">Sign In</button>
+            </div>
+
+            <div id="authFeedback" class="hidden p-4 rounded-md text-sm mt-4"></div>
+
+            <div class="text-center mt-6">
+                <p class="text-sm text-medium-gray">Don't have an account? <a href="register.html" class="font-medium text-primary-green hover:underline">Create one</a></p>
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="index.html" class="text-sm font-medium text-primary-green hover:underline">← Back to Home</a>
+            </div>
+        </div>
     </div>
-  </header>
 
-  <!-- Login Card -->
-  <main class="flex-1 hero-bg py-16">
-    <div class="container mx-auto px-6">
-      <div class="max-w-lg mx-auto bg-white rounded-2xl shadow-xl p-8">
-        <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">Login to AyurTrace</h1>
-        <form id="loginForm" class="space-y-5">
-          <div>
-            <label for="email" class="block text-sm font-medium mb-1">Email</label>
-            <input id="email" type="email" placeholder="you@example.com" class="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
-          </div>
-          <div>
-            <label for="password" class="block text-sm font-medium mb-1">Password</label>
-            <input id="password" type="password" placeholder="••••••••" class="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
-          </div>
-          <div>
-            <label for="role" class="block text-sm font-medium mb-1">Select Role</label>
-            <select id="role" class="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none" required>
-              <option value="" selected disabled>Choose your role</option>
-              <option value="farmer">Farmer</option>
-              <option value="collector">Collector</option>
-              <option value="manufacturer">Manufacturer</option>
-              <option value="auditor">Auditor</option>
-            </select>
-          </div>
-          <button type="submit" class="w-full bg-indigo-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-indigo-700 transition">Login</button>
-        </form>
-        <p id="errorMsg" class="text-red-600 text-sm mt-4 hidden">Please select a valid role.</p>
-      </div>
-    </div>
-  </main>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="supabase-auth.js"></script>
+    <script>
+        const UI = {
+            init() {
+                document.getElementById('btnLogin').addEventListener('click', () => this.login());
+            },
 
-  <!-- Footer -->
-  <footer class="bg-gray-800 text-white py-6">
-    <div class="container mx-auto px-6 text-center">
-      <p>🌿 AyurTrace &copy; 2025</p>
-    </div>
-  </footer>
-
-  <script>
-    // If a user is already logged in, redirect them to the main dashboard
-    if (sessionStorage.getItem('ayurtrace_currentUserKey')) {
-        window.location.href = 'dashboard.html';
-    }
-
-    // Mock user database
-    const users = {
-        "farmer@ayur.trace": {
-            password: "password",
-            role: 1, // Farmer
-            actorId: "FARM01",
-            fullName: "Ramesh Kumar",
-            address: "Kisanpur, Punjab",
-            phone: "9876543210"
-        },
-        "collector@ayur.trace": {
-            password: "password",
-            role: 2, // Collector
-            actorId: "COL01",
-            fullName: "Suresh Singh",
-            address: "Mandi Town, Haryana",
-            phone: "9876543211"
-        },
-        "auditor@ayur.trace": {
-            password: "password",
-            role: 3, // Auditor
-            actorId: "AUD01",
-            fullName: "Priya Sharma",
-            address: "Chandigarh",
-            phone: "9876543212"
-        },
-        "manufacturer@ayur.trace": {
-            password: "password",
-            role: 4, // Manufacturer
-            actorId: "MANU01",
-            fullName: "Anil Mehta",
-            address: "Industrial Area, Baddi",
-            phone: "9876543213"
-        },
-        "distributor@ayur.trace": {
-            password: "password",
-            role: 5, // Distributor
-            actorId: "DIST01",
-            fullName: "Sunita Gupta",
-            address: "Delhi Market, Delhi",
-            phone: "9876543214"
-        }
-    };
-    
-    const roleMap = {
-        "farmer": 1,
-        "collector": 2,
-        "auditor": 3,
-        "manufacturer": 4,
-        "distributor": 5
-    };
-
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const email = document.getElementById('email').value.trim();
-        const password = document.getElementById('password').value;
-        const roleValue = document.getElementById('role').value;
-        const errorEl = document.getElementById('errorMsg');
-
-        const selectedRole = roleMap[roleValue];
-        if (!selectedRole) {
-            errorEl.textContent = "Please select a valid role.";
-            errorEl.classList.remove('hidden');
-            return;
-        }
-
-        const user = users[email];
-
-        if (user && user.password === password && user.role === selectedRole) {
-            const userKey = `ayurtrace_user_${user.actorId}`;
-            const userData = {
-                actorId: user.actorId,
-                role: user.role,
-                fullName: user.fullName,
-                address: user.address,
-                phone: user.phone,
-                email: email
-            };
+            showFeedback(elId, message, type) {
+                const el = document.getElementById(elId);
+                el.className = 'p-4 rounded-md text-sm mt-4';
+                if (type === 'success') el.classList.add('bg-green-100', 'text-green-800');
+                else if (type === 'error') el.classList.add('bg-red-100', 'text-red-800');
+                else el.classList.add('bg-blue-100', 'text-blue-800');
+                el.innerHTML = message;
+                el.style.display = 'block';
+            },
             
-            // Store user data in localStorage and the key in sessionStorage
-            localStorage.setItem(userKey, JSON.stringify(userData));
-            sessionStorage.setItem('ayurtrace_currentUserKey', userKey);
-            
-            // Redirect to the main dashboard
-            window.location.href = 'dashboard.html';
+            handleSuccessfulAuth(userData) {
+                const userKey = `ayurtrace_user_${userData.actorId}_${userData.role}`;
+                localStorage.setItem(userKey, JSON.stringify(userData));
+                sessionStorage.setItem('ayurtrace_currentUserKey', userKey);
+                let redirectUrl = '';
+                switch (userData.role) {
+                    case 1: // Farmer
+                        redirectUrl = 'stakeholders/farmer.html';
+                        break;
+                    case 2: // Collector
+                        redirectUrl = 'stakeholders/collector.html';
+                        break;
+                    case 3: // Auditor
+                        redirectUrl = 'stakeholders/auditor.html';
+                        break;
+                    case 4: // Manufacturer
+                        redirectUrl = 'stakeholders/manufacturer_dash.html';
+                        break;
+                    case 5: // Distributor
+                        redirectUrl = 'stakeholders/distributor.html';
+                        break;
+                    default:
+                        redirectUrl = 'index.html'; // Fallback
+                }
+                window.location.href = redirectUrl;
+            },
 
-        } else {
-            errorEl.textContent = "Invalid credentials or role. Please try again.";
-            errorEl.classList.remove('hidden');
-        }
-    });
-  </script>
+            async login() {
+                const actorId = document.getElementById('loginActorId').value.trim();
+                const password = document.getElementById('loginPassword').value;
+                const role = parseInt(document.getElementById('loginActorRole').value);
+
+                if (!actorId || !password) {
+                    return this.showFeedback('authFeedback', "Please enter Actor ID and Password.", 'error');
+                }
+
+                this.showFeedback('authFeedback', 'Logging in...', 'info');
+                const storedUser = await signIn(actorId, password, role);
+
+                if (!storedUser) {
+                    return this.showFeedback('authFeedback', 'Incorrect Actor ID, Password, or Role.', 'error');
+                }
+
+                this.showFeedback('authFeedback', 'Login successful! Redirecting...', 'success');
+                setTimeout(() => this.handleSuccessfulAuth(storedUser), 1000);
+            },
+        };
+
+        // Attach event listeners after the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', () => UI.init());
+    </script>
 </body>
 </html>

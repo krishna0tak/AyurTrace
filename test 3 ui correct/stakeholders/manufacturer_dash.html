@@ -149,8 +149,21 @@
       color: white;
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.7.3/dist/web3.min.js"></script>
+  <link rel="stylesheet" href="../theme.css">
+  <script src="../config.js"></script>
 </head>
 <body>
+  <div id="auth-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 101; display: flex; align-items: center; justify-content: center;">
+      <div style="background-color: white; padding: 20px; border-radius: 10px;">
+          <h2>Login or Sign Up</h2>
+          <input type="email" id="email" placeholder="Email" style="width: 100%; padding: 10px; margin-bottom: 10px;">
+          <input type="password" id="password" placeholder="Password" style="width: 100%; padding: 10px; margin-bottom: 10px;">
+          <button id="login-btn" style="padding: 10px; margin-right: 10px;">Login</button>
+          <button id="signup-btn" style="padding: 10px;">Sign Up</button>
+      </div>
+  </div>
   <header>🌿 AyurTrace | Manufacturer Dashboard</header>
   <div class="container">
 
@@ -236,21 +249,194 @@
 
   </div>
   <script>
-  // Minimal auth guard for manufacturer; leave UI intact
-  (function(){
-    const targetRole = 'manufacturer';
-    let user = null;
-    try { user = JSON.parse(localStorage.getItem('ayurtrace_user') || 'null'); } catch(_) {}
-    if (!user || !user.role) { window.location.href = '../login.html'; return; }
-    const map = { farmer: 'farmer.html', collector: 'collector.html', manufacturer: 'manufacturer_dash.html', auditor: 'auditor.html' };
-    if (user.role !== targetRole) {
-      const t = map[user.role];
-      window.location.href = t ? t : '../login.html';
-      return;
-    }
-    // Point logout links to logout page if any exist
-    document.querySelectorAll('a').forEach(a => { if (/logout/i.test(a.textContent)) a.href = '../logout.html'; });
-  })();
+    const SUPABASE_URL = 'https://zanejoswscmmppiuifso.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InphbmVqb3N3c2NtbXBwaXVpZnNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMzE1MjYsImV4cCI6MjA3MzcwNzUyNn0.0iW4ap4gNnF1SQkM8eFDA14ukUFuZeuCmvrMxsNxo_4';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Import configuration from config.js
+    const web3 = new Web3(new Web3.providers.HttpProvider(window.config.GANACHE_URL));
+
+    // IMPORTANT: Replace 'your_private_key_here' in config.js with a private key from Ganache
+    const PRIVATE_KEY = window.config.PRIVATE_KEY;
+    const account = web3.eth.accounts.privateKeyToAccount(PRIVATE_KEY);
+    web3.eth.defaultAccount = account.address;
+
+    const MANUFACTURER_CHAIN_ADDRESS = window.config.CONTRACT_ADDRESSES.ManufacturerChain;
+    const MANUFACTURER_CHAIN_ABI = window.config.CONTRACT_ABIS.ManufacturerChain;
+    const manufacturerChain = new web3.eth.Contract(MANUFACTURER_CHAIN_ABI, MANUFACTURER_CHAIN_ADDRESS);
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        const authModal = document.getElementById('auth-modal');
+        const loginBtn = document.getElementById('login-btn');
+        const signupBtn = document.getElementById('signup-btn');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+
+        // Check for logged in user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            authModal.style.display = 'flex';
+        }
+
+        // Login user
+        loginBtn.addEventListener('click', async () => {
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email: emailInput.value,
+                password: passwordInput.value,
+            });
+            if (error) {
+                alert(`Error logging in: ${error.message}`);
+            } else {
+                authModal.style.display = 'none';
+                location.reload();
+            }
+        });
+
+        // Signup user
+        signupBtn.addEventListener('click', async () => {
+            const { data, error } = await supabase.auth.signUp({
+                email: emailInput.value,
+                password: passwordInput.value,
+            });
+            if (error) {
+                alert(`Error signing up: ${error.message}`);
+            } else {
+                alert('Signup successful! Please check your email to verify your account.');
+            }
+        });
+
+        const processBatchForm = document.querySelector('.dashboard-box form');
+        const productHistoryTable = document.querySelector('.dashboard-box table tbody');
+
+        processBatchForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const sourceBatchId = processBatchForm.querySelector('input[type="text"]').value;
+            const processingDate = processBatchForm.querySelector('input[type="date"]').value;
+            const quantityProcessed = processBatchForm.querySelector('input[type="number"]').value;
+            const wastage = processBatchForm.querySelectorAll('input[type="number"]')[1].value;
+            const productType = processBatchForm.querySelector('select').value;
+            const packagingDate = processBatchForm.querySelectorAll('input[type="date"]')[1].value;
+            const expiryDate = processBatchForm.querySelectorAll('input[type="date"]')[2].value;
+
+            if (!sourceBatchId || !processingDate || !quantityProcessed || !wastage || !productType || !packagingDate || !expiryDate) {
+                alert('Please fill in all required fields.');
+                return;
+            }
+
+            const submitBtn = processBatchForm.querySelector('button');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+
+            try {
+                const productId = `MF-${new Date().getTime()}`;
+
+                // 1. Create product on the blockchain
+                const createProductTx = manufacturerChain.methods.createProduct(
+                    productId,
+                    sourceBatchId,
+                    productType,
+                    quantityProcessed,
+                    wastage,
+                    new Date(processingDate).getTime(),
+                    new Date(expiryDate).getTime(),
+                    account.address
+                );
+
+                const gas = await createProductTx.estimateGas({ from: account.address });
+                const gasPrice = await web3.eth.getGasPrice();
+                const data = createProductTx.encodeABI();
+                const nonce = await web3.eth.getTransactionCount(account.address);
+
+                const signedTx = await web3.eth.accounts.signTransaction(
+                    {
+                        to: MANUFACTURER_CHAIN_ADDRESS,
+                        data,
+                        gas,
+                        gasPrice,
+                        nonce,
+                    },
+                    PRIVATE_KEY
+                );
+
+                const receipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
+                console.log('Transaction receipt:', receipt);
+
+                // 2. Insert product data into Supabase
+                const { data: supabaseData, error: supabaseError } = await supabase
+                    .from('manufacturer_products')
+                    .insert([
+                        {
+                            product_id: productId,
+                            source_batch_id: sourceBatchId,
+                            product_type: productType,
+                            quantity_processed: quantityProcessed,
+                            wastage: wastage,
+                            processing_date: new Date(processingDate).toISOString(),
+                            expiry_date: new Date(expiryDate).toISOString(),
+                            manufacturer_id: account.address,
+                        },
+                    ]);
+
+                if (supabaseError) {
+                    throw new Error(`Supabase error: ${supabaseError.message}`);
+                }
+
+                // 3. Update UI
+                addProductToTable({
+                    productId: productId,
+                    sourceBatchId: sourceBatchId,
+                    product: productType,
+                    status: 'In Storage',
+                });
+
+                processBatchForm.reset();
+
+            } catch (error) {
+                alert(`Error creating product: ${error.message}`);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '✅ Generate Product Batch ID + QR';
+            }
+        });
+
+        function addProductToTable(product) {
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td>${product.productId}</td>
+                <td>${product.sourceBatchId}</td>
+                <td>${product.product}</td>
+                <td>${product.status}</td>
+            `;
+            productHistoryTable.appendChild(newRow);
+        }
+
+        async function loadProductHistory() {
+            const { data: products, error } = await supabase
+                .from('manufacturer_products')
+                .select('*')
+                .eq('manufacturer_id', account.address);
+
+            if (error) {
+                console.error('Error loading product history:', error);
+                return;
+            }
+
+            productHistoryTable.innerHTML = '';
+            for (const product of products) {
+                addProductToTable({
+                    productId: product.product_id,
+                    sourceBatchId: product.source_batch_id,
+                    product: product.product_type,
+                    status: 'In Storage',
+                });
+            }
+        }
+
+        if (user) {
+            loadProductHistory();
+        }
+    });
   </script>
 </body>
 </html>

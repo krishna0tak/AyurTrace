@@ -501,8 +501,21 @@
             }
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.7.3/dist/web3.min.js"></script>
+    <link rel="stylesheet" href="../theme.css">
+    <script src="../config.js"></script>
 </head>
 <body>
+    <div id="auth-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 101; display: flex; align-items: center; justify-content: center;">
+        <div style="background-color: white; padding: 20px; border-radius: 10px;">
+            <h2>Login or Sign Up</h2>
+            <input type="email" id="email" placeholder="Email" style="width: 100%; padding: 10px; margin-bottom: 10px;">
+            <input type="password" id="password" placeholder="Password" style="width: 100%; padding: 10px; margin-bottom: 10px;">
+            <button id="login-btn" style="padding: 10px; margin-right: 10px;">Login</button>
+            <button id="signup-btn" style="padding: 10px;">Sign Up</button>
+        </div>
+    </div>
     <div class="container">
         <div class="header">
             <div class="logo">
@@ -745,296 +758,271 @@
     </div>
 
     <script>
+        const SUPABASE_URL = 'https://zanejoswscmmppiuifso.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InphbmVqb3N3c2NtbXBwaXVpZnNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMzE1MjYsImV4cCI6MjA3MzcwNzUyNn0.0iW4ap4gNnF1SQkM8eFDA14ukUFuZeuCmvrMxsNxo_4';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Import configuration from config.js
+        const web3 = new Web3(new Web3.providers.HttpProvider(window.config.GANACHE_URL));
+
+        // IMPORTANT: Replace 'your_private_key_here' in config.js with a private key from Ganache
+        const PRIVATE_KEY = window.config.PRIVATE_KEY;
+        const account = web3.eth.accounts.privateKeyToAccount(PRIVATE_KEY);
+        web3.eth.defaultAccount = account.address;
+
+        const AUDITOR_CHAIN_ADDRESS = window.config.CONTRACT_ADDRESSES.AuditorChain;
+        const AUDITOR_CHAIN_ABI = window.config.CONTRACT_ABIS.AuditorChain;
+        const auditorChain = new web3.eth.Contract(AUDITOR_CHAIN_ABI, AUDITOR_CHAIN_ADDRESS);
+
         // Enhanced sample batch data with multiple batches
-        const batchData = {
-            'FR123-20250908': {
-                farmer: 'Ramesh Kumar (FR123)',
-                collector: 'Suresh Singh (COL456)',
-                crop: 'Organic Rice, 100kg',
-                collectionDate: '9/Aug/2025',
-                cultivationLocation: 'Field A5, Village Khanna',
-                cultivationMethod: 'Organic',
-                cropVariety: 'Basmati BR112',
-                seedQuality: 'Certified A1',
-                waterSource: 'Tube Well',
-                plantDate: '15/June/2025',
-                harvestDate: '8/Aug/2025',
-                harvestMethod: 'Manual',
-                harvestQuality: 'Grade A+',
-                storageCondition: 'Dry Storage',
-                yieldAmount: '100kg',
-                moistureLevel: '12%',
-                collectionCenter: 'Barnala Collection Hub',
-                collectionWeight: '100kg',
-                transportMethod: 'Refrigerated Truck',
-                collectionStorage: 'Dry Cool Warehouse',
-                collectionInspector: 'COL456',
-                processingUnit: 'Skynet Agro Processing',
-                processType: 'Cleaning & Hulling',
-                finalWeight: '85kg',
-                packageType: 'Jute Sacks',
-                processDate: '12/Aug/2025',
-                processOperator: 'PR789',
-                qualityLab: 'Barnala QC Laboratory',
-                qualityInspector: 'AUD001',
-                inspectionStatus: 'Pending'
-            },
-            'FR124-20250910': {
-                farmer: 'Priya Sharma (FR124)',
-                collector: 'Kumar Patel (COL457)',
-                crop: 'Organic Turmeric, 50kg',
-                collectionDate: '10/Sept/2025',
-                cultivationLocation: 'Field B12, Village Patiala',
-                cultivationMethod: 'Organic',
-                cropVariety: 'Salem Turmeric',
-                seedQuality: 'Premium Grade',
-                waterSource: 'Rainwater Harvesting',
-                plantDate: '20/March/2025',
-                harvestDate: '10/Sept/2025',
-                harvestMethod: 'Manual',
-                harvestQuality: 'Grade A',
-                storageCondition: 'Dry Storage',
-                yieldAmount: '50kg',
-                moistureLevel: '8%',
-                collectionCenter: 'Patiala Collection Center',
-                collectionWeight: '50kg',
-                transportMethod: 'Standard Truck',
-                collectionStorage: 'Climate Controlled',
-                collectionInspector: 'COL457',
-                processingUnit: 'Herbal Processing Co.',
-                processType: 'Washing & Drying',
-                finalWeight: '45kg',
-                packageType: 'Hemp Bags',
-                processDate: '12/Sept/2025',
-                processOperator: 'PR456',
-                qualityLab: 'Patiala Quality Lab',
-                qualityInspector: 'AUD001',
-                inspectionStatus: 'Pending'
-            },
-            'TC001-20250915': {
-                farmer: 'Arjun Singh (TC001)',
-                collector: 'Ravi Kumar (COL789)',
-                crop: 'Ashwagandha Roots, 75kg',
-                collectionDate: '15/Sept/2025',
-                cultivationLocation: 'Field C7, Village Ludhiana',
-                cultivationMethod: 'Traditional Organic',
-                cropVariety: 'Withania Somnifera',
-                seedQuality: 'Indigenous Variety',
-                waterSource: 'Borewell',
-                plantDate: '10/January/2025',
-                harvestDate: '15/Sept/2025',
-                harvestMethod: 'Manual Root Extraction',
-                harvestQuality: 'Premium Grade',
-                storageCondition: 'Ventilated Storage',
-                yieldAmount: '75kg',
-                moistureLevel: '10%',
-                collectionCenter: 'Ludhiana Herb Center',
-                collectionWeight: '75kg',
-                transportMethod: 'Covered Vehicle',
-                collectionStorage: 'Temperature Controlled',
-                collectionInspector: 'COL789',
-                processingUnit: 'Ayur Processing Ltd.',
-                processType: 'Root Cleaning & Sorting',
-                finalWeight: '70kg',
-                packageType: 'Breathable Jute',
-                processDate: '17/Sept/2025',
-                processOperator: 'PR234',
-                qualityLab: 'Ludhiana Ayur Lab',
-                qualityInspector: 'AUD001',
-                inspectionStatus: 'Pending'
-            },
-            'AH789-20250920': {
-                farmer: 'Meera Devi (AH789)',
-                collector: 'Sandeep Verma (COL123)',
-                crop: 'Neem Leaves, 60kg',
-                collectionDate: '20/Sept/2025',
-                cultivationLocation: 'Grove D4, Village Amritsar',
-                cultivationMethod: 'Wild Harvested',
-                cropVariety: 'Azadirachta Indica',
-                seedQuality: 'Natural Selection',
-                waterSource: 'Natural Rainfall',
-                plantDate: 'Natural Growth',
-                harvestDate: '20/Sept/2025',
-                harvestMethod: 'Selective Picking',
-                harvestQuality: 'Grade A+',
-                storageCondition: 'Shade Dried',
-                yieldAmount: '60kg',
-                moistureLevel: '6%',
-                collectionCenter: 'Amritsar Herbal Hub',
-                collectionWeight: '60kg',
-                transportMethod: 'Open Air Transport',
-                collectionStorage: 'Natural Ventilation',
-                collectionInspector: 'COL123',
-                processingUnit: 'Green Leaf Processing',
-                processType: 'Leaf Sorting & Cleaning',
-                finalWeight: '55kg',
-                packageType: 'Cotton Bags',
-                processDate: '22/Sept/2025',
-                processOperator: 'PR567',
-                qualityLab: 'Amritsar Botanical Lab',
-                qualityInspector: 'AUD001',
-                inspectionStatus: 'Pending'
+        document.addEventListener('DOMContentLoaded', async () => {
+            const authModal = document.getElementById('auth-modal');
+            const loginBtn = document.getElementById('login-btn');
+            const signupBtn = document.getElementById('signup-btn');
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+
+            // Check for logged in user
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                authModal.style.display = 'flex';
             }
-        };
+
+            // Login user
+            loginBtn.addEventListener('click', async () => {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: emailInput.value,
+                    password: passwordInput.value,
+                });
+                if (error) {
+                    alert(`Error logging in: ${error.message}`);
+                } else {
+                    authModal.style.display = 'none';
+                    location.reload();
+                }
+            });
+
+            // Signup user
+            signupBtn.addEventListener('click', async () => {
+                const { data, error } = await supabase.auth.signUp({
+                    email: emailInput.value,
+                    password: passwordInput.value,
+                });
+                if (error) {
+                    alert(`Error signing up: ${error.message}`);
+                } else {
+                    alert('Signup successful! Please check your email to verify your account.');
+                }
+            });
+
+            async function traceBatch() {
+                const batchId = document.getElementById('batchId').value.trim();
+                const supplyChain = document.getElementById('supplyChain');
+                const errorMessage = document.getElementById('errorMessage');
+                
+                if (!batchId) {
+                    alert('Please enter a batch ID');
+                    return;
+                }
+
+                errorMessage.style.display = 'none';
+
+                const { data: collection, error } = await supabase
+                    .from('collector_collections')
+                    .select('*')
+                    .eq('farmer_batch_id', batchId)
+                    .single();
+
+                if (error || !collection) {
+                    errorMessage.style.display = 'block';
+                    supplyChain.classList.remove('active');
+                    return;
+                }
+
+                const { data: farmer_batch, error: farmerError } = await supabase
+                    .from('farmer_batches')
+                    .select('*')
+                    .eq('batch_id', collection.farmer_batch_id)
+                    .single();
+
+                if (farmerError || !farmer_batch) {
+                    errorMessage.style.display = 'block';
+                    supplyChain.classList.remove('active');
+                    return;
+                }
+
+                updateChainInfo(farmer_batch, collection);
+                supplyChain.classList.add('active');
+                supplyChain.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            function updateChainInfo(farmer_batch, collection) {
+                document.getElementById('chainBatchId').textContent = farmer_batch.batch_id;
+                document.getElementById('farmerInfo').textContent = farmer_batch.owner;
+                document.getElementById('collectorInfo').textContent = collection.collector_id;
+                document.getElementById('cropInfo').textContent = `${farmer_batch.crop_type}, ${farmer_batch.quantity}kg`;
+                document.getElementById('collectionDateInfo').textContent = new Date(collection.collection_date).toLocaleDateString();
+                
+                // Update cultivation details
+                document.getElementById('cultivationLocation').textContent = farmer_batch.farm_location;
+                document.getElementById('cultivationMethod').textContent = 'Organic'; // Dummy data
+                document.getElementById('cropVariety').textContent = 'Basmati BR112'; // Dummy data
+                document.getElementById('seedQuality').textContent = 'Certified A1'; // Dummy data
+                document.getElementById('waterSource').textContent = 'Tube Well'; // Dummy data
+                document.getElementById('plantDate').textContent = new Date(farmer_batch.harvest_date).toLocaleDateString();
+                
+                // Update harvest details
+                document.getElementById('harvestDate').textContent = new Date(farmer_batch.harvest_date).toLocaleDateString();
+                document.getElementById('harvestMethod').textContent = 'Manual'; // Dummy data
+                document.getElementById('harvestQuality').textContent = 'Grade A+'; // Dummy data
+                document.getElementById('storageCondition').textContent = 'Dry Storage'; // Dummy data
+                document.getElementById('yieldAmount').textContent = `${farmer_batch.quantity}kg`;
+                document.getElementById('moistureLevel').textContent = '12%'; // Dummy data
+                
+                // Update collection details
+                document.getElementById('collectionCenter').textContent = 'Barnala Hub'; // Dummy data
+                document.getElementById('collectionDateDetail').textContent = new Date(collection.collection_date).toLocaleDateString();
+                document.getElementById('collectionWeight').textContent = `${collection.quantity}kg`;
+                document.getElementById('transportMethod').textContent = 'Refrigerated Truck'; // Dummy data
+                document.getElementById('collectionStorage').textContent = 'Dry Cool Warehouse'; // Dummy data
+                document.getElementById('collectionInspector').textContent = collection.collector_id;
+                
+                // Update processing details
+                document.getElementById('processingUnit').textContent = 'N/A';
+                document.getElementById('processType').textContent = 'N/A';
+                document.getElementById('finalWeight').textContent = 'N/A';
+                document.getElementById('packageType').textContent = 'N/A';
+                document.getElementById('processDate').textContent = 'N/A';
+                document.getElementById('processOperator').textContent = 'N/A';
+                
+                // Update quality inspection details
+                document.getElementById('qualityLab').textContent = 'Barnala QC Laboratory'; // Dummy data
+                document.getElementById('qualityInspector').textContent = account.address;
+                document.getElementById('inspectionStatus').textContent = 'Pending';
+            }
+
+            async function submitInspection() {
+                const inspectionDate = document.getElementById('inspectionDate').value;
+                const inspectionResult = document.getElementById('inspectionResult').value;
+                const qualityNotes = document.getElementById('qualityNotes').value;
+                const batchId = document.getElementById('batchId').value;
+
+                if (!inspectionDate || !inspectionResult || !qualityNotes) {
+                    alert('Please fill in all required fields');
+                    return;
+                }
+
+                const submitBtn = document.querySelector('.submit-btn');
+                const originalText = submitBtn.textContent;
+                
+                submitBtn.textContent = 'Updating Blockchain...';
+                submitBtn.disabled = true;
+
+                try {
+                    // 1. Add inspection to the blockchain
+                    const addInspectionTx = auditorChain.methods.addInspection(
+                        batchId,
+                        account.address, // inspectorId
+                        inspectionResult,
+                        qualityNotes
+                    );
+
+                    const gas = await addInspectionTx.estimateGas({ from: account.address });
+                    const gasPrice = await web3.eth.getGasPrice();
+                    const data = addInspectionTx.encodeABI();
+                    const nonce = await web3.eth.getTransactionCount(account.address);
+
+                    const signedTx = await web3.eth.accounts.signTransaction(
+                        {
+                            to: AUDITOR_CHAIN_ADDRESS,
+                            data,
+                            gas,
+                            gasPrice,
+                            nonce,
+                        },
+                        PRIVATE_KEY
+                    );
+
+                    const receipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
+                    console.log('Transaction receipt:', receipt);
+
+                    // 2. Insert inspection data into Supabase
+                    const { data: supabaseData, error: supabaseError } = await supabase
+                        .from('auditor_inspections')
+                        .insert([
+                            {
+                                batch_id: batchId,
+                                inspector_id: account.address,
+                                result: inspectionResult,
+                                notes: qualityNotes,
+                                date: new Date(inspectionDate).toISOString(),
+                            },
+                        ]);
+
+                    if (supabaseError) {
+                        throw new Error(`Supabase error: ${supabaseError.message}`);
+                    }
+
+                    // 3. Update UI
+                    updateStats(inspectionResult);
+                    alert(`Inspection completed successfully!\n\nBatch: ${batchId}\nResult: ${inspectionResult.charAt(0).toUpperCase() + inspectionResult.slice(1)}
+Blockchain record updated with transaction hash: ${receipt.transactionHash}`);
+                    
+                    // Reset form
+                    document.getElementById('inspectionResult').value = '';
+                    document.getElementById('qualityNotes').value = '';
+                    document.getElementById('batchId').value = '';
+                    document.getElementById('supplyChain').classList.remove('active');
+                
+                } catch (error) {
+                    alert(`Error submitting inspection: ${error.message}`);
+                } finally {
+                    submitBtn.textContent = originalText;
+                    submitBtn.disabled = false;
+                }
+            }
+
+            async function updateStats() {
+                const { data: inspections, error } = await supabase
+                    .from('auditor_inspections')
+                    .select('result');
+
+                if (error) {
+                    console.error('Error loading stats:', error);
+                    return;
+                }
+
+                const todayCard = document.querySelector('.today-inspections .stat-number');
+                const approvedCard = document.querySelector('.approved .stat-number');
+                const rejectedCard = document.querySelector('.rejected .stat-number');
+
+                const today = new Date().toISOString().slice(0, 10);
+                const todayInspections = inspections.filter(i => new Date(i.date).toISOString().slice(0, 10) === today).length;
+                const approved = inspections.filter(i => i.result.includes('approved')).length;
+                const rejected = inspections.filter(i => i.result === 'rejected').length;
+
+                todayCard.textContent = todayInspections;
+                approvedCard.textContent = approved;
+                rejectedCard.textContent = rejected;
+            }
+
+            if (user) {
+                updateStats();
+            }
+
+            // Add enter key support for batch input
+            document.getElementById('batchId').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    traceBatch();
+                }
+            });
+
+            // Set current date as default
+            document.getElementById('inspectionDate').value = new Date().toISOString().split('T')[0];
+        });
 
         function fillBatchId(batchId) {
             document.getElementById('batchId').value = batchId;
         }
-
-        function updateChainInfo(batch) {
-            document.getElementById('chainBatchId').textContent = document.getElementById('batchId').value;
-            document.getElementById('farmerInfo').textContent = batch.farmer;
-            document.getElementById('collectorInfo').textContent = batch.collector;
-            document.getElementById('cropInfo').textContent = batch.crop;
-            document.getElementById('collectionDateInfo').textContent = batch.collectionDate;
-            
-            // Update cultivation details
-            document.getElementById('cultivationLocation').textContent = batch.cultivationLocation;
-            document.getElementById('cultivationMethod').textContent = batch.cultivationMethod;
-            document.getElementById('cropVariety').textContent = batch.cropVariety;
-            document.getElementById('seedQuality').textContent = batch.seedQuality;
-            document.getElementById('waterSource').textContent = batch.waterSource;
-            document.getElementById('plantDate').textContent = batch.plantDate;
-            
-            // Update harvest details
-            document.getElementById('harvestDate').textContent = batch.harvestDate;
-            document.getElementById('harvestMethod').textContent = batch.harvestMethod;
-            document.getElementById('harvestQuality').textContent = batch.harvestQuality;
-            document.getElementById('storageCondition').textContent = batch.storageCondition;
-            document.getElementById('yieldAmount').textContent = batch.yieldAmount;
-            document.getElementById('moistureLevel').textContent = batch.moistureLevel;
-            
-            // Update collection details
-            document.getElementById('collectionCenter').textContent = batch.collectionCenter;
-            document.getElementById('collectionDateDetail').textContent = batch.collectionDate;
-            document.getElementById('collectionWeight').textContent = batch.collectionWeight;
-            document.getElementById('transportMethod').textContent = batch.transportMethod;
-            document.getElementById('collectionStorage').textContent = batch.collectionStorage;
-            document.getElementById('collectionInspector').textContent = batch.collectionInspector;
-            
-            // Update processing details
-            document.getElementById('processingUnit').textContent = batch.processingUnit;
-            document.getElementById('processType').textContent = batch.processType;
-            document.getElementById('finalWeight').textContent = batch.finalWeight;
-            document.getElementById('packageType').textContent = batch.packageType;
-            document.getElementById('processDate').textContent = batch.processDate;
-            document.getElementById('processOperator').textContent = batch.processOperator;
-            
-            // Update quality inspection details
-            document.getElementById('qualityLab').textContent = batch.qualityLab;
-            document.getElementById('qualityInspector').textContent = batch.qualityInspector;
-            document.getElementById('inspectionStatus').textContent = batch.inspectionStatus;
-        }
-
-        function traceBatch() {
-            const batchId = document.getElementById('batchId').value.trim();
-            const supplyChain = document.getElementById('supplyChain');
-            const errorMessage = document.getElementById('errorMessage');
-            
-            if (!batchId) {
-                alert('Please enter a batch ID');
-                return;
-            }
-
-            // Hide error message first
-            errorMessage.style.display = 'none';
-            
-            // Check if batch exists in our sample data
-            if (batchData[batchId]) {
-                const batch = batchData[batchId];
-                updateChainInfo(batch);
-                supplyChain.classList.add('active');
-                
-                // Scroll to supply chain
-                supplyChain.scrollIntoView({ behavior: 'smooth' });
-            } else {
-                // Show error message for unknown batch ID
-                errorMessage.style.display = 'block';
-                supplyChain.classList.remove('active');
-            }
-        }
-
-        function submitInspection() {
-            const inspectionDate = document.getElementById('inspectionDate').value;
-            const inspectionResult = document.getElementById('inspectionResult').value;
-            const qualityNotes = document.getElementById('qualityNotes').value;
-            const batchId = document.getElementById('batchId').value;
-
-            if (!inspectionDate || !inspectionResult || !qualityNotes) {
-                alert('Please fill in all required fields');
-                return;
-            }
-
-            // Simulate blockchain update
-            const submitBtn = document.querySelector('.submit-btn');
-            const originalText = submitBtn.textContent;
-            
-            submitBtn.textContent = 'Updating Blockchain...';
-            submitBtn.disabled = true;
-
-            setTimeout(() => {
-                // Update statistics
-                updateStats(inspectionResult);
-                
-                // Show success message
-                alert(`Inspection completed successfully!\n\nBatch: ${batchId}\nResult: ${inspectionResult.charAt(0).toUpperCase() + inspectionResult.slice(1)}\nBlockchain record updated with transaction hash: 0x${Math.random().toString(16).substr(2, 40)}`);
-                
-                // Reset form
-                document.getElementById('inspectionResult').value = '';
-                document.getElementById('qualityNotes').value = '';
-                document.getElementById('batchId').value = '';
-                document.getElementById('supplyChain').classList.remove('active');
-                
-                submitBtn.textContent = originalText;
-                submitBtn.disabled = false;
-            }, 2000);
-        }
-
-        function updateStats(result) {
-            const todayCard = document.querySelector('.today-inspections .stat-number');
-            const approvedCard = document.querySelector('.approved .stat-number');
-            const rejectedCard = document.querySelector('.rejected .stat-number');
-            
-            // Update today's inspections
-            let today = parseInt(todayCard.textContent);
-            todayCard.textContent = today + 1;
-            
-            // Update approved/rejected based on result
-            if (result.includes('approved')) {
-                let approved = parseInt(approvedCard.textContent);
-                approvedCard.textContent = approved + 1;
-            } else if (result === 'rejected') {
-                let rejected = parseInt(rejectedCard.textContent);
-                rejectedCard.textContent = rejected + 1;
-            }
-        }
-
-        // Add enter key support for batch input
-        document.getElementById('batchId').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                traceBatch();
-            }
-        });
-
-        // Set current date as default
-        document.getElementById('inspectionDate').value = new Date().toISOString().split('T')[0];
-    </script>
-    <script>
-    // Minimal auth guard; keeps UI intact
-    (function(){
-        const targetRole = 'auditor';
-        let user = null;
-        try { user = JSON.parse(localStorage.getItem('ayurtrace_user') || 'null'); } catch(_) {}
-        if (!user || !user.role) { window.location.href = '../login.html'; return; }
-        const map = { farmer: 'farmer.html', collector: 'collector.html', manufacturer: 'manufacturer_dash.html', auditor: 'auditor.html' };
-        if (user.role !== targetRole) {
-            const t = map[user.role];
-            window.location.href = t ? t : '../login.html';
-            return;
-        }
-        // Normalize logout anchors if present
-        document.querySelectorAll('a').forEach(a => { if (/logout/i.test(a.textContent)) a.href = '../logout.html'; });
-    })();
-    </script>
 </body>
 </html>
