@@ -68,7 +68,7 @@
         async search(serialNumber) {
             this.currentSerialNumber = serialNumber;
             const traceContainer = document.getElementById('searchResultTrace');
-            traceContainer.innerHTML = '<p>Searching blockchain for serial number...</p>';
+            traceContainer.innerHTML = '<p>🔍 Searching blockchain for serial number...</p>';
 
             try {
                 // First check if this serial number maps to a batch ID
@@ -80,15 +80,45 @@
                     batchId = serialNumber;
                 }
                 
+                console.log(`Searching for serial: ${serialNumber}, mapped to batch: ${batchId}`);
+                
                 const logs = await Blockchain.getChainForBatch(batchId);
+                console.log(`Found ${logs ? logs.length : 0} events`);
+                
                 if (!logs || logs.length === 0) {
-                    traceContainer.innerHTML = `<p class="text-red-500">No history found for Serial Number: ${serialNumber}</p><p class="text-sm text-gray-500">Mapped to Batch ID: ${batchId}</p>`;
+                    traceContainer.innerHTML = `
+                        <div class="p-6 text-center">
+                            <div class="text-red-500 mb-4">
+                                <i class="fas fa-exclamation-triangle text-4xl mb-2"></i>
+                                <h3 class="text-lg font-semibold">No history found for Batch ID: ${batchId}</h3>
+                            </div>
+                            <p class="text-gray-500 mb-4">The batch may not exist or hasn't been processed yet</p>
+                            <div class="text-sm text-gray-400">
+                                <p>Serial Number: ${serialNumber}</p>
+                                <p>Mapped to Batch ID: ${batchId}</p>
+                                <p>Please check if the batch ID is correct or try again later.</p>
+                            </div>
+                        </div>
+                    `;
                     return;
                 }
                 this.renderChainFromLogs(batchId, logs, traceContainer);
             } catch (e) {
-                console.error(e);
-                traceContainer.innerHTML = `<p class="text-red-600">Error: Could not retrieve data. Please check the Serial Number and your connection.</p><p class="text-sm text-gray-500">${e.message}</p>`;
+                console.error('Search error:', e);
+                traceContainer.innerHTML = `
+                    <div class="p-6 text-center">
+                        <div class="text-red-600 mb-4">
+                            <i class="fas fa-exclamation-circle text-4xl mb-2"></i>
+                            <h3 class="text-lg font-semibold">Search Error</h3>
+                        </div>
+                        <p class="text-gray-600 mb-4">Could not retrieve data. Please check the Serial Number and your connection.</p>
+                        <div class="text-sm text-gray-500 bg-gray-100 p-3 rounded">
+                            <p><strong>Serial Number:</strong> ${serialNumber}</p>
+                            <p><strong>Error:</strong> ${e.message}</p>
+                            <p><strong>Suggestion:</strong> Try refreshing the page or check your internet connection.</p>
+                        </div>
+                    </div>
+                `;
             }
         },
         renderChainFromLogs(batchId, logs, container) {

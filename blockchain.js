@@ -153,18 +153,61 @@
         return this.batchCache.get(cacheKey);
       }
       
+      console.log(`📋 Getting batch details for: ${batchId}`);
       let result;
-      if (this.contractRO.getBatchDetailsV2) {
-        result = await this.contractRO.getBatchDetailsV2(batchId);
-      } else {
-        result = await this.contractRO.getBatchDetails(batchId);
+      try {
+        if (this.contractRO.getBatchDetailsV2) {
+          console.log('📋 Using getBatchDetailsV2');
+          result = await this.contractRO.getBatchDetailsV2(batchId);
+        } else {
+          console.log('📋 Using getBatchDetails');
+          result = await this.contractRO.getBatchDetails(batchId);
+        }
+        
+        console.log('📋 Raw batch result:', result);
+        
+        // Check if batch exists (batchId should not be empty)
+        if (!result || (Array.isArray(result) && result[0] === '') || (!Array.isArray(result) && result.batchId === '')) {
+          console.log('📋 Batch does not exist (empty batchId)');
+          return null;
+        }
+        
+        // Cache the result for 5 minutes
+        this.batchCache.set(cacheKey, result);
+        setTimeout(() => this.batchCache.delete(cacheKey), 5 * 60 * 1000);
+        
+        console.log('📋 Batch exists and cached');
+        return result;
+      } catch (error) {
+        console.error(`📋 Error getting batch details for ${batchId}:`, error);
+        throw error;
       }
-      
-      // Cache the result for 5 minutes
-      this.batchCache.set(cacheKey, result);
-      setTimeout(() => this.batchCache.delete(cacheKey), 5 * 60 * 1000);
-      
-      return result;
+    },
+
+    // Debug function to check what batches exist
+    async debugListAllBatches() {
+      try {
+        console.log('🔍 Searching for all BatchCreated events...');
+        
+        // Try BatchCreatedV2 first, then fallback to BatchCreated
+        let logs = [];
+        if (this.contractRO.filters.BatchCreatedV2) {
+          logs = await this.contractRO.queryFilter(this.contractRO.filters.BatchCreatedV2(), 0, 'latest');
+          console.log(`Found ${logs.length} BatchCreatedV2 events`);
+        }
+        
+        if (logs.length === 0) {
+          logs = await this.contractRO.queryFilter(this.contractRO.filters.BatchCreated(), 0, 'latest');
+          console.log(`Found ${logs.length} BatchCreated events`);
+        }
+        
+        const batchIds = logs.map(log => log.args.batchId).filter(id => id);
+        console.log('📦 Found batch IDs:', batchIds);
+        return batchIds;
+      } catch (error) {
+        console.error('Error listing batches:', error);
+        return [];
+      }
     },
 
     // Get all batches created by the current farmer
@@ -363,41 +406,66 @@
       }
 
       console.time(`Fetching chain for ${batchId}`);
+      console.log(`🔍 Searching for batch: ${batchId}`);
       const logs = [];
 
-      // Use multicall pattern - batch all queries
-      const queryPromises = [
-        // BatchCreated query
-        this.contractRO.queryFilter((this.contractRO.filters.BatchCreatedV2 ? this.contractRO.filters.BatchCreatedV2(batchId) : this.contractRO.filters.BatchCreated(batchId)), fromBlock, toBlock)
-          .then(async (bc) => {
-            if (bc.length > 0) {
-              const detailsRaw = await this.getBatchDetails(batchId);
-              const statusNames = ['Pending', 'InTransit', 'Delivered', 'Processing'];
-              const asArr = Array.isArray(detailsRaw) ? detailsRaw : [detailsRaw.batchId, detailsRaw.cropType, detailsRaw.quantity, detailsRaw.harvestDate, detailsRaw.farmLocation, detailsRaw.photoHash, detailsRaw.status, detailsRaw.owner, detailsRaw.timestamp, detailsRaw.farmerName, detailsRaw.farmerUsername];
-              return {
-                blockNumber: bc[0].blockNumber,
-                fragment: { name: (this.contractRO.filters.BatchCreatedV2 ? 'BatchCreatedV2' : 'BatchCreated') },
-                args: {
-                  batchId: asArr[0],
-                  cropType: asArr[1],
-                  quantity: asArr[2],
-                  harvestDate: asArr[3],
-                  farmLocation: asArr[4],
-                  photoHash: asArr[5],
-                  status: asArr[6],
-                  owner: asArr[7],
-                  timestamp: asArr[8],
-                  farmerName: asArr[9] || '',
-                  farmerUsername: asArr[10] || '',
-                  statusText: statusNames[Number(asArr[6] ?? 0)] || 'Unknown'
-                }
-              };
-            }
-            return null;
-          }).catch(() => null),
+      try {
+        // First, check if batch exists using getBatchDetails
+        console.log('📋 Checking if batch exists...');
+        let batchExists = false;
+        try {
+          const details = await this.getBatchDetails(batchId);
+          console.log('📋 Batch details:', details);
+          if (details && details.batchId && details.batchId !== '') {
+            batchExists = true;
+            console.log('✅ Batch exists in contract');
+          }
+        } catch (err) {
+          console.log('❌ Batch does not exist or error getting details:', err.message);
+        }
 
-        // Collection query
-        this.contractRO.queryFilter(this.contractRO.filters.CollectionAdded(batchId), fromBlock, toBlock)
+        if (!batchExists) {
+          console.log('🚫 Batch not found, returning empty logs');
+          return [];
+        }
+
+        // Use multicall pattern - batch all queries
+        const queryPromises = [
+          // BatchCreated query
+          this.contractRO.queryFilter((this.contractRO.filters.BatchCreatedV2 ? this.contractRO.filters.BatchCreatedV2(batchId) : this.contractRO.filters.BatchCreated(batchId)), fromBlock, toBlock)
+            .then(async (bc) => {
+              console.log(`📦 BatchCreated events found: ${bc.length}`);
+              if (bc.length > 0) {
+                const detailsRaw = await this.getBatchDetails(batchId);
+                const statusNames = ['Pending', 'InTransit', 'Delivered', 'Processing'];
+                const asArr = Array.isArray(detailsRaw) ? detailsRaw : [detailsRaw.batchId, detailsRaw.cropType, detailsRaw.quantity, detailsRaw.harvestDate, detailsRaw.farmLocation, detailsRaw.photoHash, detailsRaw.status, detailsRaw.owner, detailsRaw.timestamp, detailsRaw.farmerName, detailsRaw.farmerUsername];
+                return {
+                  blockNumber: bc[0].blockNumber,
+                  fragment: { name: (this.contractRO.filters.BatchCreatedV2 ? 'BatchCreatedV2' : 'BatchCreated') },
+                  args: {
+                    batchId: asArr[0],
+                    cropType: asArr[1],
+                    quantity: asArr[2],
+                    harvestDate: asArr[3],
+                    farmLocation: asArr[4],
+                    photoHash: asArr[5],
+                    status: asArr[6],
+                    owner: asArr[7],
+                    timestamp: asArr[8],
+                    farmerName: asArr[9] || '',
+                    farmerUsername: asArr[10] || '',
+                    statusText: statusNames[Number(asArr[6] ?? 0)] || 'Unknown'
+                  }
+                };
+              }
+              return null;
+            }).catch((err) => {
+              console.log('❌ Error getting BatchCreated events:', err.message);
+              return null;
+            }),
+
+          // Collection query
+          this.contractRO.queryFilter(this.contractRO.filters.CollectionAdded(batchId), fromBlock, toBlock)
           .then(async (ca) => {
             if (ca.length > 0) {
               const colRaw = await this.getCollection(batchId);
@@ -519,8 +587,11 @@
       console.log(`Found ${logs.length} events for batch ${batchId}`);
       
       return logs;
-    }
-    ,
+      } catch (error) {
+        console.error(`Error fetching chain for ${batchId}:`, error);
+        throw error;
+      }
+    },
 
     // --- Lightweight off-chain metadata helpers (for names & extras) ---
     storeBatchMeta(batchId, meta) {

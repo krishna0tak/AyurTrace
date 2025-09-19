@@ -478,16 +478,44 @@
             timeline.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin" style="font-size:24px;color:#6366f1;"></i><p style="margin-top:12px;color:#64748b;">Loading supply chain...</p></div>';
 
             try {
+                console.log(`🔍 Manufacturer searching for batch: ${batchId}`);
                 const logs = await Blockchain.getChainForBatch(batchId);
+                console.log(`📊 Found ${logs ? logs.length : 0} events for ${batchId}`);
+                
                 if (!logs || logs.length === 0) {
-                    timeline.innerHTML = `<div style="text-align:center;padding:40px;color:#ef4444;"><i class="fas fa-exclamation-triangle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i><p>No events found for ${batchId}</p></div>`;
+                    timeline.innerHTML = `
+                        <div style="text-align:center;padding:40px;color:#ef4444;">
+                            <i class="fas fa-exclamation-triangle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i>
+                            <h4 style="margin-bottom:8px;">No events found for ${batchId}</h4>
+                            <p style="color:#64748b;margin-bottom:16px;">This batch may not exist or hasn't been processed yet.</p>
+                            <div style="background:#f8f9fa;padding:12px;border-radius:8px;text-align:left;max-width:400px;margin:0 auto;">
+                                <p style="margin:0;font-size:14px;color:#495057;"><strong>Troubleshooting:</strong></p>
+                                <ul style="margin:8px 0 0 20px;font-size:13px;color:#6c757d;">
+                                    <li>Verify the Batch ID is correct</li>
+                                    <li>Check if the batch has been created and collected</li>
+                                    <li>Refresh the page and try again</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `;
                     return;
                 }
                 
                 renderTimelineWithImages(timeline, logs);
             } catch (e) {
                 console.error('Search chain error', e);
-                timeline.innerHTML = `<div style="text-align:center;padding:40px;color:#ef4444;">${e.message || 'Failed to load chain'}</div>`;
+                timeline.innerHTML = `
+                    <div style="text-align:center;padding:40px;color:#ef4444;">
+                        <i class="fas fa-exclamation-circle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i>
+                        <h4 style="margin-bottom:8px;">Search Error</h4>
+                        <p style="color:#64748b;margin-bottom:16px;">Failed to load chain data for ${batchId}</p>
+                        <div style="background:#f8f9fa;padding:12px;border-radius:8px;text-align:left;max-width:400px;margin:0 auto;">
+                            <p style="margin:0;font-size:14px;color:#495057;"><strong>Error Details:</strong></p>
+                            <p style="margin:4px 0;font-size:13px;color:#6c757d;">${e.message || 'Unknown error occurred'}</p>
+                            <p style="margin:8px 0 0 0;font-size:13px;color:#6c757d;"><strong>Suggestion:</strong> Check your connection and try again.</p>
+                        </div>
+                    </div>
+                `;
             }
         }
 

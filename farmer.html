@@ -298,15 +298,6 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label for="expectedQuality">Expected Quality Grade</label>
-                            <select id="expectedQuality" name="expectedQuality" class="form-input" required>
-                                <option value="">Select Quality</option>
-                                <option value="Premium">Premium</option>
-                                <option value="Standard">Standard</option>
-                                <option value="Basic">Basic</option>
-                            </select>
-                        </div>
                     </div>
                     <button type="submit" class="submit-btn">
                         <i class="fas fa-plus"></i>
@@ -681,109 +672,20 @@
                         // No geolocation, just timestamp
                         const timestamp = new Date().toLocaleString();
                         imageMetadata = {
-                            location: 'Geolocation not supported',
-                            timestamp: imageTime.toLocaleString()
+                            location: 'Location unavailable',
+                            timestamp: timestamp
                         };
                         
-                        await uploadToPinata(file);
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            previewImg.src = e.target.result;
+                            metadataDiv.innerHTML = `📍 Location: ${imageMetadata.location}<br>🕒 Time: ${imageMetadata.timestamp}`;
+                            imagePreview.style.display = 'block';
+                        };
+                        reader.readAsDataURL(file);
                     }
-                    
-                } catch (error) {
-                    console.error('Error in location/upload:', error);
-                    status.textContent = '❌ Error processing image';
                 }
-            }
-
-            async function uploadToPinata(file) {
-                const status = document.getElementById('uploadStatus');
-                
-                try {
-                    status.textContent = '⏫ Uploading to Pinata...';
-                    status.className = '';
-                    
-                    const formData = new FormData();
-                    formData.append('file', file);
-                    
-                    // Add metadata with geotag info
-                    const metadata = {
-                        name: `AyurTrace_${Date.now()}`,
-                        keyvalues: {
-                            timestamp: imageTime.toISOString(),
-                            latitude: imageLocation.lat.toString(),
-                            longitude: imageLocation.lon.toString(),
-                            app: 'AyurTrace',
-                            farmer: await getCurrentActorId() || 'farmer001'
-                        }
-                    };
-                    formData.append('pinataMetadata', JSON.stringify(metadata));
-                    
-                    let response;
-                    let uploadMethod = 'JWT';
-                    
-                    try {
-                        // Try JWT first
-                        if (PINATA_JWT && PINATA_JWT !== "YOUR_NEW_JWT_TOKEN_HERE") {
-                            response = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
-                                method: 'POST',
-                                headers: {
-                                    'Authorization': `Bearer ${PINATA_JWT}`
-                                },
-                                body: formData
-                            });
-                        } else {
-                            throw new Error('JWT not configured');
-                        }
-                    } catch (jwtError) {
-                        console.warn('JWT upload failed, trying API Key method:', jwtError);
-                        uploadMethod = 'API Key';
-                        
-                        // Fallback to API Key method
-                        if (PINATA_API_KEY && PINATA_SECRET_KEY && PINATA_SECRET_KEY !== "YOUR_SECRET_KEY_HERE") {
-                            response = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
-                                method: 'POST',
-                                headers: {
-                                    'pinata_api_key': PINATA_API_KEY,
-                                    'pinata_secret_api_key': PINATA_SECRET_KEY
-                                },
-                                body: formData
-                            });
-                        } else {
-                            throw new Error('Both JWT and API Key methods failed. Please configure proper Pinata credentials.');
-                        }
-                    }
-                    
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        console.error('Upload response:', response.status, errorText);
-                        
-                        if (response.status === 403) {
-                            throw new Error(`Authentication failed (403). Please generate a new JWT token with 'pinFileToIPFS' scope from Pinata dashboard.`);
-                        } else {
-                            throw new Error(`Upload failed: ${response.status} - ${errorText}`);
-                        }
-                    }
-                    
-                    const data = await response.json();
-                    imageCID = data.IpfsHash;
-                    
-                    status.innerHTML = `✅ Uploaded via ${uploadMethod}! <br>CID: <code>${imageCID}</code>`;
-                    status.className = 'success';
-                    
-                    console.log('Upload successful:', { 
-                        method: uploadMethod,
-                        cid: imageCID, 
-                        location: imageLocation, 
-                        time: imageTime,
-                        url: `https://${PINATA_GATEWAY}/ipfs/${imageCID}`
-                    });
-                    
-                } catch (error) {
-                    console.error('Upload error:', error);
-                    status.innerHTML = `❌ Upload failed:<br>${error.message}`;
-                    status.className = 'error';
-                    imageCID = null;
-                }
-            }
+            });
 
             // Enhanced form submission handler
             const newBatchForm = document.getElementById('newBatchForm');
@@ -802,39 +704,20 @@
                     try {
                         await Blockchain.init();
 
-                    const formData = new FormData(newBatchForm);
-                    const batchId = 'BATCH_' + Date.now();
-                    const cropName = formData.get('cropName');
-                    const quantity = formData.get('quantity');
-                    const harvestDate = formData.get('harvestDate');
-                    let farmLocation = formData.get('farmLocation');
-                    
-                    try {
+                        const formData = new FormData(newBatchForm);
+                        const batchId = 'BATCH_' + Date.now();
+                        const cropName = formData.get('cropName');
+                        const quantity = formData.get('quantity');
+                        const harvestDate = formData.get('harvestDate');
+                        let farmLocation = formData.get('farmLocation');
+                        
                         let photoHash = '0x' + '0'.repeat(64); // default placeholder
                         
                         // Upload image to Pinata if captured
                         if (capturedImageBlob && imageMetadata) {
                             const uploadBtn = document.querySelector('#newBatchForm button[type="submit"]');
                             uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading Image...';
-                            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading Image...';
                             uploadBtn.disabled = true;
-                            
-                            try {
-                                const ipfsHash = await Blockchain.uploadImageToPinata(capturedImageBlob, imageMetadata);
-                                photoHash = ethers.id(ipfsHash); // Convert IPFS hash to bytes32
-                                // Store the mapping for later retrieval
-                                Blockchain.storeIPFSMapping(photoHash, ipfsHash);
-                                console.log('Image uploaded to IPFS:', ipfsHash);
-                                // Augment farmLocation with farmer name + IPFS so other roles can read it easily on-chain
-                                if (typeof farmLocation === 'string') {
-                                    const u = await getCurrentUser();
-                                    const farmerName = (u && u.name) ? u.name : '';
-                                    const tagParts = [];
-                                    if (farmerName) tagParts.push(`FARMER=${farmerName}`);
-                                    if (ipfsHash) tagParts.push(`IPFS=${ipfsHash}`);
-                                    if (tagParts.length) {
-                                        farmLocation = `${farmLocation} ::${tagParts.join(' ::')}`;
-                                    }
                             
                             try {
                                 const ipfsHash = await Blockchain.uploadImageToPinata(capturedImageBlob, imageMetadata);
@@ -855,12 +738,9 @@
                                 }
                             } catch (err) {
                                 console.warn('Image upload failed, proceeding without image:', err);
-                                console.warn('Image upload failed, proceeding without image:', err);
                                 // Continue with default photoHash
                             }
                             
-                            uploadBtn.innerHTML = '<i class="fas fa-plus"></i> Create Batch';
-                            uploadBtn.disabled = false;
                             uploadBtn.innerHTML = '<i class="fas fa-plus"></i> Create Batch';
                             uploadBtn.disabled = false;
                         }
@@ -891,14 +771,12 @@
                         newBatchForm.reset();
                         createBatchSection.style.display = 'none';
                         imagePreview.style.display = 'none';
-                        imagePreview.style.display = 'none';
                         capturedImageBlob = null;
                         imageMetadata = null;
                         
-                        // Show success message
-                        alert(`✅ Batch ${batchData.id} created successfully!`);
-                        
-                        alert('Batch created on blockchain with image!');
+                        // Show success message and generate QR code
+                        alert('✅ Batch created on blockchain with image!');
+                        generateQRCode(batchId);
                         await loadStats();
                         await loadRecentBatches();
                         
@@ -1205,7 +1083,6 @@
                 let imageSection = '';
                 
                 if (name === 'BatchCreated' && l.args) {
-                if (name === 'BatchCreated' && l.args) {
                     const meta = Blockchain?.parseFarmLocationMeta ? Blockchain.parseFarmLocationMeta(l.args.farmLocation || '') : {};
                     const farmer = meta.farmer || 'Unknown Farmer';
                     const baseLoc = meta.base || (l.args.farmLocation || 'Not specified');
@@ -1218,20 +1095,6 @@
                         </div>
                     `;
                     
-                    const imageHash = meta.ipfs || l.args.photoHash;
-                    if (imageHash && Blockchain?.getImageFromPinata) {
-                        imageSection = `
-                            <div style="margin-top: 12px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
-                                <img src="${Blockchain.getImageFromPinata(imageHash)}" 
-                                     style="width: 100%; max-height: 200px; object-fit: cover; cursor: pointer;" 
-                                     onclick="showFullImage('${imageHash}')" 
-                                     title="Click to view full image" 
-                                     alt="Batch Image" />
-                                <div style="padding: 8px; background: #f9fafb; font-size: 11px; color: #6b7280;">
-                                    📸 Click image to view full size
-                                </div>
-                            </div>
-                        `;
                     const imageHash = meta.ipfs || l.args.photoHash;
                     if (imageHash && Blockchain?.getImageFromPinata) {
                         imageSection = `
