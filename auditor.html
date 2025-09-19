@@ -14,6 +14,7 @@
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
     <script src="blockchain.js"></script>
     <script src="enhanced-search.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 </head>
 
 <body>
@@ -21,17 +22,17 @@
     <!-- Auth Check Script -->
     <script>
         // Upload QR button triggers file input for audit form
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const uploadQrBtn = document.getElementById('uploadQrBtn');
             const qrUploadAuditor = document.getElementById('qrUploadAuditor');
             const collectionIdInput = document.getElementById('collectionId');
             if (uploadQrBtn && qrUploadAuditor) {
-                uploadQrBtn.addEventListener('click', function() {
+                uploadQrBtn.addEventListener('click', function () {
                     qrUploadAuditor.click();
                 });
             }
             if (qrUploadAuditor) {
-                qrUploadAuditor.addEventListener('change', async function(e) {
+                qrUploadAuditor.addEventListener('change', async function (e) {
                     const file = e.target.files && e.target.files[0];
                     const hint = document.getElementById('qrUploadHint');
                     const collectionError = document.getElementById('collectionError');
@@ -52,9 +53,9 @@
                     hint.textContent = 'Processing image...';
                     hint.style.color = '#6b7280';
                     const reader = new FileReader();
-                    reader.onload = function(ev) {
+                    reader.onload = function (ev) {
                         const img = new window.Image();
-                        img.onload = async function() {
+                        img.onload = async function () {
                             const canvas = document.createElement('canvas');
                             canvas.width = img.width;
                             canvas.height = img.height;
@@ -111,7 +112,7 @@
                                 hint.style.color = '#ef4444';
                             }
                         };
-                        img.onerror = function() {
+                        img.onerror = function () {
                             hint.textContent = 'Could not load the image.';
                             hint.style.color = '#ef4444';
                         };
@@ -123,7 +124,7 @@
         });
 
         // --- Advanced Search Upload QR Button ---
-        setTimeout(function() {
+        setTimeout(function () {
             // Wait for enhanced search to render
             const searchBar = document.querySelector('#enhanced-search-container input[type="text"]');
             let scanBtn = null;
@@ -139,7 +140,7 @@
                 // Remove any event listeners that might trigger the scan modal
                 const newBtn = scanBtn.cloneNode(true);
                 scanBtn.parentNode.replaceChild(newBtn, scanBtn);
-                newBtn.onclick = function(e) {
+                newBtn.onclick = function (e) {
                     e.stopPropagation();
                     document.getElementById('qrUploadSearch').click();
                 };
@@ -147,16 +148,16 @@
         }, 500);
 
         // QR upload for search bar
-        setTimeout(function() {
+        setTimeout(function () {
             const qrUploadSearch = document.getElementById('qrUploadSearch');
             if (qrUploadSearch) {
-                qrUploadSearch.addEventListener('change', function(e) {
+                qrUploadSearch.addEventListener('change', function (e) {
                     const file = e.target.files && e.target.files[0];
                     if (!file) return;
                     const reader = new FileReader();
-                    reader.onload = function(ev) {
+                    reader.onload = function (ev) {
                         const img = new window.Image();
-                        img.onload = function() {
+                        img.onload = function () {
                             const canvas = document.createElement('canvas');
                             canvas.width = img.width;
                             canvas.height = img.height;
@@ -184,7 +185,7 @@
                                 alert('No QR code found in the uploaded image.');
                             }
                         };
-                        img.onerror = function() {
+                        img.onerror = function () {
                             alert('Could not load the image.');
                         };
                         img.src = ev.target.result;
@@ -285,7 +286,8 @@
                                 <i class="fas fa-upload"></i> Upload QR
                             </button>
                             <input type="file" id="qrUploadAuditor" accept="image/*" style="display:none;">
-                            <div id="qrUploadHint" style="font-size: 0.95em; color: #6b7280; margin-top: 4px;">Upload a clear image of a QR code (JPG, PNG, max 2MB).</div>
+                            <div id="qrUploadHint" style="font-size: 0.95em; color: #6b7280; margin-top: 4px;">Upload a
+                                clear image of a QR code (JPG, PNG, max 2MB).</div>
                         </div>
 
                         <p id="collectionError" class="error-message"
