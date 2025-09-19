@@ -9,42 +9,106 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="theme.css">
     <style>
-        .capture-btn {
+        .image-upload-container {
+            border: 2px dashed #e0e6ed;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .image-upload-container:hover {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #f0f4ff 0%, #e8f2ff 100%);
+        }
+
+        .upload-icon-wrapper {
+            margin-bottom: 15px;
+        }
+
+        .upload-btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
+            padding: 16px 24px;
+            border-radius: 50px;
             cursor: pointer;
             font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            font-weight: 600;
             transition: all 0.3s ease;
-        }
-        
-        .capture-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-        
-        .image-capture-section {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            align-items: center;
+            gap: 8px;
+            min-width: 140px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
         }
-        
-        .image-preview {
-            border: 2px dashed #e2e8f0;
-            border-radius: 8px;
-            padding: 16px;
-            text-align: center;
-            background: #f8fafc;
+
+        .upload-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
         }
-        
-        .image-preview img {
-            border-radius: 8px;
-            margin-bottom: 8px;
+
+        .camera-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .preview-container {
+            display: inline-block;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease;
+        }
+
+        .preview-container:hover {
+            transform: scale(1.02);
+        }
+
+        .geotag-overlay {
+            user-select: none;
+            pointer-events: none;
+            background: linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(30,30,30,0.9) 100%);
+            backdrop-filter: blur(5px);
+        }
+
+        #uploadStatus {
+            min-height: 20px;
+            font-weight: 500;
+            padding: 8px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        #uploadStatus.success {
+            background: #f0f9ff;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+        }
+
+        #uploadStatus.error {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        #uploadStatus code {
+            background: rgba(255,255,255,0.8);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #1a73e8;
+            font-weight: 600;
         }
         
         /* QR Code Section */
@@ -82,6 +146,89 @@
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script src="blockchain.js"></script>
     <script>
+        // Pinata Configuration - Working credentials
+        const PINATA_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJjZDc4NTU2MS02ZWJmLTQxY2ItODM5ZS1lZDllY2MwYWNhYjAiLCJlbWFpbCI6InJhbnZlZXJzaW5naDE4d0BnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkExIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiNDU3NTc0MjViNTgyYjM2YWEzNjQiLCJzY29wZWRLZXlTZWNyZXQiOiJkYTMwMWViMTdiOTU0YjNlZTYyYjJmYWJmNmJmNWIzNzBlNmFlNmI4ZTk4NDEwMzI2NWFmYWJkN2RmNTMyODcwIiwiZXhwIjoxNzg5NzgxNjUxfQ.PwxM2jqNmBASIFbz85pl7DjrAslMIaRKbksqomPxQy8";
+        const PINATA_GATEWAY = "pink-decisive-woodpecker-623.mypinata.cloud";
+
+        // Fallback: Use API Key method if JWT fails
+        const PINATA_API_KEY = "45757425b582b36aa364";
+        const PINATA_SECRET_KEY = "da301eb17b954b3ee62b2fabf6bf5b370e6ae6b8e984103265afabd7df532870";
+
+        // Image upload variables
+        let imageFile = null;
+        let imageCID = null;
+        let imageLocation = null;
+        let imageTime = null;
+
+        // Pinata Upload Function
+        async function uploadToPinata(file, metadata = {}) {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            // Add metadata if provided
+            if (metadata && Object.keys(metadata).length > 0) {
+                const pinataMetadata = JSON.stringify({
+                    name: `crop-image-${Date.now()}`,
+                    keyvalues: metadata
+                });
+                formData.append('pinataMetadata', pinataMetadata);
+            }
+
+            const pinataOptions = JSON.stringify({
+                cidVersion: 0,
+            });
+            formData.append('pinataOptions', pinataOptions);
+
+            try {
+                const response = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
+                    method: 'POST',
+                    headers: {
+                        'pinata_api_key': PINATA_API_KEY,
+                        'pinata_secret_api_key': PINATA_SECRET_KEY,
+                    },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Pinata upload failed: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log('Image uploaded to Pinata:', result);
+                return result.IpfsHash; // This is the CID
+            } catch (error) {
+                console.error('Pinata upload error:', error);
+                throw error;
+            }
+        }
+
+        // Function to get image URL from Pinata
+        function getImageFromPinata(cid) {
+            return `https://${PINATA_GATEWAY}/ipfs/${cid}`;
+        }
+
+        // Function to store CID on blockchain
+        async function storeCidOnBlockchain(cid, additionalData = {}) {
+            try {
+                await Blockchain.init();
+                const contract = Blockchain.contractRW;
+                
+                if (contract && contract.storeCid) {
+                    // Call the storeCid function on smart contract
+                    const tx = await contract.storeCid(cid, JSON.stringify(additionalData));
+                    await tx.wait();
+                    console.log('CID stored on blockchain:', cid);
+                    return tx;
+                } else {
+                    console.warn('storeCid function not available on contract');
+                    return null;
+                }
+            } catch (error) {
+                console.error('Error storing CID on blockchain:', error);
+                throw error;
+            }
+        }
+
         // Check authentication using the proper auth system
         async function checkAuth() {
             const user = await getCurrentUser();
@@ -237,15 +384,48 @@
                         </div>
                         <div class="form-group">
                             <label for="cropImage">Crop Image with Location & Time</label>
-                            <div class="image-capture-section">
-                                <button type="button" id="captureImageBtn" class="capture-btn">
-                                    <i class="fas fa-camera"></i>
-                                    Capture Image
-                                </button>
-                                <input type="file" id="imageFileInput" accept="image/*" style="display: none;">
-                                <div id="imagePreview" class="image-preview" style="display: none;">
-                                    <img id="previewImg" style="max-width: 200px; max-height: 200px;">
-                                    <p id="imageMetadata" class="text-sm text-gray-600"></p>
+                            <div class="image-upload-container">
+                                <div class="upload-icon-wrapper">
+                                    <button type="button" class="upload-btn" onclick="document.getElementById('imageInput').click()">
+                                        <div class="camera-icon">
+                                            <i class="fas fa-camera"></i>
+                                        </div>
+                                        <span>Upload to Pinata</span>
+                                    </button>
+                                </div>
+                                <input id="imageInput" type="file" accept="image/*" style="display: none;" />
+                                
+                                <!-- Small Preview with Geotag -->
+                                <div id="imagePreviewSection" style="display: none; margin-top: 15px;">
+                                    <div class="preview-container">
+                                        <img id="imagePreview" style="
+                                            width: 150px; 
+                                            height: 150px; 
+                                            object-fit: cover; 
+                                            border-radius: 8px; 
+                                            border: 2px solid #ddd;
+                                        " />
+                                        
+                                        <!-- Geotag Info Overlay -->
+                                        <div class="geotag-overlay" style="
+                                            background: rgba(0,0,0,0.85); 
+                                            color: white; 
+                                            padding: 8px; 
+                                            border-radius: 0 0 8px 8px; 
+                                            font-size: 11px; 
+                                            margin-top: -2px;
+                                            font-family: monospace;
+                                            user-select: none;
+                                            pointer-events: none;
+                                        ">
+                                            <div id="locationDisplay">📍 Getting location...</div>
+                                            <div id="timeDisplay">🕒 <span id="captureTime"></span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="uploadStatus" style="margin-top: 10px; font-size: 13px; color: #666;">
+                                    Click button to upload image
                                 </div>
                             </div>
                         </div>
@@ -372,79 +552,195 @@
             let capturedImageBlob = null;
             let imageMetadata = null;
 
-            const captureBtn = document.getElementById('captureImageBtn');
-            const fileInput = document.getElementById('imageFileInput');
-            const imagePreview = document.getElementById('imagePreview');
-            const previewImg = document.getElementById('previewImg');
-            const metadataDiv = document.getElementById('imageMetadata');
-
-            captureBtn.addEventListener('click', function() {
-                fileInput.click();
+            // Image upload handler
+            document.getElementById('imageInput').addEventListener('change', async function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                imageFile = file;
+                capturedImageBlob = file;
+                
+                // Show small preview immediately
+                showImagePreview(file);
+                
+                // Capture time
+                captureImageTime();
+                
+                // Get location and upload
+                await captureLocationAndUpload(file);
             });
 
-            fileInput.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    capturedImageBlob = file;
+            function showImagePreview(file) {
+                const preview = document.getElementById('imagePreview');
+                const previewSection = document.getElementById('imagePreviewSection');
+                
+                // Show preview
+                preview.src = URL.createObjectURL(file);
+                previewSection.style.display = 'block';
+            }
+
+            function captureImageTime() {
+                imageTime = new Date();
+                document.getElementById('captureTime').textContent = imageTime.toLocaleString();
+            }
+
+            async function captureLocationAndUpload(file) {
+                const locationDisplay = document.getElementById('locationDisplay');
+                const status = document.getElementById('uploadStatus');
+                
+                try {
+                    // Get location
+                    status.textContent = '📍 Getting location...';
                     
-                    // Get current location and time
                     if (navigator.geolocation) {
                         navigator.geolocation.getCurrentPosition(
-                            function(position) {
-                                const lat = position.coords.latitude.toFixed(6);
-                                const lng = position.coords.longitude.toFixed(6);
-                                const timestamp = new Date().toLocaleString();
+                            async function(position) {
+                                // Success - got location
+                                imageLocation = {
+                                    lat: position.coords.latitude,
+                                    lon: position.coords.longitude
+                                };
                                 
+                                locationDisplay.textContent = `📍 ${imageLocation.lat.toFixed(6)}, ${imageLocation.lon.toFixed(6)}`;
+                                
+                                // Store in old format for compatibility
                                 imageMetadata = {
-                                    location: `${lat}, ${lng}`,
-                                    timestamp: timestamp,
-                                    coordinates: { lat: parseFloat(lat), lng: parseFloat(lng) }
+                                    location: `${imageLocation.lat}, ${imageLocation.lon}`,
+                                    timestamp: imageTime.toLocaleString(),
+                                    coordinates: { lat: imageLocation.lat, lng: imageLocation.lon }
                                 };
                                 
-                                // Show preview
-                                const reader = new FileReader();
-                                reader.onload = function(e) {
-                                    previewImg.src = e.target.result;
-                                    metadataDiv.innerHTML = `📍 Location: ${imageMetadata.location}<br>🕒 Time: ${imageMetadata.timestamp}`;
-                                    imagePreview.style.display = 'block';
-                                };
-                                reader.readAsDataURL(file);
+                                // Now upload to Pinata
+                                await uploadToPinata(file);
                             },
                             function(error) {
-                                // Still show image but without location
-                                const timestamp = new Date().toLocaleString();
+                                // Location denied or failed
+                                console.warn('Location access denied:', error);
+                                imageLocation = { lat: 0, lon: 0 };
+                                locationDisplay.textContent = '📍 Location not available';
+                                
                                 imageMetadata = {
                                     location: 'Location unavailable',
-                                    timestamp: timestamp
+                                    timestamp: imageTime.toLocaleString()
                                 };
                                 
-                                const reader = new FileReader();
-                                reader.onload = function(e) {
-                                    previewImg.src = e.target.result;
-                                    metadataDiv.innerHTML = `📍 Location: ${imageMetadata.location}<br>🕒 Time: ${imageMetadata.timestamp}`;
-                                    imagePreview.style.display = 'block';
-                                };
-                                reader.readAsDataURL(file);
+                                // Still upload to Pinata
+                                uploadToPinata(file);
+                            },
+                            {
+                                enableHighAccuracy: true,
+                                timeout: 10000,
+                                maximumAge: 60000
                             }
                         );
                     } else {
-                        // No geolocation, just timestamp
-                        const timestamp = new Date().toLocaleString();
+                        imageLocation = { lat: 0, lon: 0 };
+                        locationDisplay.textContent = '📍 Geolocation not supported';
+                        
                         imageMetadata = {
-                            location: 'Location unavailable',
-                            timestamp: timestamp
+                            location: 'Geolocation not supported',
+                            timestamp: imageTime.toLocaleString()
                         };
                         
-                        const reader = new FileReader();
-                        reader.onload = function(e) {
-                            previewImg.src = e.target.result;
-                            metadataDiv.innerHTML = `📍 Location: ${imageMetadata.location}<br>🕒 Time: ${imageMetadata.timestamp}`;
-                            imagePreview.style.display = 'block';
-                        };
-                        reader.readAsDataURL(file);
+                        await uploadToPinata(file);
                     }
+                    
+                } catch (error) {
+                    console.error('Error in location/upload:', error);
+                    status.textContent = '❌ Error processing image';
                 }
-            });
+            }
+
+            async function uploadToPinata(file) {
+                const status = document.getElementById('uploadStatus');
+                
+                try {
+                    status.textContent = '⏫ Uploading to Pinata...';
+                    status.className = '';
+                    
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    
+                    // Add metadata with geotag info
+                    const metadata = {
+                        name: `AyurTrace_${Date.now()}`,
+                        keyvalues: {
+                            timestamp: imageTime.toISOString(),
+                            latitude: imageLocation.lat.toString(),
+                            longitude: imageLocation.lon.toString(),
+                            app: 'AyurTrace',
+                            farmer: await getCurrentActorId() || 'farmer001'
+                        }
+                    };
+                    formData.append('pinataMetadata', JSON.stringify(metadata));
+                    
+                    let response;
+                    let uploadMethod = 'JWT';
+                    
+                    try {
+                        // Try JWT first
+                        if (PINATA_JWT && PINATA_JWT !== "YOUR_NEW_JWT_TOKEN_HERE") {
+                            response = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${PINATA_JWT}`
+                                },
+                                body: formData
+                            });
+                        } else {
+                            throw new Error('JWT not configured');
+                        }
+                    } catch (jwtError) {
+                        console.warn('JWT upload failed, trying API Key method:', jwtError);
+                        uploadMethod = 'API Key';
+                        
+                        // Fallback to API Key method
+                        if (PINATA_API_KEY && PINATA_SECRET_KEY && PINATA_SECRET_KEY !== "YOUR_SECRET_KEY_HERE") {
+                            response = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
+                                method: 'POST',
+                                headers: {
+                                    'pinata_api_key': PINATA_API_KEY,
+                                    'pinata_secret_api_key': PINATA_SECRET_KEY
+                                },
+                                body: formData
+                            });
+                        } else {
+                            throw new Error('Both JWT and API Key methods failed. Please configure proper Pinata credentials.');
+                        }
+                    }
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('Upload response:', response.status, errorText);
+                        
+                        if (response.status === 403) {
+                            throw new Error(`Authentication failed (403). Please generate a new JWT token with 'pinFileToIPFS' scope from Pinata dashboard.`);
+                        } else {
+                            throw new Error(`Upload failed: ${response.status} - ${errorText}`);
+                        }
+                    }
+                    
+                    const data = await response.json();
+                    imageCID = data.IpfsHash;
+                    
+                    status.innerHTML = `✅ Uploaded via ${uploadMethod}! <br>CID: <code>${imageCID}</code>`;
+                    status.className = 'success';
+                    
+                    console.log('Upload successful:', { 
+                        method: uploadMethod,
+                        cid: imageCID, 
+                        location: imageLocation, 
+                        time: imageTime,
+                        url: `https://${PINATA_GATEWAY}/ipfs/${imageCID}`
+                    });
+                    
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    status.innerHTML = `❌ Upload failed:<br>${error.message}`;
+                    status.className = 'error';
+                    imageCID = null;
+                }
+            }
 
             // Form submission -> on-chain createBatch
             const newBatchForm = document.getElementById('newBatchForm');
@@ -460,39 +756,63 @@
                     const harvestDate = formData.get('harvestDate');
                     let farmLocation = formData.get('farmLocation');
                     
+                    // small helper to show status next to preview
+                    const statusEl = document.getElementById('uploadStatus');
+                    const setStatus = (html, color = '#10b981') => { if (statusEl) { statusEl.style.color = color; statusEl.innerHTML = html; } };
+
                     try {
                         let photoHash = '0x' + '0'.repeat(64); // default placeholder
                         
                         // Upload image to Pinata if captured
                         if (capturedImageBlob && imageMetadata) {
                             const uploadBtn = document.querySelector('#newBatchForm button[type="submit"]');
-                            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading Image...';
+                            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Using uploaded image...';
                             uploadBtn.disabled = true;
+                            setStatus('✅ Using uploaded image from Pinata', '#10b981');
                             
                             try {
-                                const ipfsHash = await Blockchain.uploadImageToPinata(capturedImageBlob, imageMetadata);
-                                photoHash = ethers.id(ipfsHash); // Convert IPFS hash to bytes32
-                                // Store the mapping for later retrieval
-                                Blockchain.storeIPFSMapping(photoHash, ipfsHash);
-                                console.log('Image uploaded to IPFS:', ipfsHash);
-                                // Augment farmLocation with farmer name + IPFS so other roles can read it easily on-chain
-                                if (typeof farmLocation === 'string') {
-                                    const u = await getCurrentUser();
-                                    const farmerName = (u && u.name) ? u.name : '';
-                                    const tagParts = [];
-                                    if (farmerName) tagParts.push(`FARMER=${farmerName}`);
-                                    if (ipfsHash) tagParts.push(`IPFS=${ipfsHash}`);
-                                    if (tagParts.length) {
-                                        farmLocation = `${farmLocation} ::${tagParts.join(' ::')}`;
+                                // Use the already uploaded CID
+                                if (imageCID) {
+                                    console.log('Using already uploaded image with CID:', imageCID);
+                                    
+                                    // Convert IPFS hash to bytes32 for batch creation
+                                    photoHash = ethers.id(imageCID);
+                                    
+                                    // Store the mapping for later retrieval
+                                    if (Blockchain.storeIPFSMapping) {
+                                        Blockchain.storeIPFSMapping(photoHash, imageCID);
                                     }
+                                    
+                                    console.log('Image data ready for blockchain');
+                                    setStatus('✅ Image ready for blockchain storage', '#10b981');
+                                    
+                                    // Augment farmLocation with farmer name + IPFS for easy on-chain reading
+                                    if (typeof farmLocation === 'string') {
+                                        const u = await getCurrentUser();
+                                        const farmerName = (u && u.name) ? u.name : '';
+                                        const tagParts = [];
+                                        if (farmerName) tagParts.push(`FARMER=${farmerName}`);
+                                        if (imageCID) tagParts.push(`IPFS=${imageCID}`);
+                                        if (imageLocation) {
+                                            tagParts.push(`LAT=${imageLocation.lat}`);
+                                            tagParts.push(`LON=${imageLocation.lon}`);
+                                        }
+                                        if (imageTime) tagParts.push(`TIME=${imageTime.toISOString()}`);
+                                        if (tagParts.length) {
+                                            farmLocation = `${farmLocation} ::${tagParts.join(' ::')}`;
+                                        }
+                                    }
+                                } else {
+                                    throw new Error('No uploaded image found. Please upload an image first.');
                                 }
                             } catch (err) {
-                                console.warn('Image upload failed, proceeding without image:', err);
+                                console.error('Image processing failed:', err);
+                                alert('Image processing failed: ' + err.message + '. Creating batch without image.');
+                                setStatus('❌ Image processing failed. Proceeding without image.', '#ef4444');
                                 // Continue with default photoHash
                             }
                             
-                            uploadBtn.innerHTML = '<i class="fas fa-plus"></i> Create Batch';
-                            uploadBtn.disabled = false;
+                            uploadBtn.innerHTML = '<i class="fas fa-plus"></i> Creating Batch...';
                         }
 
                         // Ensure FARMER name is embedded even if no image or upload failed
@@ -520,14 +840,32 @@
 
                         newBatchForm.reset();
                         createBatchSection.style.display = 'none';
-                        imagePreview.style.display = 'none';
+                        
+                        // Reset image preview and data
+                        document.getElementById('imagePreviewSection').style.display = 'none';
+                        document.getElementById('uploadStatus').textContent = 'Click button to upload image';
+                        document.getElementById('uploadStatus').style.color = '#666';
+                        document.getElementById('uploadStatus').style.fontWeight = 'normal';
+                        
+                        // Clear image variables
                         capturedImageBlob = null;
                         imageMetadata = null;
+                        imageFile = null;
+                        imageCID = null;
+                        imageLocation = null;
+                        imageTime = null;
+                        
+                        setStatus('✅ Upload complete', '#10b981');
                         
                         // Generate and display QR code
                         generateQRCode(batchId);
                         
-                        alert('Batch created on blockchain with image!');
+                        // Show success message with details
+                        let successMessage = 'Batch created successfully on blockchain!';
+                        if (capturedImageBlob) {
+                            successMessage += '\n✅ Image uploaded to Pinata IPFS\n✅ CID stored on blockchain';
+                        }
+                        alert(successMessage);
                         await loadStats();
                         await loadRecentBatches();
                     } catch (err) {
@@ -851,7 +1189,7 @@
                 let description = '';
                 let imageSection = '';
                 
-                if (name === 'BatchCreated' && l.args) {
+                if ((name === 'BatchCreated' || name === 'BatchCreatedV2') && l.args) {
                     const meta = Blockchain?.parseFarmLocationMeta ? Blockchain.parseFarmLocationMeta(l.args.farmLocation || '') : {};
                     const farmer = meta.farmer || farmerUsername || 'Unknown Farmer';
                     const baseLoc = meta.base || (l.args.farmLocation || 'Not specified');
@@ -864,20 +1202,62 @@
                         </div>
                     `;
                     
-                    const imageHash = meta.ipfs || l.args.photoHash;
-                    if (imageHash && Blockchain?.getImageFromPinata) {
-                        imageSection = `
-                            <div style="margin-top: 12px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
-                                <img src="${Blockchain.getImageFromPinata(imageHash)}" 
-                                     style="width: 100%; max-height: 200px; object-fit: cover; cursor: pointer;" 
-                                     onclick="showFullImage('${imageHash}')" 
-                                     title="Click to view full image" 
-                                     alt="Batch Image" />
-                                <div style="padding: 8px; background: #f9fafb; font-size: 11px; color: #6b7280;">
-                                    📸 Click image to view full size
+                    let imageHash = meta.ipfs || l.args.photoHash;
+                    if (imageHash && imageHash !== '0x' + '0'.repeat(64)) {
+                        let imageUrl = '';
+                        
+                        // If it's already an IPFS hash (CID), use it directly
+                        if (imageHash.length < 50 && !imageHash.startsWith('0x')) {
+                            imageUrl = getImageFromPinata(imageHash);
+                        } 
+                        // If it's a bytes32 hash, try to get the original IPFS hash
+                        else if (Blockchain?.getOriginalIPFSHash) {
+                            const originalHash = Blockchain.getOriginalIPFSHash(imageHash);
+                            if (originalHash) {
+                                imageUrl = getImageFromPinata(originalHash);
+                                imageHash = originalHash; // normalize to CID for UI
+                            }
+                        }
+                        // If still no URL, try to extract from farmLocation
+                        else if (l.args.farmLocation && l.args.farmLocation.includes('IPFS=')) {
+                            const ipfsMatch = l.args.farmLocation.match(/IPFS=([a-zA-Z0-9]+)/);
+                            if (ipfsMatch) {
+                                imageUrl = getImageFromPinata(ipfsMatch[1]);
+                                imageHash = ipfsMatch[1];
+                            }
+                        }
+                        
+                        if (imageUrl) {
+                            imageSection = `
+                                <div style="margin-top: 16px; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                                    <div style="position: relative;">
+                                        <img src="${imageUrl}" 
+                                             style="width: 100%; max-height: 250px; object-fit: cover; cursor: pointer; transition: transform 0.3s ease;" 
+                                             onclick="showFullImageFromPinata('${imageHash}')" 
+                                             title="Click to view full image" 
+                                             alt="Batch Image"
+                                             onmouseover="this.style.transform='scale(1.02)'"
+                                             onmouseout="this.style.transform='scale(1)'"
+                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+                                        <div style="display: none; padding: 40px; background: #f3f4f6; color: #6b7280; text-align: center;">
+                                            <i class="fas fa-image" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                                            <p style="margin: 0; font-size: 16px;">📷 Image could not be loaded from Pinata</p>
+                                            <small style="opacity: 0.7;">CID: ${imageHash}</small>
+                                        </div>
+                                    </div>
+                                    <div style="padding: 12px 16px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-top: 1px solid #e2e8f0;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <div style="font-size: 12px; color: #64748b;">
+                                                <i class="fas fa-expand-arrows-alt"></i> Click to enlarge
+                                            </div>
+                                            <div style="font-size: 11px; color: #94a3b8; font-family: monospace;">
+                                                📦 IPFS: ${imageHash.length < 50 ? imageHash : imageHash.substring(0, 12) + '...' + imageHash.substring(imageHash.length - 8)}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        `;
+                            `;
+                        }
                     }
                 } else {
                     // For other events, display key information in a structured way
@@ -939,10 +1319,28 @@
             container.innerHTML = html;
         }
 
-        // Show full image modal
-        function showFullImage(ipfsHash) {
-            if (!ipfsHash) return;
-            const fullUrl = Blockchain.getImageFromPinata(ipfsHash);
+        // Show full image modal from Pinata
+        function showFullImageFromPinata(imageHash) {
+            if (!imageHash) return;
+            
+            let imageUrl = '';
+            
+            // Determine the correct image URL based on hash type
+            if (imageHash.length < 50 && !imageHash.startsWith('0x')) {
+                // Direct CID
+                imageUrl = getImageFromPinata(imageHash);
+            } else if (Blockchain?.getOriginalIPFSHash) {
+                // Try to get original IPFS hash from mapping
+                const originalHash = Blockchain.getOriginalIPFSHash(imageHash);
+                if (originalHash) {
+                    imageUrl = getImageFromPinata(originalHash);
+                }
+            }
+            
+            if (!imageUrl) {
+                alert('Cannot determine image URL for hash: ' + imageHash);
+                return;
+            }
             
             // Create modal overlay
             const overlay = document.createElement('div');
@@ -956,14 +1354,30 @@
             modal.style.cssText = 'background:white;padding:16px;border-radius:12px;max-width:90%;max-height:90%;overflow:auto;';
             modal.innerHTML = `
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                    <h3 style="margin:0;font-size:18px;font-weight:600;">Image Preview</h3>
+                    <h3 style="margin:0;font-size:18px;font-weight:600;">Crop Image from Pinata</h3>
                     <button onclick="this.closest('div[style*=\"position:fixed\"]').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;">×</button>
                 </div>
-                <img src="${fullUrl}" style="max-width:100%;height:auto;border-radius:8px;" alt="Full image" />
+                <img src="${imageUrl}" 
+                     style="max-width:100%;height:auto;border-radius:8px;" 
+                     alt="Full crop image"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+                <div style="display:none;padding:20px;text-align:center;color:#6b7280;">
+                    ❌ Failed to load image from Pinata<br>
+                    <small>Hash: ${imageHash}</small>
+                </div>
+                <div style="margin-top:12px;padding:8px;background:#f3f4f6;border-radius:6px;font-size:12px;color:#6b7280;">
+                    📍 IPFS Hash: ${imageHash}<br>
+                    🌐 Gateway: ${PINATA_GATEWAY}
+                </div>
             `;
             
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
+        }
+
+        // Show full image modal (legacy function for backward compatibility)
+        function showFullImage(ipfsHash) {
+            showFullImageFromPinata(ipfsHash);
         }
 
         // BigInt-safe JSON stringify

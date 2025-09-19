@@ -66,8 +66,10 @@
     // Get IPFS image URL from hash
     getImageFromPinata(ipfsHash) {
       const cfg = window.AppConfig || window.config || {};
-      const gateway = cfg.PINATA_GATEWAY || 'https://gateway.pinata.cloud';
-      return `${gateway}/ipfs/${ipfsHash}`;
+      const gateway = cfg.PINATA_GATEWAY || 'https://pink-decisive-woodpecker-623.mypinata.cloud';
+      // Remove /ipfs/ if already in gateway URL to avoid double path
+      const baseGateway = gateway.replace('/ipfs/', '');
+      return `${baseGateway}/ipfs/${ipfsHash}`;
     },
 
     // Store IPFS hash mapping (for demo - in production, store in contract or database)

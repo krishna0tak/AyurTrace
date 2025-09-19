@@ -7,7 +7,7 @@ window.config = {
     SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrdGtsanJnYmtlbmJ2dnBxY2JlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc5OTkwMjMsImV4cCI6MjA3MzU3NTAyM30.2KHill336u0RcXSKjEfhqWCTofAs8B0eCZ7JXsHcyrQ',
 
     // Blockchain
-    GANACHE_URL: 'https://48322929741c.ngrok-free.app',
+    GANACHE_URL: 'https://608200750e14.ngrok-free.app',
     CONTRACT_ADDRESS: '0x07998771f190c6A34255366e2E712912C315F9D0',
     CONTRACT_ABI: [
         // Events
@@ -53,10 +53,12 @@ window.config = {
         {"inputs":[{"internalType":"string","name":"_name","type":"string"},{"internalType":"string","name":"_username","type":"string"}],"name":"setDistributorProfile","outputs":[],"stateMutability":"nonpayable","type":"function"}
     ],
 
-    // Media storage (Pinata IPFS)
+    // Media storage (Pinata IPFS) - Updated working credentials
     PINATA_GATEWAY: 'https://pink-decisive-woodpecker-623.mypinata.cloud/ipfs/',
     PINATA_UPLOAD_URL: 'https://api.pinata.cloud/pinning/pinFileToIPFS',
-    PINATA_JWT: 'd9f10a4440f6f552a5bd', // Your Pinata JWT token
+    PINATA_JWT: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJjZDc4NTU2MS02ZWJmLTQxY2ItODM5ZS1lZDllY2MwYWNhYjAiLCJlbWFpbCI6InJhbnZlZXJzaW5naDE4d0BnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkExIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiNDU3NTc0MjViNTgyYjM2YWEzNjQiLCJzY29wZWRLZXlTZWNyZXQiOiJkYTMwMWViMTdiOTU0YjNlZTYyYjJmYWJmNmJmNWIzNzBlNmFlNmI4ZTk4NDEwMzI2NWFmYWJkN2RmNTMyODcwIiwiZXhwIjoxNzg5NzgxNjUxfQ.PwxM2jqNmBASIFbz85pl7DjrAslMIaRKbksqomPxQy8',
+    PINATA_API_KEY: '45757425b582b36aa364',
+    PINATA_SECRET_KEY: 'da301eb17b954b3ee62b2fabf6bf5b370e6ae6b8e984103265afabd7df532870',
     IMAGE_BASE_URL: 'https://pink-decisive-woodpecker-623.mypinata.cloud/ipfs/', // Gateway for images
 
     // Ganache private key for signing transactions

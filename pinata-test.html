@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Pinata Upload Test - Fix JWT Issue</title>
+  <style>
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      min-height: 100vh; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      margin: 0;
+    }
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+    }
+    .upload-btn {
+      width: 80px; 
+      height: 80px; 
+      border-radius: 50%;
+      border: 3px dashed #667eea; 
+      background: #f8f9ff; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center;
+      cursor: pointer; 
+      transition: all 0.3s ease;
+      margin: 0 auto 20px;
+      font-size: 32px;
+    }
+    .upload-btn:hover {
+      background: #667eea;
+      color: white;
+      transform: scale(1.05);
+    }
+    input[type=file] { display: none; }
+    #status { 
+      margin-top: 20px; 
+      font-size: 14px; 
+      text-align: center; 
+      padding: 12px;
+      border-radius: 8px;
+      min-height: 20px;
+    }
+    .success { background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd; }
+    .error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    #preview { 
+      margin-top: 15px; 
+      max-width: 100%; 
+      border-radius: 8px; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .instructions {
+      background: #fffbeb;
+      border: 1px solid #fbbf24;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+      text-align: left;
+      font-size: 12px;
+    }
+    .token-input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 11px;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2 style="color: #374151; margin-bottom: 10px;">🔧 Pinata Upload Fixer</h2>
+    
+    <div class="instructions">
+      <strong>⚠️ Fix JWT Issue:</strong><br>
+      1. Go to <a href="https://app.pinata.cloud/developers/api-keys" target="_blank">Pinata API Keys</a><br>
+      2. Create New Key → Select "Admin" or check "Pin File to IPFS"<br>
+      3. Copy the JWT and paste below:<br>
+    </div>
+
+    <input id="jwtInput" type="text" placeholder="Paste your new JWT token here..." class="token-input">
+    <button onclick="testJWT()" style="background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-bottom: 20px;">Test JWT</button>
+
+    <label class="upload-btn" id="uploadBtn">
+      📷
+      <input id="fileInput" type="file" accept="image/*" />
+    </label>
+    
+    <div>Click to test upload</div>
+    <div id="status">Enter JWT token above and test</div>
+    <img id="preview" style="display:none" />
+  </div>
+
+  <script>
+    const input = document.getElementById("fileInput");
+    const status = document.getElementById("status");
+    const preview = document.getElementById("preview");
+    const jwtInput = document.getElementById("jwtInput");
+    const uploadBtn = document.getElementById("uploadBtn");
+
+    let currentJWT = "";
+    const GATEWAY = "pink-decisive-woodpecker-623.mypinata.cloud";
+
+    function testJWT() {
+      const jwt = jwtInput.value.trim();
+      if (!jwt) {
+        status.textContent = "❌ Please enter a JWT token";
+        status.className = "error";
+        return;
+      }
+      
+      if (!jwt.startsWith('eyJ')) {
+        status.textContent = "❌ Invalid JWT format (should start with 'eyJ')";
+        status.className = "error";
+        return;
+      }
+
+      currentJWT = jwt;
+      status.textContent = "✅ JWT format looks good! Now try uploading an image.";
+      status.className = "success";
+      uploadBtn.style.pointerEvents = "auto";
+      uploadBtn.style.opacity = "1";
+    }
+
+    input.addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      if (!currentJWT) {
+        status.textContent = "❌ Please test your JWT token first";
+        status.className = "error";
+        return;
+      }
+
+      preview.src = URL.createObjectURL(file);
+      preview.style.display = "block";
+      status.textContent = "⏫ Uploading to Pinata...";
+      status.className = "";
+
+      const fd = new FormData();
+      fd.append("file", file);
+
+      // Add metadata
+      fd.append('pinataMetadata', JSON.stringify({
+        name: `AyurTrace_Test_${Date.now()}`,
+        keyvalues: {
+          test: 'true',
+          timestamp: new Date().toISOString()
+        }
+      }));
+
+      try {
+        const res = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${currentJWT}`
+          },
+          body: fd
+        });
+
+        if (!res.ok) {
+          const errorData = await res.text();
+          console.error('Error response:', errorData);
+          
+          if (res.status === 403) {
+            throw new Error(`🔑 JWT Permission Error: Please create a new API key with "Pin File to IPFS" scope enabled.`);
+          } else {
+            throw new Error(`Upload failed: ${res.status} - ${errorData}`);
+          }
+        }
+
+        const data = await res.json();
+        const cid = data.IpfsHash;
+        const url = `https://${GATEWAY}/ipfs/${cid}`;
+        
+        status.innerHTML = `
+          ✅ <strong>Upload Successful!</strong><br>
+          CID: <code style="background: rgba(0,0,0,0.1); padding: 2px 4px; border-radius: 3px;">${cid}</code><br>
+          <a href="${url}" target="_blank" style="color: #3b82f6;">View on IPFS</a><br><br>
+          <strong>✅ Your JWT works! Copy this working JWT to farmer.html</strong>
+        `;
+        status.className = "success";
+
+        // Show the working JWT
+        console.log("Working JWT:", currentJWT);
+        
+      } catch (err) {
+        console.error(err);
+        status.innerHTML = `❌ <strong>Error:</strong><br>${err.message}`;
+        status.className = "error";
+      }
+    });
+
+    // Initially disable upload until JWT is tested
+    uploadBtn.style.opacity = "0.5";
+    uploadBtn.style.pointerEvents = "none";
+  </script>
+</body>
+</html>
