@@ -162,13 +162,6 @@
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon transit"><i class="fas fa-truck"></i></div>
-                    <div class="stat-info">
-                        <div class="stat-number">0</div>
-                        <div class="stat-label">In Transit</div>
-                    </div>
-                </div>
-                <div class="stat-card">
                     <div class="stat-icon delivered"><i class="fas fa-check-circle"></i></div>
                     <div class="stat-info">
                         <div class="stat-number">0</div>
@@ -1411,17 +1404,45 @@
             }
             
             const total = batches.length;
-            const transit = batches.filter(b => b.status === 'In Transit').length;
-            const delivered = batches.filter(b => b.status === 'Delivered').length;
-            const processing = batches.filter(b => b.status === 'Processing').length;
+            
+            // New logic for delivered and processing counts
+            let delivered = 0;
+            let processing = 0;
+            
+            for (const batch of batches) {
+                try {
+                    // Get blockchain events for this batch
+                    const batchData = await Blockchain.searchBatchInBlockchain(batch.id);
+                    
+                    if (batchData && batchData.chain && batchData.chain.length > 0) {
+                        const events = batchData.chain;
+                        
+                        // Check if batch reached manufacturer (has ProductCreated event)
+                        const hasManufacturerEvent = events.some(event => 
+                            event.fragment && event.fragment.name === 'ProductCreated'
+                        );
+                        
+                        if (hasManufacturerEvent) {
+                            delivered++;
+                        } else if (events.length > 1) {
+                            // If there are more than 1 events (BatchCreated + others), it's processing
+                            processing++;
+                        }
+                    }
+                } catch (error) {
+                    console.log('Error checking batch status:', error);
+                    // Fallback to old status if blockchain check fails
+                    if (batch.status === 'Delivered') delivered++;
+                    else if (batch.status === 'Processing') processing++;
+                }
+            }
 
-            // Update stat cards
+            // Update stat cards (now only 3 cards: total, delivered, processing)
             const statNumbers = document.querySelectorAll('.stat-number');
-            if (statNumbers.length >= 4) {
+            if (statNumbers.length >= 3) {
                 statNumbers[0].textContent = total;
-                statNumbers[1].textContent = transit;
-                statNumbers[2].textContent = delivered;
-                statNumbers[3].textContent = processing;
+                statNumbers[1].textContent = delivered;
+                statNumbers[2].textContent = processing;
             }
         }
 
