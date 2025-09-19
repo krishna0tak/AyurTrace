@@ -456,73 +456,9 @@
             });
 
             // Fetch collection details
-            const fetchBtn = document.getElementById('fetchCollectionBtn');
             const collectionDetails = document.getElementById('collectionDetails');
             const collectionError = document.getElementById('collectionError');
             const submitBtn = document.getElementById('submitBtn');
-
-            fetchBtn.addEventListener('click', async function () {
-                const collectionId = document.getElementById('collectionId').value.trim();
-                if (!collectionId) {
-                    showError('Please enter a collection ID');
-                    return;
-                }
-
-                // Look up collection or batch on-chain and render full chain for preview
-                let collection;
-                try {
-                    const c = await Blockchain.getCollection(collectionId);
-                    // c tuple: [farmerBatchId, farmerId, cropName, quantity, collectorId, collectionDate, status]
-                    if (c && c[5] && BigInt(c[5]) > 0n) {
-                        collection = {
-                            id: c[0],
-                            cropType: c[2],
-                            collectedQuantity: c[3].toString(),
-                            collector: c[4],
-                            collectionDate: Number(c[5]) * 1000,
-                            condition: '—',
-                            status: c[6] || 'Pending Audit'
-                        };
-                    }
-                } catch (e) {
-                    console.warn('On-chain getCollection failed', e);
-                }
-
-                if (collection) {
-                    // Check if already audited
-                    const audits = JSON.parse(localStorage.getItem('audit_history') || '[]');
-                    const alreadyAudited = audits.find(a => a.collectionId === collectionId);
-
-                    if (alreadyAudited) {
-                        showError('This collection has already been audited');
-                        return;
-                    }
-
-                    // Populate details
-                    document.getElementById('collectionInfo').value = `${collection.cropType} - ${collection.collectedQuantity}kg`;
-                    document.getElementById('collectorName').value = collection.collector;
-                    document.getElementById('collectionDate').value = new Date(collection.collectionDate).toLocaleDateString();
-                    document.getElementById('reportedCondition').value = collection.condition;
-
-                    collectionDetails.style.display = 'block';
-                    collectionError.style.display = 'none';
-                    submitBtn.disabled = false;
-
-                    fetchBtn.innerHTML = '<i class="fas fa-check"></i>';
-                    setTimeout(() => {
-                        fetchBtn.innerHTML = '<i class="fas fa-sync"></i>';
-                    }, 2000);
-                } else {
-                    showError('Collection not found or not pending audit. Please check the Collection ID.');
-                }
-            });
-
-            function showError(message) {
-                collectionError.textContent = message;
-                collectionError.style.display = 'block';
-                collectionDetails.style.display = 'none';
-                submitBtn.disabled = true;
-            }
 
             // Update quality grade based on audit result
             const auditResultSelect = document.getElementById('auditResult');
