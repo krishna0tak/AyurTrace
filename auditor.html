@@ -82,11 +82,32 @@
                                         if (window.Blockchain && window.Blockchain.getBatchDetails) {
                                             const batch = await window.Blockchain.getBatchDetails(batchId);
                                             if (batch) {
-                                                // Populate details (mimic fetchCollectionBtn logic)
-                                                document.getElementById('collectionInfo').value = `${batch.cropType || batch[2]} - ${(batch.collectedQuantity || batch[3] || '').toString()}kg`;
-                                                document.getElementById('collectorName').value = batch.collector || batch[4] || '';
-                                                document.getElementById('collectionDate').value = new Date(Number(batch.collectionDate || batch[5]) * 1000).toLocaleDateString();
-                                                document.getElementById('reportedCondition').value = batch.condition || '—';
+                                                // Robustly extract fields from batch (object or array)
+                                                let cropType = batch.cropType || batch[2] || '';
+                                                let collectedQuantity = batch.collectedQuantity || batch[3] || '';
+                                                let collector = batch.collector || batch[4] || '';
+                                                let collectionDate = batch.collectionDate || batch[5] || '';
+                                                let reportedCondition = batch.condition || batch.reportedCondition || batch[6] || '—';
+                                                let qualityGrade = batch.qualityGrade || batch[7] || '';
+                                                // Fallback for array types
+                                                if (Array.isArray(batch)) {
+                                                    cropType = batch[2] || '';
+                                                    collectedQuantity = batch[3] || '';
+                                                    collector = batch[4] || '';
+                                                    collectionDate = batch[5] || '';
+                                                    reportedCondition = batch[6] || '—';
+                                                    qualityGrade = batch[7] || '';
+                                                }
+                                                // Recreate and assign all fields
+                                                document.getElementById('collectionInfo').value = `${cropType} - ${collectedQuantity}kg`;
+                                                document.getElementById('collectorName').value = collector;
+                                                document.getElementById('collectionDate').value = collectionDate ? new Date(Number(collectionDate) * 1000).toLocaleDateString() : '';
+                                                document.getElementById('reportedCondition').value = reportedCondition;
+                                                // If Quality Grade field exists, set it
+                                                const qualityGradeField = document.getElementById('qualityGrade');
+                                                if (qualityGradeField && qualityGrade) {
+                                                    qualityGradeField.value = qualityGrade;
+                                                }
                                                 collectionDetails.style.display = 'block';
                                                 collectionError.style.display = 'none';
                                                 submitBtn.disabled = false;
