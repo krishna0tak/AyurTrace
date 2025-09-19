@@ -523,9 +523,24 @@
                 const auditResult = document.getElementById('auditResult').value;
                 const auditNotes = document.getElementById('auditNotes').value;
                 const inspectorId = await getCurrentActorId();
+                const collectionId = document.getElementById('collectionId').value;
+                const collectionInfo = document.getElementById('collectionInfo').value;
+                const qualityGrade = document.getElementById('qualityGrade').value;
+                const auditDate = document.getElementById('auditDate').value;
+                const auditor = (await getCurrentUser())?.name || 'Auditor';
                 try {
-                    await Blockchain.addInspection({ batchId: document.getElementById('collectionId').value, inspectorId: inspectorId || 'unknown', result: auditResult, notes: auditNotes });
-                    alert('Audit added on-chain and forwarded.');
+                    await Blockchain.addInspection({ batchId: collectionId, inspectorId: inspectorId || 'unknown', result: auditResult, notes: auditNotes });
+                    // Add audit to localStorage history
+                    const audits = JSON.parse(localStorage.getItem('audit_history') || '[]');
+                    audits.unshift({
+                        collectionId,
+                        collectionInfo,
+                        qualityGrade,
+                        auditDate,
+                        auditResult,
+                        auditor
+                    });
+                    localStorage.setItem('audit_history', JSON.stringify(audits));
                 } catch (err) {
                     console.error(err);
                     alert(err.message || 'Failed to record audit on-chain');
