@@ -91,6 +91,53 @@
         #generatedQrCode:hover {
             transform: scale(1.05);
         }
+        
+        /* Enhanced Search Section Styles */
+        #searchBatchInput:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.1);
+        }
+        
+        #searchBatchBtn:hover {
+            background: #10b981;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(52, 211, 153, 0.3);
+        }
+        
+        #qrScanBtn:hover {
+            background: #7c3aed;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(139, 92, 246, 0.3);
+        }
+        
+        #stopScanBtn:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+        }
+        
+        /* Responsive design for search section */
+        @media (max-width: 768px) {
+            .search-container {
+                flex-direction: column !important;
+                gap: 0.75rem !important;
+            }
+            
+            .search-buttons {
+                flex-direction: column !important;
+                gap: 0.5rem !important;
+            }
+            
+            #searchBatchBtn, #qrScanBtn {
+                width: 100% !important;
+                justify-content: center !important;
+            }
+            
+            .search-container > div:first-child {
+                flex: none !important;
+            }
+        }
     </style>
 </head>
 
@@ -177,39 +224,84 @@
                 </div>
             </section>
 
-            <!-- Search Batch Section -->
-            <!-- Timeline Search Section (Primary) -->
-            <section class="card" style="margin-bottom: 2rem;">
-                <h3 class="card-header">
-                    <i class="fas fa-timeline"></i>
-                    Batch Timeline & Search
-                </h3>
-                <div class="form-group">
-                    <label for="searchBatchInput">Enter Batch ID to view complete supply chain history</label>
-                    <div class="input-group">
-                        <input type="text" id="searchBatchInput" class="form-input" placeholder="Enter Batch ID (e.g., BATCH_1726614123456)">
-                        <button type="button" id="searchBatchBtn" class="get-location-btn">
-                            <i class="fas fa-search"></i>
-                        </button>
-                        <button type="button" id="qrScanBtn" class="get-location-btn" style="margin-left: 8px; background: #8b5cf6;">
-                            <i class="fas fa-camera"></i>
-                        </button>
+            <!-- Batch Timeline & Search Section -->
+            <section class="card" style="margin-bottom: 2rem; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #e2e8f0;">
+                <div style="padding: 1.5rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                        <h3 style="margin: 0; color: #1e293b; font-size: 1.25rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-search" style="color: var(--primary); font-size: 1.1rem;"></i>
+                            Batch Timeline & Search
+                        </h3>
+                        <span style="font-size: 0.875rem; color: #64748b; background: #e2e8f0; padding: 0.25rem 0.75rem; border-radius: 1rem;">
+                            Track Supply Chain
+                        </span>
+                    </div>
+                    
+                    <div style="background: white; border-radius: 12px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <label for="searchBatchInput" style="display: block; margin-bottom: 0.75rem; color: #374151; font-weight: 500; font-size: 0.875rem;">
+                            Enter Batch ID to view complete supply chain history
+                        </label>
+                        <div style="position: relative; display: flex; gap: 0.5rem;" class="search-container">
+                            <div style="flex: 1; position: relative;">
+                                <input type="text" id="searchBatchInput" 
+                                       class="form-input" 
+                                       placeholder="Enter Batch ID (e.g., BATCH_1726614123456)"
+                                       style="width: 100%; padding: 0.875rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 0.875rem; transition: all 0.2s ease; background: #fafafa;">
+                            </div>
+                            <div class="search-buttons" style="display: flex; gap: 0.5rem;">
+                                <button type="button" id="searchBatchBtn" 
+                                        style="padding: 0.875rem 1.25rem; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 0.5rem; font-weight: 500; box-shadow: 0 2px 4px rgba(52, 211, 153, 0.2);">
+                                    <i class="fas fa-search"></i>
+                                    <span style="font-size: 0.875rem;">Search</span>
+                                </button>
+                                <button type="button" id="qrScanBtn" 
+                                        style="padding: 0.875rem 1.25rem; background: #8b5cf6; color: white; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 0.5rem; font-weight: 500; box-shadow: 0 2px 4px rgba(139, 92, 246, 0.2);">
+                                    <i class="fas fa-qrcode"></i>
+                                    <span style="font-size: 0.875rem;">Scan QR</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 0.75rem; padding: 0.75rem; background: #f8fafc; border-radius: 6px; border-left: 3px solid var(--primary);">
+                            <p style="margin: 0; font-size: 0.75rem; color: #64748b; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-info-circle" style="color: var(--primary);"></i>
+                                Tip: Use the QR scanner to quickly scan batch QR codes or manually enter the batch ID above
+                            </p>
+                            <div id="recentBatchIds" style="margin-top: 0.5rem; display: none;">
+                                <p style="margin: 0 0 0.25rem 0; font-size: 0.75rem; color: #64748b; font-weight: 500;">Recent Batch IDs (click to search):</p>
+                                <div id="batchIdsList" style="display: flex; flex-wrap: wrap; gap: 0.25rem;"></div>
+                            </div>
+                            <button type="button" id="showRecentBatchesBtn" 
+                                    style="margin-top: 0.5rem; padding: 0.25rem 0.5rem; background: transparent; border: 1px solid var(--primary); color: var(--primary); border-radius: 4px; cursor: pointer; font-size: 0.75rem; transition: all 0.2s ease;"
+                                    onmouseover="this.style.background='var(--primary)'; this.style.color='white';"
+                                    onmouseout="this.style.background='transparent'; this.style.color='var(--primary)';">
+                                Show Recent Batch IDs
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
                 <!-- QR Scanner (Hidden by default) -->
-                <div id="qrScannerSection" style="display: none; margin-top: 16px; text-align: center;">
-                    <video id="qrVideo" style="width: 100%; max-width: 400px; border-radius: 8px;"></video>
-                    <div style="margin-top: 12px;">
-                        <button type="button" id="stopScanBtn" class="submit-btn" style="background: #ef4444;">
-                            <i class="fas fa-times"></i> Stop Scanner
-                        </button>
+                <div id="qrScannerSection" style="display: none; margin-top: 1rem;">
+                    <div style="background: white; border-radius: 12px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center;">
+                        <div style="margin-bottom: 1rem;">
+                            <h4 style="margin: 0 0 0.5rem 0; color: #1e293b; font-size: 1rem; font-weight: 600;">QR Code Scanner</h4>
+                            <p style="margin: 0; font-size: 0.875rem; color: #64748b;">Position the QR code within the camera frame</p>
+                        </div>
+                        <video id="qrVideo" style="width: 100%; max-width: 400px; border-radius: 8px; border: 2px solid #e2e8f0;"></video>
+                        <div style="margin-top: 1rem;">
+                            <button type="button" id="stopScanBtn" 
+                                    style="padding: 0.75rem 1.5rem; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s ease;">
+                                <i class="fas fa-times"></i> 
+                                Stop Scanner
+                            </button>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Timeline Display -->
-                <div id="chainTimeline" class="relative" style="padding-left: 16px; border-left: 2px solid #e2e8f0; margin-top: 20px;">
-                    <p style="color:#94a3b8;">Enter a Batch ID above or click a QR code to view the supply chain history.</p>
+                <div id="chainTimeline" style="margin-top: 1rem; display: none;">
+                    <!-- Timeline content will be dynamically inserted here by showChainInline -->
                 </div>
             </section>
 
@@ -380,13 +472,15 @@
         document.addEventListener('DOMContentLoaded', async function() {
             console.log('🚀 Farmer Dashboard initializing...');
             
-            // First, always set up the Create Batch button regardless of auth status
+            // First, always set up critical UI components regardless of auth status
             setupCreateBatchButton();
+            setupQRScanner();
+            setupSearchFunctionality();
             
             // Then handle authentication
             const authPassed = await checkAuth();
             if (!authPassed) {
-                console.log('Auth failed, but button should still work for testing');
+                console.log('Auth failed, but UI buttons should still work for testing');
                 return;
             }
 
@@ -591,6 +685,239 @@
             window.currentImageMetadata = null;
             
             console.log('✅ Image removed successfully');
+        }
+
+        // Setup QR Scanner functionality
+        function setupQRScanner() {
+            console.log('📸 Setting up QR Scanner...');
+            
+            // QR Scanner functionality
+            let qrStream = null;
+            let qrScanActive = false;
+            const qrScanBtn = document.getElementById('qrScanBtn');
+            const qrScannerSection = document.getElementById('qrScannerSection');
+            const qrVideo = document.getElementById('qrVideo');
+            const stopScanBtn = document.getElementById('stopScanBtn');
+            
+            if (qrScanBtn) {
+                console.log('✅ QR Scan button found, attaching event listener');
+                qrScanBtn.addEventListener('click', async function() {
+                    console.log('📸 QR Scan button clicked!');
+                    if (!qrScanActive) {
+                        try {
+                            console.log('📸 Starting QR scanner...');
+                            qrScanBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span style="font-size: 0.875rem;">Starting...</span>';
+                            qrScanBtn.disabled = true;
+                            
+                            // Request camera access with fallback options
+                            const constraints = {
+                                video: { 
+                                    facingMode: { ideal: 'environment' }, // Prefer back camera
+                                    width: { ideal: 1280 },
+                                    height: { ideal: 720 }
+                                }
+                            };
+                            
+                            try {
+                                qrStream = await navigator.mediaDevices.getUserMedia(constraints);
+                            } catch (err) {
+                                console.log('Back camera not available, trying front camera...');
+                                // Fallback to front camera
+                                qrStream = await navigator.mediaDevices.getUserMedia({
+                                    video: { facingMode: 'user' }
+                                });
+                            }
+                            
+                            qrVideo.srcObject = qrStream;
+                            qrVideo.play();
+                            qrScannerSection.style.display = 'block';
+                            qrScanActive = true;
+                            
+                            qrScanBtn.innerHTML = '<i class="fas fa-camera"></i> <span style="font-size: 0.875rem;">Scanning...</span>';
+                            qrScanBtn.disabled = false;
+                            
+                            // QR Scanner with jsQR library
+                            const canvas = document.createElement('canvas');
+                            const context = canvas.getContext('2d');
+                            
+                            const scanQR = () => {
+                                if (qrScanActive && qrVideo.readyState === qrVideo.HAVE_ENOUGH_DATA) {
+                                    canvas.height = qrVideo.videoHeight;
+                                    canvas.width = qrVideo.videoWidth;
+                                    context.drawImage(qrVideo, 0, 0, canvas.width, canvas.height);
+                                    
+                                    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                                    
+                                    // Check if jsQR is available
+                                    if (typeof jsQR === 'undefined') {
+                                        console.error('jsQR library not loaded');
+                                        alert('QR scanner library not loaded. Please refresh the page.');
+                                        stopQRScanner();
+                                        return;
+                                    }
+                                    
+                                    const qrCode = jsQR(imageData.data, imageData.width, imageData.height);
+                                    
+                                    if (qrCode) {
+                                        console.log('✅ QR Code detected:', qrCode.data);
+                                        
+                                        // Extract batch ID from QR code
+                                        let batchId = '';
+                                        
+                                        // Method 1: URL with hash (e.g., https://example.com/search.html#BATCH_123)
+                                        if (qrCode.data.includes('#')) {
+                                            batchId = qrCode.data.split('#')[1];
+                                        }
+                                        // Method 2: Direct batch ID pattern
+                                        else if (qrCode.data.includes('BATCH_')) {
+                                            const match = qrCode.data.match(/BATCH_\d+/);
+                                            if (match) batchId = match[0];
+                                        }
+                                        // Method 3: Just the raw text if it looks like a batch ID
+                                        else if (/^BATCH_\d+$/.test(qrCode.data.trim())) {
+                                            batchId = qrCode.data.trim();
+                                        }
+                                        // Method 4: Try to extract any text that might be a batch ID
+                                        else {
+                                            const potentialMatch = qrCode.data.match(/[A-Z_]+\d+/);
+                                            if (potentialMatch) {
+                                                batchId = potentialMatch[0];
+                                            }
+                                        }
+                                        
+                                        if (batchId) {
+                                            console.log('🎯 Extracted batch ID:', batchId);
+                                            
+                                            // Stop scanner and search for the batch
+                                            stopQRScanner();
+                                            
+                                            // Fill the search input and trigger search
+                                            const searchInput = document.getElementById('searchBatchInput');
+                                            if (searchInput) {
+                                                searchInput.value = batchId;
+                                                // Trigger visual feedback
+                                                searchInput.style.borderColor = 'var(--primary)';
+                                                searchInput.style.background = '#f0fdf4';
+                                                setTimeout(() => {
+                                                    searchInput.style.borderColor = '#e2e8f0';
+                                                    searchInput.style.background = '#fafafa';
+                                                }, 1000);
+                                                
+                                                // Auto-search
+                                                if (typeof searchBatch === 'function') {
+                                                    searchBatch(batchId);
+                                                } else {
+                                                    console.log('searchBatch function not available, filling input only');
+                                                }
+                                                
+                                                // Show success message
+                                                alert(`QR Code scanned successfully!\nBatch ID: ${batchId}\n\nSearching for batch data...`);
+                                            }
+                                        } else {
+                                            console.log('❌ No valid batch ID found in QR code');
+                                            alert(`QR Code detected but no valid batch ID found.\n\nScanned content: ${qrCode.data}\n\nPlease scan a QR code that contains a batch ID.`);
+                                        }
+                                    }
+                                }
+                                
+                                // Continue scanning if still active
+                                if (qrScanActive) {
+                                    requestAnimationFrame(scanQR);
+                                }
+                            };
+                            
+                            // Start scanning
+                            scanQR();
+                            
+                        } catch (err) {
+                            console.error('Camera error:', err);
+                            let errorMessage = 'Camera access failed. ';
+                            
+                            if (err.name === 'NotAllowedError') {
+                                errorMessage += 'Please allow camera permissions and try again.';
+                            } else if (err.name === 'NotFoundError') {
+                                errorMessage += 'No camera found on this device.';
+                            } else if (err.name === 'NotSupportedError') {
+                                errorMessage += 'Camera not supported in this browser.';
+                            } else {
+                                errorMessage += `Error: ${err.message}`;
+                            }
+                            
+                            alert(errorMessage);
+                            stopQRScanner();
+                        }
+                    } else {
+                        // Stop scanning if already active
+                        stopQRScanner();
+                    }
+                });
+                
+                // Helper function to stop QR scanner
+                function stopQRScanner() {
+                    qrScanActive = false;
+                    if (qrStream) {
+                        qrStream.getTracks().forEach(track => track.stop());
+                        qrStream = null;
+                    }
+                    if (qrScannerSection) {
+                        qrScannerSection.style.display = 'none';
+                    }
+                    if (qrScanBtn) {
+                        qrScanBtn.innerHTML = '<i class="fas fa-qrcode"></i> <span style="font-size: 0.875rem;">Scan QR</span>';
+                        qrScanBtn.disabled = false;
+                    }
+                    console.log('📷 QR scanner stopped');
+                }
+                
+                if (stopScanBtn) {
+                    stopScanBtn.addEventListener('click', function() {
+                        stopQRScanner();
+                    });
+                }
+            } else {
+                console.error('❌ QR Scan button not found!');
+            }
+        }
+
+        // Setup Search functionality  
+        function setupSearchFunctionality() {
+            console.log('🔍 Setting up Search functionality...');
+            
+            const searchBatchBtn = document.getElementById('searchBatchBtn');
+            const searchBatchInput = document.getElementById('searchBatchInput');
+            
+            if (searchBatchBtn && searchBatchInput) {
+                console.log('✅ Search elements found, attaching event listeners');
+                searchBatchBtn.addEventListener('click', function() {
+                    const batchId = searchBatchInput.value.trim();
+                    if (batchId) {
+                        if (typeof searchBatch === 'function') {
+                            searchBatch(batchId);
+                        } else {
+                            alert('Search function not available yet. Please wait for full initialization.');
+                        }
+                    } else {
+                        alert('Please enter a Batch ID');
+                    }
+                });
+                
+                searchBatchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        const batchId = searchBatchInput.value.trim();
+                        if (batchId) {
+                            if (typeof searchBatch === 'function') {
+                                searchBatch(batchId);
+                            } else {
+                                alert('Search function not available yet. Please wait for full initialization.');
+                            }
+                        } else {
+                            alert('Please enter a Batch ID');
+                        }
+                    }
+                });
+            } else {
+                console.error('❌ Search elements not found!');
+            }
         }
 
         // Rest of the dashboard initialization
@@ -859,112 +1186,64 @@
             // Load initial data
             await initializeBlockchainAndLoadData();
             
-            // QR Scanner functionality
-            let qrStream = null;
-            const qrScanBtn = document.getElementById('qrScanBtn');
-            const qrScannerSection = document.getElementById('qrScannerSection');
-            const qrVideo = document.getElementById('qrVideo');
-            const stopScanBtn = document.getElementById('stopScanBtn');
+            // Recent Batch IDs functionality
+            const showRecentBatchesBtn = document.getElementById('showRecentBatchesBtn');
+            const recentBatchIds = document.getElementById('recentBatchIds');
+            const batchIdsList = document.getElementById('batchIdsList');
             
-            if (qrScanBtn) {
-                qrScanBtn.addEventListener('click', async function() {
-                    if (qrScannerSection.style.display === 'none') {
+            if (showRecentBatchesBtn && recentBatchIds && batchIdsList) {
+                showRecentBatchesBtn.addEventListener('click', async function() {
+                    try {
+                        showRecentBatchesBtn.textContent = 'Loading...';
+                        showRecentBatchesBtn.disabled = true;
+                        
+                        // Try to get recent batches
+                        let batches = [];
                         try {
-                            qrStream = await navigator.mediaDevices.getUserMedia({ 
-                                video: { facingMode: 'environment' } 
-                            });
-                            qrVideo.srcObject = qrStream;
-                            qrVideo.play();
-                            qrScannerSection.style.display = 'block';
-                            
-                            // QR Scanner with jsQR library
-                            const canvas = document.createElement('canvas');
-                            const context = canvas.getContext('2d');
-                            
-                            const scanQR = () => {
-                                if (qrVideo.readyState === qrVideo.HAVE_ENOUGH_DATA) {
-                                    canvas.height = qrVideo.videoHeight;
-                                    canvas.width = qrVideo.videoWidth;
-                                    context.drawImage(qrVideo, 0, 0, canvas.width, canvas.height);
-                                    
-                                    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-                                    const qrCode = jsQR(imageData.data, imageData.width, imageData.height);
-                                    
-                                    if (qrCode) {
-                                        console.log('QR Code detected:', qrCode.data);
-                                        
-                                        // Extract batch ID from QR code
-                                        let batchId = '';
-                                        if (qrCode.data.includes('#')) {
-                                            batchId = qrCode.data.split('#')[1];
-                                        } else if (qrCode.data.includes('BATCH_')) {
-                                            const match = qrCode.data.match(/BATCH_\d+/);
-                                            if (match) batchId = match[0];
-                                        }
-                                        
-                                        if (batchId) {
-                                            // Stop scanner and search for the batch
-                                            if (qrStream) {
-                                                qrStream.getTracks().forEach(track => track.stop());
-                                                qrStream = null;
-                                            }
-                                            qrScannerSection.style.display = 'none';
-                                            
-                                            // Fill the search input and trigger search
-                                            const searchInput = document.getElementById('searchBatchInput');
-                                            if (searchInput) {
-                                                searchInput.value = batchId;
-                                                searchBatch(batchId);
-                                            }
-                                        }
-                                    }
+                            await Blockchain.init();
+                            const currentUser = await getCurrentUser();
+                            if (currentUser && currentUser.actorId) {
+                                batches = await Blockchain.getBatchesForUsername(currentUser.actorId);
+                            }
+                        } catch (error) {
+                            console.log('Could not load user batches, checking localStorage...');
+                            const cached = localStorage.getItem('recentBatches');
+                            if (cached) {
+                                try {
+                                    batches = JSON.parse(cached);
+                                } catch (e) {
+                                    console.log('Could not parse cached batches');
                                 }
-                                if (qrScannerSection.style.display !== 'none') {
-                                    requestAnimationFrame(scanQR);
-                                }
-                            };
-                            scanQR();
-                            
-                        } catch (err) {
-                            alert('Camera access denied or not available');
-                            console.error('Camera error:', err);
+                            }
                         }
-                    }
-                });
-            }
-            
-            if (stopScanBtn) {
-                stopScanBtn.addEventListener('click', function() {
-                    if (qrStream) {
-                        qrStream.getTracks().forEach(track => track.stop());
-                        qrStream = null;
-                    }
-                    qrScannerSection.style.display = 'none';
-                });
-            }
-            
-            // Search batch functionality
-            const searchBatchBtn = document.getElementById('searchBatchBtn');
-            const searchBatchInput = document.getElementById('searchBatchInput');
-            
-            if (searchBatchBtn && searchBatchInput) {
-                searchBatchBtn.addEventListener('click', function() {
-                    const batchId = searchBatchInput.value.trim();
-                    if (batchId) {
-                        searchBatch(batchId);
-                    } else {
-                        alert('Please enter a Batch ID');
-                    }
-                });
-                
-                searchBatchInput.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        const batchId = searchBatchInput.value.trim();
-                        if (batchId) {
-                            searchBatch(batchId);
+                        
+                        if (batches && batches.length > 0) {
+                            const recentIds = batches.slice(0, 5).map(batch => batch.id || batch.batchId).filter(Boolean);
+                            if (recentIds.length > 0) {
+                                batchIdsList.innerHTML = recentIds.map(id => 
+                                    `<button type="button" 
+                                             onclick="document.getElementById('searchBatchInput').value='${id}'; searchBatch('${id}');" 
+                                             style="padding: 0.25rem 0.5rem; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.75rem; transition: all 0.2s ease;"
+                                             onmouseover="this.style.background='#10b981';" 
+                                             onmouseout="this.style.background='var(--primary)';">${id}</button>`
+                                ).join('');
+                                recentBatchIds.style.display = 'block';
+                                showRecentBatchesBtn.style.display = 'none';
+                            } else {
+                                batchIdsList.innerHTML = '<span style="font-size: 0.75rem; color: #6b7280;">No recent batches found</span>';
+                                recentBatchIds.style.display = 'block';
+                                showRecentBatchesBtn.textContent = 'No batches available';
+                            }
                         } else {
-                            alert('Please enter a Batch ID');
+                            batchIdsList.innerHTML = '<span style="font-size: 0.75rem; color: #6b7280;">No recent batches found. Create a batch first.</span>';
+                            recentBatchIds.style.display = 'block';
+                            showRecentBatchesBtn.textContent = 'No batches available';
                         }
+                    } catch (error) {
+                        console.error('Error loading recent batches:', error);
+                        batchIdsList.innerHTML = '<span style="font-size: 0.75rem; color: #ef4444;">Error loading recent batches</span>';
+                        recentBatchIds.style.display = 'block';
+                        showRecentBatchesBtn.textContent = 'Error loading batches';
                     }
                 });
             }
@@ -1085,12 +1364,12 @@
             if (!batchId) return;
 
             const section = document.getElementById('chainTimeline')?.closest('section') || document;
-            const idEl = document.getElementById('chainResultId');
             const timeline = document.getElementById('chainTimeline');
 
-            if (idEl) idEl.textContent = `Batch ID: ${batchId}`;
+            // Show the timeline section
             if (timeline) {
-                timeline.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin" style="font-size:24px;color:#6366f1;"></i><p style="margin-top:12px;color:#64748b;">Searching blockchain directly...</p><span style="font-size:12px;color:#94a3b8;">Finding batch by ID</span></div>';
+                timeline.style.display = 'block';
+                timeline.innerHTML = '<div style="background: white; border-radius: 12px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid var(--primary); text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin" style="font-size:24px;color:var(--primary);"></i><p style="margin-top:12px;color:#64748b;">Searching blockchain directly...</p><span style="font-size:12px;color:#94a3b8;">Finding batch by ID</span></div>';
             }
             if (section && section.style) section.style.display = 'block';
 
@@ -1104,14 +1383,24 @@
                 console.time('Direct blockchain search');
                 console.log(`🔍 Direct search for batch: ${batchId}`);
                 
+                // Check if Blockchain object and search function exist
+                if (!window.Blockchain) {
+                    throw new Error('Blockchain object not initialized');
+                }
+                
+                if (!window.Blockchain.searchBatchInBlockchain) {
+                    throw new Error('Search function not available');
+                }
+                
                 // Use new direct blockchain search function
                 const batchData = await Blockchain.searchBatchInBlockchain(batchId);
                 console.timeEnd('Direct blockchain search');
+                console.log('Search result:', batchData);
                 
                 if (!batchData || !batchData.found) {
                     if (timeline) {
                         timeline.innerHTML = `
-                            <div style="text-align:center;padding:40px;color:#ef4444;">
+                            <div style="background: white; border-radius: 12px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #ef4444; text-align:center;padding:40px;color:#ef4444;">
                                 <i class="fas fa-exclamation-triangle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i>
                                 <h4 style="margin-bottom:8px;">No batch found: ${batchId}</h4>
                                 <p style="color:#64748b;margin-bottom:16px;">This batch ID does not exist on the blockchain</p>
@@ -1122,6 +1411,10 @@
                                         <li>Batch was never created on blockchain</li>
                                         <li>Different blockchain network</li>
                                     </ul>
+                                </div>
+                                <div style="margin-top:16px;padding:12px;background:#e3f2fd;border-radius:8px;border-left:4px solid #2196f3;">
+                                    <p style="margin:0;font-size:12px;color:#1976d2;text-align:left;"><strong>Debug Info:</strong></p>
+                                    <p style="margin:4px 0 0 0;font-size:11px;color:#1976d2;text-align:left;">Search completed. Result: ${JSON.stringify(batchData)}</p>
                                 </div>
                             </div>
                         `;
@@ -1140,14 +1433,22 @@
                 console.error('Direct blockchain search error:', e);
                 if (timeline) {
                     timeline.innerHTML = `
-                        <div style="text-align:center;padding:40px;color:#ef4444;">
+                        <div style="background: white; border-radius: 12px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #ef4444; text-align:center;padding:40px;color:#ef4444;">
                             <i class="fas fa-exclamation-circle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i>
                             <h4 style="margin-bottom:8px;">Search Error</h4>
                             <p style="color:#64748b;margin-bottom:16px;">Failed to search blockchain for ${batchId}</p>
                             <div style="background:#f8f9fa;padding:12px;border-radius:8px;text-align:left;max-width:400px;margin:0 auto;">
-                                <p style="margin:0;font-size:14px;color:#495057;"><strong>Error:</strong></p>
+                                <p style="margin:0;font-size:14px;color:#495057;"><strong>Error Details:</strong></p>
                                 <p style="margin:4px 0;font-size:13px;color:#6c757d;">${e.message || 'Unknown error occurred'}</p>
-                                <p style="margin:8px 0 0 0;font-size:13px;color:#6c757d;"><strong>Try:</strong> Check your connection and refresh page</p>
+                                <p style="margin:8px 0 0 0;font-size:13px;color:#6c757d;"><strong>Try:</strong> Check your connection, refresh page, or verify blockchain configuration</p>
+                            </div>
+                            <div style="margin-top:16px;padding:12px;background:#fff3cd;border-radius:8px;border-left:4px solid #ffc107;">
+                                <p style="margin:0;font-size:12px;color:#856404;text-align:left;"><strong>Debug Info:</strong></p>
+                                <p style="margin:4px 0 0 0;font-size:11px;color:#856404;text-align:left;">
+                                    Blockchain available: ${!!window.Blockchain}<br>
+                                    Search function available: ${!!(window.Blockchain && window.Blockchain.searchBatchInBlockchain)}<br>
+                                    Error: ${e.name}: ${e.message}
+                                </p>
                             </div>
                         </div>
                     `;
@@ -1160,11 +1461,21 @@
             const icon = { 
                 BatchCreated: '🌾', 
                 BatchCreatedV2: '🌾',
-                CollectionAdded: '👷', 
-                InspectionAdded: '🕵️', 
+                CollectionAdded: '�', 
+                InspectionAdded: '�', 
                 ProductCreated: '🏭', 
-                ProductReceived: '📦', 
+                ProductReceived: '�', 
                 ProductDispatched: '🚚' 
+            };
+            
+            const iconColor = {
+                BatchCreated: '#10b981', 
+                BatchCreatedV2: '#10b981',
+                CollectionAdded: '#3b82f6', 
+                InspectionAdded: '#8b5cf6', 
+                ProductCreated: '#f59e0b', 
+                ProductReceived: '#06b6d4', 
+                ProductDispatched: '#ef4444'
             };
             
             // Clean formatter to hide hashes and addresses
@@ -1173,9 +1484,9 @@
                     const entries = Object.entries(args || {});
                     const allowed = entries.filter(([k, v]) => {
                         const key = String(k).toLowerCase();
-                        if (key.includes('hash')) return false; // hide photoHash etc.
-                        if (key.includes('owner') || key.includes('recordedby') || key === 'account') return false; // hide addresses
-                        if (typeof v === 'string' && /^0x[a-fA-F0-9]{64}$/.test(v)) return false; // bytes32
+                        if (key.includes('hash')) return false;
+                        if (key.includes('owner') || key.includes('recordedby') || key === 'account') return false;
+                        if (typeof v === 'string' && /^0x[a-fA-F0-9]{64}$/.test(v)) return false;
                         return true;
                     });
                     return allowed.map(([k, v]) => {
@@ -1184,17 +1495,30 @@
                         if (typeof v === 'string' && /^0x[a-fA-F0-9]{40}$/.test(v)) {
                             val = v.slice(0, 6) + '...' + v.slice(-4);
                         }
-                        return `<span style="display:inline-block;margin-right:10px;"><strong>${k}:</strong> ${val}</span>`;
-                    }).join(' • ') || 'Event recorded on blockchain';
+                        return `<span style="display:inline-block;margin-right:8px;padding:2px 6px;background:#f1f5f9;border-radius:4px;font-size:11px;"><strong>${k}:</strong> ${val}</span>`;
+                    }).join('') || 'Event recorded on blockchain';
                 } catch { return 'Event recorded on blockchain'; }
             };
             
-            let html = '';
-            logs.forEach(l => {
+            // Create container with improved styling
+            let html = `
+                <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid var(--primary); max-width: 100%; overflow: hidden;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #e2e8f0;">
+                        <i class="fas fa-timeline" style="color: var(--primary); font-size: 1.2rem;"></i>
+                        <div>
+                            <h3 style="margin: 0; color: #1e293b; font-size: 1.1rem; font-weight: 600;">Supply Chain Timeline</h3>
+                            <p style="margin: 0; font-size: 0.875rem; color: #64748b;">Batch ID: ${batchId}</p>
+                        </div>
+                    </div>
+                    <div style="position: relative;">
+            `;
+            
+            logs.forEach((l, index) => {
                 const name = l.fragment?.name || 'Event';
                 const ts = l.args?.timestamp || l.args?.collectionDate || l.args?.date || null;
                 const tsNum = ts != null ? Number(ts) : null;
                 const when = tsNum ? new Date(tsNum * (tsNum > 1e12 ? 1 : 1000)).toLocaleString() : '';
+                const isLast = index === logs.length - 1;
                 
                 let description = '';
                 let imageSection = '';
@@ -1205,55 +1529,136 @@
                     const baseLoc = meta.base || (l.args.farmLocation || 'Not specified');
                     
                     description = `
-                        <div style="margin-bottom: 12px;">
-                            <strong>Crop:</strong> ${l.args.cropType} • <strong>Quantity:</strong> ${l.args.quantity} kg<br>
-                            <strong>Location:</strong> ${baseLoc}<br>
-                            <strong>Farmer:</strong> ${farmer}
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">CROP</span>
+                                <p style="margin: 0; font-size: 0.875rem; color: #1e293b; font-weight: 600;">${l.args.cropType}</p>
+                            </div>
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">QUANTITY</span>
+                                <p style="margin: 0; font-size: 0.875rem; color: #1e293b; font-weight: 600;">${l.args.quantity} kg</p>
+                            </div>
+                        </div>
+                        <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px; margin-bottom: 0.75rem;">
+                            <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">LOCATION</span>
+                            <p style="margin: 0; font-size: 0.875rem; color: #1e293b;">${baseLoc}</p>
+                        </div>
+                        <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                            <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">FARMER</span>
+                            <p style="margin: 0; font-size: 0.875rem; color: #1e293b;">${farmer}</p>
                         </div>
                     `;
                     
                     const imageHash = meta.ipfs || l.args.photoHash;
                     if (imageHash && Blockchain?.getImageUrl) {
                         imageSection = `
-                            <div style="margin-top: 12px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+                            <div style="margin-top: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; max-width: 200px;">
                                 <img src="${Blockchain.getImageUrl(imageHash)}" 
-                                     style="width: 100%; max-height: 200px; object-fit: cover; cursor: pointer;" 
+                                     style="width: 100%; height: 120px; object-fit: cover; cursor: pointer;" 
                                      onclick="showFullImage('${imageHash}')" 
                                      title="Click to view full image" 
                                      alt="Batch Image" />
-                                <div style="padding: 8px; background: #f9fafb; font-size: 11px; color: #6b7280;">
-                                    📸 Click image to view full size
+                                <div style="padding: 0.5rem; background: #f8fafc; text-align: center;">
+                                    <span style="font-size: 0.75rem; color: #64748b;">📸 Click to enlarge</span>
                                 </div>
                             </div>
                         `;
                     }
                 } else if (name === 'CollectionAdded' && l.args) {
-                    description = `Collected by ${l.args.collectorId || 'Unknown'} • ${l.args.quantity || '0'} kg of ${l.args.cropName || 'Unknown crop'}`;
+                    description = `
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">COLLECTOR</span>
+                                <p style="margin: 0; font-size: 0.875rem; color: #1e293b;">${l.args.collectorId || 'Unknown'}</p>
+                            </div>
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">COLLECTED</span>
+                                <p style="margin: 0; font-size: 0.875rem; color: #1e293b;">${l.args.quantity || '0'} kg</p>
+                            </div>
+                        </div>
+                    `;
                 } else if (name === 'InspectionAdded' && l.args) {
-                    description = `Result: ${l.args.result || 'Unknown'} • Inspector: ${l.args.inspectorId || 'Unknown'}${l.args.notes ? ` • Notes: ${l.args.notes}` : ''}`;
+                    description = `
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">RESULT</span>
+                                <p style="margin: 0; font-size: 0.875rem; color: #1e293b; font-weight: 600;">${l.args.result || 'Unknown'}</p>
+                            </div>
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">INSPECTOR</span>
+                                <p style="margin: 0; font-size: 0.875rem; color: #1e293b;">${l.args.inspectorId || 'Unknown'}</p>
+                            </div>
+                        </div>
+                        ${l.args.notes ? `<div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;"><span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">NOTES</span><p style="margin: 0; font-size: 0.875rem; color: #1e293b;">${l.args.notes}</p></div>` : ''}
+                    `;
                 } else if (name === 'ProductCreated' && l.args) {
-                    description = `Product: ${l.args.productType || 'Unknown'} • Processed: ${l.args.quantityProcessed || '0'} kg • Manufacturer: ${l.args.manufacturerId || 'Unknown'}`;
+                    description = `
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">PRODUCT</span>
+                                <p style="margin: 0; font-size: 0.875rem; color: #1e293b;">${l.args.productType || 'Unknown'}</p>
+                            </div>
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">PROCESSED</span>
+                                <p style="margin: 0; font-size: 0.875rem; color: #1e293b;">${l.args.quantityProcessed || '0'} kg</p>
+                            </div>
+                        </div>
+                    `;
                 } else if (name === 'ProductReceived' && l.args) {
-                    description = `${l.args.herbType || 'Product'} • ${l.args.quantity || '0'} kg • Storage: ${l.args.storageLocation || 'Unknown location'}`;
+                    description = `
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">PRODUCT</span>
+                                <p style="margin: 0; font-size: 0.875rem; color: #1e293b;">${l.args.herbType || 'Product'}</p>
+                            </div>
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">QUANTITY</span>
+                                <p style="margin: 0; font-size: 0.875rem; color: #1e293b;">${l.args.quantity || '0'} kg</p>
+                            </div>
+                        </div>
+                    `;
                 } else if (name === 'ProductDispatched' && l.args) {
-                    description = `${l.args.quantityDispatched || args.quantityToDispatch || '0'} kg dispatched to ${l.args.destination || 'Unknown destination'}`;
+                    description = `
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">DISPATCHED</span>
+                                <p style="margin: 0; font-size: 0.875rem; color: #1e293b;">${l.args.quantityDispatched || l.args.quantityToDispatch || '0'} kg</p>
+                            </div>
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">DESTINATION</span>
+                                <p style="margin: 0; font-size: 0.875rem; color: #1e293b;">${l.args.destination || 'Unknown'}</p>
+                            </div>
+                        </div>
+                    `;
                 } else {
-                    description = formatArgsClean(l.args);
+                    description = `<div style="font-size: 0.875rem; color: #64748b;">${formatArgsClean(l.args)}</div>`;
                 }
                 
                 html += `
-                <div class="timeline-item" style="display:flex;gap:16px;padding-bottom:32px;">
-                    <div style="display:flex;flex-direction:column;align-items:center;">
-                        <div style="background:#6366f1;color:white;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;">${icon[name] || '⛓️'}</div>
-                        <div style="width:2px;height:100%;background:#e2e8f0;margin-top:8px;"></div>
+                <div style="display: flex; gap: 1rem; margin-bottom: ${isLast ? '0' : '1.5rem'}; position: relative;">
+                    <div style="display: flex; flex-direction: column; align-items: center; z-index: 1;">
+                        <div style="background: ${iconColor[name] || '#6b7280'}; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            ${icon[name] || '⛓️'}
+                        </div>
+                        ${!isLast ? '<div style="width: 2px; height: 100%; background: #e2e8f0; margin-top: 0.5rem; position: absolute; top: 40px; left: 19px;"></div>' : ''}
                     </div>
-                    <div style="background:#f8fafc;padding:16px;border-radius:12px;flex:1;">
-                        <p style="font-weight:600;color:#1f2937;margin:0 0 4px 0;">${name}</p>
-                        ${when ? `<p style="font-size:12px;color:#6b7280;margin:0 0 8px 0;">${when}</p>` : ''}
-                        <div style="font-size:12px;color:#4b5563;">${description}${imageSection}</div>
+                    <div style="flex: 1; background: #fafbfc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; min-width: 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                            <h4 style="margin: 0; color: #1e293b; font-size: 1rem; font-weight: 600;">${name.replace(/([A-Z])/g, ' $1').trim()}</h4>
+                            ${when ? `<span style="font-size: 0.75rem; color: #64748b; background: #f1f5f9; padding: 0.25rem 0.5rem; border-radius: 4px; white-space: nowrap;">${when}</span>` : ''}
+                        </div>
+                        <div style="font-size: 0.875rem; color: #4b5563;">
+                            ${description}
+                            ${imageSection}
+                        </div>
                     </div>
                 </div>`;
             });
+            
+            html += `
+                    </div>
+                </div>
+            `;
             
             container.innerHTML = html;
         }
