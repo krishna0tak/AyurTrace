@@ -20,8 +20,7 @@
         <div class="container">
             <div class="navbar-content">
                 <a href="index.html" class="logo">
-                    <i class="fas fa-seedling"></i>
-                    AyuTrace
+                    <img src="assets/icons/ayutrace_logo_svg.svg" alt="AyurTrace Logo" style="height: 32px; width: auto;">
                 </a>
                 <div class="nav-links">
                     <a href="#" class="active"><i class="fas fa-home"></i> Dashboard</a>
@@ -44,103 +43,140 @@
 
     <main class="main-content">
         <div class="container">
-            <section class="welcome-section">
-                <div class="welcome-content">
-                    <div class="welcome-text">
-                        <h1>Distributor Dashboard</h1>
-                        <p>Manage product inventory and dispatch.</p>
-                    </div>
-                </div>
+            <section class="dashboard-header">
+                <h1>Welcome back!</h1>
+                <p>Manage your distribution operations with ease.</p>
             </section>
 
             <!-- Timeline Search Section (Primary) -->
-            <section class="card" style="margin-bottom: 1rem;">
+            <section class="card">
                 <div class="card-header">
                     <h2><i class="fas fa-timeline"></i> Batch Timeline & Search</h2>
+                    <p>Search or scan batch IDs to view complete supply chain history</p>
                 </div>
-                <div class="form-group">
-                    <label for="traceBatchIdInput">Enter or Scan Batch ID to view complete supply chain history</label>
-                    <div class="input-group">
-                        <input type="text" id="traceBatchIdInput" class="input-field" placeholder="e.g., BATCH_1726614123456">
-                        <button type="button" id="traceSearchBtn" class="submit-btn" style="padding:8px 12px"><i class="fas fa-search"></i></button>
-                        <button type="button" id="qrScanBtn" class="submit-btn" style="margin-left:8px;background:#8b5cf6;padding:8px 12px"><i class="fas fa-camera"></i></button>
+                <div class="card-content">
+                    <div class="form-group">
+                        <label for="traceBatchIdInput">Enter or Scan Batch ID</label>
+                        <div class="input-group">
+                            <input type="text" id="traceBatchIdInput" class="input-field" placeholder="e.g., BATCH_1726614123456">
+                            <button type="button" id="traceSearchBtn" class="btn-primary">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                            <button type="button" id="qrScanBtn" class="btn-secondary">
+                                <i class="fas fa-camera"></i> Scan QR
+                            </button>
+                        </div>
                     </div>
-                </div>
-                <div id="qrScannerSection" style="display:none; margin-top: 12px; text-align:center;">
-                    <video id="qrVideo" style="width:100%; max-width:420px; border-radius:8px;"></video>
-                    <div style="margin-top:8px;">
-                        <button type="button" id="stopScanBtn" class="submit-btn" style="background:#ef4444;">
-                            <i class="fas fa-times"></i> Stop Scanner
-                        </button>
+                    <div id="qrScannerSection" style="display:none; margin-top: 20px; text-align:center;" class="scanner-section">
+                        <video id="qrVideo" class="qr-video"></video>
+                        <div style="margin-top:16px;">
+                            <button type="button" id="stopScanBtn" class="btn-danger">
+                                <i class="fas fa-times"></i> Stop Scanner
+                            </button>
+                        </div>
                     </div>
-                </div>
-                
-                <!-- Timeline Display -->
-                <div id="chainTimeline" class="relative" style="padding-left: 16px; border-left: 2px solid #e2e8f0; margin-top: 20px;">
-                    <p style="color:#94a3b8;">Search/scan a Batch ID to view the complete supply chain history.</p>
+                    
+                    <!-- Timeline Display -->
+                    <div id="chainTimeline" class="timeline-container">
+                        <div class="empty-state">
+                            <i class="fas fa-search"></i>
+                            <p>Search or scan a Batch ID to view the complete supply chain history</p>
+                        </div>
+                    </div>
                 </div>
             </section>
 
             <section class="card">
                 <div class="card-header">
                     <h2><i class="fas fa-box-open"></i> Record Reception</h2>
+                    <p>Record incoming products from manufacturers</p>
                 </div>
-                <form id="receptionForm">
-                    <div class="form-group">
-                        <label for="receptionBatchId">Batch ID</label>
-                        <input type="text" id="receptionBatchId" class="input-field" placeholder="Enter Batch ID...">
-                    </div>
-                    <div class="form-group">
-                        <label for="herbType">Herb Type</label>
-                        <input type="text" id="herbType" class="input-field" placeholder="Enter Herb Type...">
-                    </div>
-                    <div class="form-group">
-                        <label for="receptionQuantity">Quantity</label>
-                        <input type="number" id="receptionQuantity" class="input-field" placeholder="Enter quantity...">
-                    </div>
-                    <div class="form-group">
-                        <label for="storageLocation">Storage Location</label>
-                        <input type="text" id="storageLocation" class="input-field" placeholder="e.g., A1">
-                    </div>
-                    <button type="submit" class="submit-btn">Record Reception</button>
-                </form>
+                <div class="card-content">
+                    <form id="receptionForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="receptionBatchId">
+                                    <i class="fas fa-barcode"></i>Batch ID
+                                </label>
+                                <input type="text" id="receptionBatchId" class="input-field" placeholder="Enter Batch ID...">
+                            </div>
+                            <div class="form-group">
+                                <label for="herbType">
+                                    <i class="fas fa-leaf"></i>Herb Type
+                                </label>
+                                <input type="text" id="herbType" class="input-field" placeholder="Enter Herb Type...">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="receptionQuantity">
+                                    <i class="fas fa-weight-hanging"></i>Quantity (kg)
+                                </label>
+                                <input type="number" id="receptionQuantity" class="input-field" placeholder="Enter quantity...">
+                            </div>
+                            <div class="form-group">
+                                <label for="storageLocation">
+                                    <i class="fas fa-map-marker-alt"></i>Storage Location
+                                </label>
+                                <input type="text" id="storageLocation" class="input-field" placeholder="e.g., Warehouse A1">
+                            </div>
+                        </div>
+                        <button type="submit" class="submit-btn">
+                            <i class="fas fa-check-circle"></i> Record Reception
+                        </button>
+                    </form>
+                </div>
             </section>
 
             <section class="card">
                 <div class="card-header">
                     <h2><i class="fas fa-truck"></i> Record Dispatch</h2>
+                    <p>Record outgoing products to retailers</p>
                 </div>
-                <form id="dispatchForm">
-                    <div class="form-group">
-                        <label for="dispatchBatchId">Batch ID</label>
-                        <input type="text" id="dispatchBatchId" class="input-field" placeholder="Enter Batch ID...">
-                    </div>
-                    <div class="form-group">
-                        <label for="dispatchQuantity">Quantity to Dispatch</label>
-                        <input type="number" id="dispatchQuantity" class="input-field" placeholder="Enter quantity...">
-                    </div>
-                    <div class="form-group">
-                        <label for="destination">Destination</label>
-                        <input type="text" id="destination" class="input-field" placeholder="Enter destination...">
-                    </div>
-                    <button type="submit" class="submit-btn">Record Dispatch</button>
-                </form>
+                <div class="card-content">
+                    <form id="dispatchForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="dispatchBatchId">
+                                    <i class="fas fa-barcode"></i>Batch ID
+                                </label>
+                                <input type="text" id="dispatchBatchId" class="input-field" placeholder="Enter Batch ID...">
+                            </div>
+                            <div class="form-group">
+                                <label for="dispatchQuantity">
+                                    <i class="fas fa-weight-hanging"></i>Quantity to Dispatch (kg)
+                                </label>
+                                <input type="number" id="dispatchQuantity" class="input-field" placeholder="Enter quantity...">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="destination">
+                                <i class="fas fa-map-marker-alt"></i>Destination
+                            </label>
+                            <input type="text" id="destination" class="input-field" placeholder="Enter destination address...">
+                        </div>
+                        <button type="submit" class="submit-btn">
+                            <i class="fas fa-shipping-fast"></i> Record Dispatch
+                        </button>
+                    </form>
+                </div>
             </section>
 
 
 
-            <section class="card" id="batchQRSection" style="display:none; margin-top: 1rem;">
+            <section class="card" id="batchQRSection" style="display:none;">
                 <div class="card-header">
-                    <h2><i class="fas fa-qrcode"></i> Batch QR</h2>
+                    <h2><i class="fas fa-qrcode"></i> Batch QR Code</h2>
+                    <p>QR code for quick batch identification</p>
                 </div>
-                <div style="padding:16px; text-align:center;">
-                    <p id="batchQRTitle" style="margin-bottom:12px;color:#334155;">Batch:</p>
-                    <img id="batchQRImg" alt="Batch QR" style="width:160px;height:160px;border-radius:8px;border:1px solid #e2e8f0;" />
-                    <div style="margin-top:12px;">
-                        <button id="downloadBatchQRBtn" class="submit-btn" type="button">
-                            <i class="fas fa-download"></i> Download QR
-                        </button>
+                <div class="card-content qr-section">
+                    <p id="batchQRTitle" class="qr-title">Batch:</p>
+                    <div class="qr-container">
+                        <img id="batchQRImg" alt="Batch QR" class="qr-image" />
                     </div>
+                    <button id="downloadBatchQRBtn" class="btn-secondary" type="button">
+                        <i class="fas fa-download"></i> Download QR Code
+                    </button>
                 </div>
             </section>
         </div>
@@ -149,6 +185,69 @@
     <script src="config.js"></script>
     <script src="supabase-auth.js"></script>
     <script>
+        // Notification system
+        function showNotification(message, type = 'info') {
+            // Remove existing notifications
+            const existing = document.querySelectorAll('.notification');
+            existing.forEach(n => n.remove());
+            
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 1000;
+                padding: 16px 20px;
+                border-radius: 12px;
+                color: white;
+                font-weight: 600;
+                max-width: 400px;
+                box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+                transform: translateX(100%);
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            `;
+            
+            const colors = {
+                success: 'background: linear-gradient(135deg, var(--primary), var(--primary-dark));',
+                error: 'background: linear-gradient(135deg, var(--status-red-text), #dc2626);',
+                warning: 'background: linear-gradient(135deg, var(--status-yellow-text), #a16207);',
+                info: 'background: linear-gradient(135deg, var(--primary), var(--primary-dark));'
+            };
+            
+            const icons = {
+                success: 'fas fa-check-circle',
+                error: 'fas fa-exclamation-triangle',
+                warning: 'fas fa-exclamation-circle',
+                info: 'fas fa-info-circle'
+            };
+            
+            notification.style.cssText += colors[type] || colors.info;
+            notification.innerHTML = `
+                <i class="${icons[type] || icons.info}"></i>
+                <span>${message}</span>
+                <button onclick="this.parentElement.remove()" style="background: none; border: none; color: white; margin-left: auto; cursor: pointer; font-size: 18px; padding: 0;">×</button>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Animate in
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.style.transform = 'translateX(100%)';
+                    setTimeout(() => notification.remove(), 300);
+                }
+            }, 5000);
+        }
+
         document.addEventListener('DOMContentLoaded', async function() {
             try { await Blockchain.init(); } catch(e) { console.error(e); alert('Blockchain init failed'); }
 
@@ -159,53 +258,127 @@
 
             receptionForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
+                const submitBtn = event.target.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                
+                // Add loading state
+                submitBtn.classList.add('btn-loading');
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recording...';
+                submitBtn.disabled = true;
+                
                 const batchId = document.getElementById('receptionBatchId').value.trim();
                 const herbType = document.getElementById('herbType').value.trim();
                 const quantity = parseFloat(document.getElementById('receptionQuantity').value || '0');
                 const storageLocation = document.getElementById('storageLocation').value.trim();
 
                 if (!batchId || !herbType || quantity <= 0 || !storageLocation) {
-                    alert('Please fill all fields correctly.');
+                    // Reset button state
+                    submitBtn.classList.remove('btn-loading');
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                    
+                    showNotification('Please fill all fields correctly.', 'error');
                     return;
                 }
 
                 try {
                     await Blockchain.recordReception({ batchId, herbType, quantity, storageLocation });
-                    alert("Reception recorded on-chain!");
+                    
+                    // Success state
+                    submitBtn.classList.remove('btn-loading');
+                    submitBtn.innerHTML = '<i class="fas fa-check"></i> Success!';
+                    
+                    showNotification("Reception recorded successfully on blockchain!", 'success');
                     receptionForm.reset();
+                    
                     // refresh timeline if active
                     if (batchId) {
                         showChainInline(batchId);
                         showBatchQR(batchId);
                     }
+                    
+                    // Reset button after delay
+                    setTimeout(() => {
+                        submitBtn.innerHTML = originalText;
+                        submitBtn.disabled = false;
+                    }, 2000);
+                    
                 } catch (error) {
                     console.error("Error recording reception:", error);
-                    alert("Failed to record reception.");
+                    
+                    // Error state
+                    submitBtn.classList.remove('btn-loading');
+                    submitBtn.innerHTML = '<i class="fas fa-times"></i> Failed';
+                    
+                    showNotification("Failed to record reception. Please try again.", 'error');
+                    
+                    // Reset button after delay
+                    setTimeout(() => {
+                        submitBtn.innerHTML = originalText;
+                        submitBtn.disabled = false;
+                    }, 2000);
                 }
             });
 
             dispatchForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
+                const submitBtn = event.target.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                
+                // Add loading state
+                submitBtn.classList.add('btn-loading');
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recording...';
+                submitBtn.disabled = true;
+                
                 const batchId = document.getElementById('dispatchBatchId').value.trim();
                 const quantity = parseFloat(document.getElementById('dispatchQuantity').value || '0');
                 const destination = document.getElementById('destination').value.trim();
 
                 if (!batchId || quantity <= 0 || !destination) {
-                    alert('Please fill all fields correctly.');
+                    // Reset button state
+                    submitBtn.classList.remove('btn-loading');
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                    
+                    showNotification('Please fill all fields correctly.', 'error');
                     return;
                 }
 
                 try {
                     await Blockchain.recordDispatch({ batchId, quantityToDispatch: quantity, destination });
-                    alert("Dispatch recorded on-chain!");
+                    
+                    // Success state
+                    submitBtn.classList.remove('btn-loading');
+                    submitBtn.innerHTML = '<i class="fas fa-check"></i> Success!';
+                    
+                    showNotification("Dispatch recorded successfully on blockchain!", 'success');
                     dispatchForm.reset();
+                    
                     if (batchId) {
                         showChainInline(batchId);
                         showBatchQR(batchId);
                     }
+                    
+                    // Reset button after delay
+                    setTimeout(() => {
+                        submitBtn.innerHTML = originalText;
+                        submitBtn.disabled = false;
+                    }, 2000);
+                    
                 } catch (error) {
                     console.error("Error recording dispatch:", error);
-                    alert("Failed to record dispatch.");
+                    
+                    // Error state
+                    submitBtn.classList.remove('btn-loading');
+                    submitBtn.innerHTML = '<i class="fas fa-times"></i> Failed';
+                    
+                    showNotification("Failed to record dispatch. Please try again.", 'error');
+                    
+                    // Reset button after delay
+                    setTimeout(() => {
+                        submitBtn.innerHTML = originalText;
+                        submitBtn.disabled = false;
+                    }, 2000);
                 }
             });
 
@@ -219,9 +392,41 @@
 
             async function handleSearch(batchId) {
                 if (!batchId) return;
-                applyBatchIdToForms(batchId);
-                showChainInline(batchId);
-                showBatchQR(batchId);
+                
+                const searchBtn = document.getElementById('traceSearchBtn');
+                const originalText = searchBtn.innerHTML;
+                
+                // Add loading state to search button
+                searchBtn.classList.add('btn-loading');
+                searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching...';
+                searchBtn.disabled = true;
+                
+                try {
+                    applyBatchIdToForms(batchId);
+                    await showChainInline(batchId);
+                    showBatchQR(batchId);
+                    
+                    // Success state
+                    searchBtn.classList.remove('btn-loading');
+                    searchBtn.innerHTML = '<i class="fas fa-check"></i> Found';
+                    
+                    setTimeout(() => {
+                        searchBtn.innerHTML = originalText;
+                        searchBtn.disabled = false;
+                    }, 2000);
+                    
+                } catch (error) {
+                    // Error state
+                    searchBtn.classList.remove('btn-loading');
+                    searchBtn.innerHTML = '<i class="fas fa-times"></i> Error';
+                    
+                    showNotification('Failed to load batch timeline', 'error');
+                    
+                    setTimeout(() => {
+                        searchBtn.innerHTML = originalText;
+                        searchBtn.disabled = false;
+                    }, 2000);
+                }
             }
 
             if (traceSearchBtn) {
