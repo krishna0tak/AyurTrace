@@ -254,6 +254,98 @@
       }
     },
 
+    // Get batches by specific username from blockchain (NOT browser history)
+    async getBatchesByUsername(username) {
+      try {
+        console.log(`🔍 Searching blockchain for batches by username: ${username}`);
+        
+        // Search for BatchCreatedV2 events (which have username field)
+        let batchLogs = [];
+        if (this.contractRO.filters.BatchCreatedV2) {
+          batchLogs = await this.contractRO.queryFilter(this.contractRO.filters.BatchCreatedV2(), 0, 'latest');
+        } else {
+          console.warn('Contract does not support BatchCreatedV2, falling back to BatchCreated');
+          batchLogs = await this.contractRO.queryFilter(this.contractRO.filters.BatchCreated(), 0, 'latest');
+        }
+        
+        console.log(`📦 Found ${batchLogs.length} total batch events on blockchain`);
+        
+        const userBatches = [];
+        for (const log of batchLogs) {
+          try {
+            const batchId = log.args.batchId;
+            
+            // Get full batch details to check username
+            const details = await this.getBatchDetails(batchId);
+            if (!details) continue;
+            
+            const asArr = Array.isArray(details) ? details : [details.batchId, details.cropType, details.quantity, details.harvestDate, details.farmLocation, details.photoHash, details.status, details.owner, details.timestamp, details.farmerName, details.farmerUsername];
+            
+            // Check if this batch belongs to the user (by username)
+            const batchUsername = asArr[10] || ''; // farmerUsername field
+            if (batchUsername === username) {
+              userBatches.push({
+                id: asArr[0],
+                cropType: asArr[1] || 'Unknown',
+                quantity: asArr[2] ? asArr[2].toString() : '0',
+                harvestDate: asArr[3] || '',
+                farmLocation: asArr[4] || '',
+                farmerName: asArr[9] || '',
+                farmerUsername: asArr[10] || '',
+                timestamp: new Date().toISOString(), // We'll get this from block later
+                status: 'Created',
+                blockNumber: log.blockNumber
+              });
+            }
+          } catch (err) {
+            console.warn(`Failed to process batch ${log.args.batchId}:`, err);
+          }
+        }
+        
+        console.log(`📊 Found ${userBatches.length} batches for username: ${username}`);
+        
+        // Sort by block number (newest first)
+        return userBatches.sort((a, b) => (b.blockNumber || 0) - (a.blockNumber || 0));
+      } catch (error) {
+        console.error('Error fetching batches by username:', error);
+        return [];
+      }
+    },
+
+    // Search for specific batch ID directly in blockchain (for QR code scanning)
+    async searchBatchInBlockchain(batchId) {
+      try {
+        console.log(`🔍 Direct blockchain search for batch: ${batchId}`);
+        
+        // First check if batch exists
+        const details = await this.getBatchDetails(batchId);
+        if (!details) {
+          console.log('❌ Batch not found in blockchain');
+          return null;
+        }
+        
+        // Get the chain/timeline for this batch
+        const chain = await this.getChainForBatch(batchId);
+        
+        const asArr = Array.isArray(details) ? details : [details.batchId, details.cropType, details.quantity, details.harvestDate, details.farmLocation, details.photoHash, details.status, details.owner, details.timestamp, details.farmerName, details.farmerUsername];
+        
+        return {
+          batchId: asArr[0],
+          cropType: asArr[1] || 'Unknown',
+          quantity: asArr[2] ? asArr[2].toString() : '0',
+          harvestDate: asArr[3] || '',
+          farmLocation: asArr[4] || '',
+          farmerName: asArr[9] || '',
+          farmerUsername: asArr[10] || '',
+          chain: chain || [],
+          found: true
+        };
+      } catch (error) {
+        console.error(`Error searching batch ${batchId}:`, error);
+        return null;
+      }
+    },
+
     // Search by username/name via contract indexes
     async findBatchesByFarmerUsername(username) {
       if (!this.contractRO.getBatchIdsByFarmerUsername) return [];
@@ -416,10 +508,16 @@
         try {
           const details = await this.getBatchDetails(batchId);
           console.log('📋 Batch details:', details);
-          if (details && details.batchId && details.batchId !== '') {
-            batchExists = true;
-            console.log('✅ Batch exists in contract');
+          // getBatchDetails returns null when not found; otherwise tuple/struct
+          if (details) {
+            // If array tuple, ensure first element (batchId) is non-empty
+            if (Array.isArray(details)) {
+              batchExists = Boolean(details[0] && String(details[0]).length > 0);
+            } else {
+              batchExists = Boolean(details.batchId && details.batchId !== '');
+            }
           }
+          if (batchExists) console.log('✅ Batch exists in contract');
         } catch (err) {
           console.log('❌ Batch does not exist or error getting details:', err.message);
         }
@@ -565,14 +663,15 @@
           this.provider.getBlock(bn).then(blk => ({ bn, timestamp: blk?.timestamp })).catch(() => ({ bn, timestamp: null }))
         );
         
-        const blockResults = await Promise.all(blockPromises);
+    const blockResults = await Promise.all(blockPromises);
         const blockTs = Object.fromEntries(blockResults.filter(r => r.timestamp).map(r => [r.bn, r.timestamp]));
 
         logs.forEach(l => {
           if (!l.args) return;
           const hasTs = ['timestamp', 'collectionDate', 'date', 'processingDate'].some(field => l.args[field] !== undefined);
           if (!hasTs && l.blockNumber && blockTs[Number(l.blockNumber)]) {
-            l.args = { ...l.args, timestamp: BigInt(blockTs[Number(l.blockNumber)]) };
+      // inject as Number to avoid BigInt issues in UIs
+      l.args = { ...l.args, timestamp: Number(blockTs[Number(l.blockNumber)]) };
           }
         });
       }

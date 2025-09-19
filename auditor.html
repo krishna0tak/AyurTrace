@@ -386,25 +386,24 @@
             const timeline = document.getElementById('auditorTimeline');
             
             idEl.textContent = `Batch ID: ${batchId}`;
-            timeline.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin" style="font-size:24px;color:#6366f1;"></i><p style="margin-top:12px;color:#64748b;">Loading supply chain...</p></div>';
+            timeline.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin" style="font-size:24px;color:#6366f1;"></i><p style="margin-top:12px;color:#64748b;">Searching blockchain directly...</p></div>';
 
             try {
-                console.log(`🔍 Auditor searching for batch: ${batchId}`);
-                const logs = await Blockchain.getChainForBatch(batchId);
-                console.log(`📊 Found ${logs ? logs.length : 0} events for ${batchId}`);
+                console.log(`🔍 Auditor direct search for batch: ${batchId}`);
+                const batchData = await Blockchain.searchBatchInBlockchain(batchId);
                 
-                if (!logs || logs.length === 0) {
+                if (!batchData || !batchData.found) {
                     timeline.innerHTML = `
                         <div style="text-align:center;padding:40px;color:#ef4444;">
                             <i class="fas fa-exclamation-triangle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i>
                             <h4 style="margin-bottom:8px;">No events found for ${batchId}</h4>
-                            <p style="color:#64748b;margin-bottom:16px;">This batch may not exist or hasn't been processed yet.</p>
+                            <p style="color:#64748b;margin-bottom:16px;">This batch does not exist on the blockchain.</p>
                             <div style="background:#f8f9fa;padding:12px;border-radius:8px;text-align:left;max-width:400px;margin:0 auto;">
-                                <p style="margin:0;font-size:14px;color:#495057;"><strong>Troubleshooting:</strong></p>
+                                <p style="margin:0;font-size:14px;color:#495057;"><strong>Auditor Checklist:</strong></p>
                                 <ul style="margin:8px 0 0 20px;font-size:13px;color:#6c757d;">
-                                    <li>Check if the Batch ID is spelled correctly</li>
-                                    <li>Ensure the batch has been created on the blockchain</li>
-                                    <li>Wait a few minutes and try again</li>
+                                    <li>Verify batch ID is correct</li>
+                                    <li>Check if batch was created and collected</li>
+                                    <li>Ensure farmer used correct blockchain</li>
                                 </ul>
                             </div>
                         </div>
@@ -412,18 +411,17 @@
                     return;
                 }
                 
-                renderTimelineWithImages(timeline, logs);
+                renderTimelineWithImages(timeline, batchData.chain || []);
             } catch (e) {
                 console.error('Search chain error', e);
                 timeline.innerHTML = `
                     <div style="text-align:center;padding:40px;color:#ef4444;">
                         <i class="fas fa-exclamation-circle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i>
                         <h4 style="margin-bottom:8px;">Search Error</h4>
-                        <p style="color:#64748b;margin-bottom:16px;">Failed to load chain data for ${batchId}</p>
+                        <p style="color:#64748b;margin-bottom:16px;">Failed to search blockchain for ${batchId}</p>
                         <div style="background:#f8f9fa;padding:12px;border-radius:8px;text-align:left;max-width:400px;margin:0 auto;">
                             <p style="margin:0;font-size:14px;color:#495057;"><strong>Error Details:</strong></p>
                             <p style="margin:4px 0;font-size:13px;color:#6c757d;">${e.message || 'Unknown error occurred'}</p>
-                            <p style="margin:8px 0 0 0;font-size:13px;color:#6c757d;"><strong>Suggestion:</strong> Check your connection and try again.</p>
                         </div>
                     </div>
                 `;
@@ -453,10 +451,21 @@
             };
 
             let html = '';
+            const cleanArgs = (args) => {
+                try {
+                    const out = { ...args };
+                    delete out.photoHash; delete out.owner; delete out.recordedBy; delete out.account;
+                    for (const k of Object.keys(out)) {
+                        const v = out[k];
+                        if (typeof v === 'string' && /^0x[a-fA-F0-9]{64}$/.test(v)) delete out[k];
+                    }
+                    return out;
+                } catch { return {}; }
+            };
             logs.forEach((l, index) => {
                 const name = l.fragment?.name || 'Event';
                 const config = eventConfig[name] || { icon: '⛓️', title: name, color: '#6b7280', getDescription: () => 'Event details' };
-                const description = l.args ? config.getDescription(l.args) : 'No details';
+                const description = l.args ? config.getDescription(cleanArgs(l.args)) : 'No details';
                 const isLast = index === logs.length - 1;
                 const blockInfo = (l.blockNumber !== undefined && l.blockNumber !== null) ? `Block #${Number(l.blockNumber)}` : '';
                 html += `

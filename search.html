@@ -131,10 +131,31 @@
                 ProductDispatched: '🚚' 
             };
             let html = '';
+            const formatArgsClean = (args) => {
+                try {
+                    const entries = Object.entries(args || {});
+                    const allowed = entries.filter(([k, v]) => {
+                        const key = String(k).toLowerCase();
+                        if (key.includes('hash')) return false;
+                        if (key.includes('owner') || key.includes('recordedby') || key === 'account') return false;
+                        if (typeof v === 'string' && /^0x[a-fA-F0-9]{64}$/.test(v)) return false;
+                        return true;
+                    });
+                    return allowed.map(([k, v]) => {
+                        let val = v;
+                        if (typeof v === 'bigint') val = v.toString();
+                        if (typeof v === 'string' && /^0x[a-fA-F0-9]{40}$/.test(v)) {
+                            val = v.slice(0, 6) + '...' + v.slice(-4);
+                        }
+                        return `<span class="inline-block mr-3"><strong>${k}:</strong> ${val}</span>`;
+                    }).join(' • ') || 'Event recorded on blockchain';
+                } catch { return 'Event recorded on blockchain'; }
+            };
             logs.forEach(l => {
                 const name = l.fragment?.name || 'Event';
                 const ts = l.args?.timestamp || l.args?.collectionDate || l.args?.date || null;
-                const when = ts ? new Date(Number(ts) * (ts > 1e12 ? 1 : 1000)).toLocaleString() : '';
+                const tsNum = ts != null ? Number(ts) : null;
+                const when = tsNum ? new Date(tsNum * (tsNum > 1e12 ? 1 : 1000)).toLocaleString() : '';
                 
                 let description = '';
                 if (name === 'BatchCreated' && l.args) {
@@ -147,7 +168,7 @@
                         description += `<br><div style="margin-top:8px;"><img src="${Blockchain.getImageFromPinata(imageHash)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:2px solid #e5e7eb;" onclick="showFullImage('${imageHash}')" title="Click to view full image" /><span style="margin-left:8px;color:#3b82f6;cursor:pointer;" onclick="showFullImage('${imageHash}')"><i class="fas fa-expand"></i> View Full</span></div>`;
                     }
                 } else {
-                    description = JSON.stringify(l.args, null, 2);
+                    description = formatArgsClean(l.args);
                 }
                 
                 html += `

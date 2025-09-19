@@ -364,7 +364,7 @@
             });
         }
 
-        // Search batch function - Updated for timeline-first layout
+        // Search batch function - Updated for direct blockchain search
         async function searchBatch(batchId) {
             if (!batchId) return;
             
@@ -372,40 +372,42 @@
             const actionButton = document.getElementById('timelineActionButton');
             
             // Show loading in timeline
-            timeline.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin" style="font-size:24px;color:#6366f1;"></i><p style="margin-top:12px;color:#64748b;">Loading supply chain history...</p></div>';
+            timeline.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin" style="font-size:24px;color:#6366f1;"></i><p style="margin-top:12px;color:#64748b;">Searching blockchain directly...</p></div>';
             actionButton.style.display = 'none';
             
             try {
                 await Blockchain.init();
                 
-                // Get batch details first to validate
-                const details = await Blockchain.getBatchDetails(batchId);
+                console.log(`🔍 Collector searching for batch: ${batchId}`);
+                const batchData = await Blockchain.searchBatchInBlockchain(batchId);
                 
-                if (!details || !details[0]) {
-                    timeline.innerHTML = '<div style="text-align:center;padding:40px;color:#ef4444;"><i class="fas fa-exclamation-triangle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i><p style="font-size:16px;margin:0;">Batch not found</p><p style="font-size:14px;margin:8px 0 0 0;opacity:0.8;">Please check the Batch ID and try again</p></div>';
+                if (!batchData || !batchData.found) {
+                    timeline.innerHTML = `
+                        <div style="text-align:center;padding:40px;color:#ef4444;">
+                            <i class="fas fa-exclamation-triangle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i>
+                            <h4 style="margin-bottom:8px;">Batch not found</h4>
+                            <p style="color:#64748b;margin-bottom:16px;">No blockchain events found for ${batchId}</p>
+                            <div style="background:#f8f9fa;padding:12px;border-radius:8px;text-align:left;max-width:400px;margin:0 auto;">
+                                <p style="margin:0;font-size:14px;color:#495057;"><strong>Suggestions:</strong></p>
+                                <ul style="margin:8px 0 0 20px;font-size:13px;color:#6c757d;">
+                                    <li>Verify the batch ID is correct</li>
+                                    <li>Check if the farmer has created this batch</li>
+                                    <li>Ensure blockchain connection is active</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `;
                     return;
                 }
                 
                 // Store current batch details
-                currentBatchDetails = {
-                    batchId: details[0],
-                    cropType: details[1],
-                    quantity: details[2],
-                    harvestDate: details[3],
-                    farmLocation: details[4],
-                    photoHash: details[5],
-                    status: details[6],
-                    owner: details[7],
-                    timestamp: details[8]
-                };
+                currentBatchDetails = batchData.details || {};
                 
-                // Get and display timeline
-                const logs = await Blockchain.getChainForBatch(batchId);
-                
-                if (!logs || logs.length === 0) {
+                // Display timeline
+                if (!batchData.chain || batchData.chain.length === 0) {
                     timeline.innerHTML = '<div style="text-align:center;padding:40px;color:#ef4444;"><i class="fas fa-exclamation-triangle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i><p style="font-size:16px;margin:0;">No supply chain history found</p><p style="font-size:14px;margin:8px 0 0 0;opacity:0.8;">This batch hasn\'t been processed through the supply chain yet</p></div>';
                 } else {
-                    renderTimelineWithImages(logs, timeline);
+                    renderTimelineWithImages(batchData.chain, timeline);
                 }
                 
                 // Show the action button to add collection
@@ -413,7 +415,17 @@
                 
             } catch (error) {
                 console.error('Error searching batch:', error);
-                timeline.innerHTML = '<div style="text-align:center;padding:40px;color:#ef4444;"><i class="fas fa-exclamation-triangle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i><p style="font-size:16px;margin:0;">Error loading batch</p><p style="font-size:14px;margin:8px 0 0 0;opacity:0.8;">' + (error.message || 'Network or contract error') + '</p></div>';
+                timeline.innerHTML = `
+                    <div style="text-align:center;padding:40px;color:#ef4444;">
+                        <i class="fas fa-exclamation-circle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i>
+                        <h4 style="margin-bottom:8px;">Search Error</h4>
+                        <p style="color:#64748b;margin-bottom:16px;">Failed to search blockchain for ${batchId}</p>
+                        <div style="background:#f8f9fa;padding:12px;border-radius:8px;text-align:left;max-width:400px;margin:0 auto;">
+                            <p style="margin:0;font-size:14px;color:#495057;"><strong>Error Details:</strong></p>
+                            <p style="margin:4px 0;font-size:13px;color:#6c757d;">${error.message || 'Unknown error occurred'}</p>
+                        </div>
+                    </div>
+                `;
                 actionButton.style.display = 'none';
             }
         }
@@ -469,7 +481,7 @@
         }
 
         // Setup collection form
-        // Render timeline with farmer names and images
+        // Render timeline with farmer names and images (without exposing hashes)
         function renderTimelineWithImages(logs, container) {
             const icon = { 
                 BatchCreated: '🌾', 
@@ -479,12 +491,33 @@
                 ProductReceived: '📦', 
                 ProductDispatched: '🚚' 
             };
+            const formatArgsClean = (args) => {
+                try {
+                    const entries = Object.entries(args || {});
+                    const allowed = entries.filter(([k, v]) => {
+                        const key = String(k).toLowerCase();
+                        if (key.includes('hash')) return false; // hide hashes (photoHash etc.)
+                        if (key.includes('owner') || key.includes('recordedby') || key === 'account') return false; // hide raw addresses
+                        if (typeof v === 'string' && /^0x[a-fA-F0-9]{64}$/.test(v)) return false; // bytes32
+                        return true;
+                    });
+                    return allowed.map(([k, v]) => {
+                        let val = v;
+                        if (typeof v === 'bigint') val = v.toString();
+                        if (typeof v === 'string' && /^0x[a-fA-F0-9]{40}$/.test(v)) {
+                            val = v.slice(0, 6) + '...' + v.slice(-4);
+                        }
+                        return `<span style="display:inline-block;margin-right:10px;"><strong>${k}:</strong> ${val}</span>`;
+                    }).join(' • ') || 'Event recorded on blockchain';
+                } catch { return 'Event recorded on blockchain'; }
+            };
             
             let html = '';
             logs.forEach(l => {
                 const name = l.fragment?.name || 'Event';
                 const ts = l.args?.timestamp || l.args?.collectionDate || l.args?.date || null;
-                const when = ts ? new Date(Number(ts) * (ts > 1e12 ? 1 : 1000)).toLocaleString() : '';
+                const tsNum = ts != null ? Number(ts) : null;
+                const when = tsNum ? new Date(tsNum * (tsNum > 1e12 ? 1 : 1000)).toLocaleString() : '';
                 
                 let description = '';
                 if (name === 'BatchCreated' && l.args) {
@@ -497,7 +530,7 @@
                         description += `<br><div style="margin-top:8px;"><img src="${Blockchain.getImageFromPinata(imageHash)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:2px solid #e5e7eb;" onclick="showFullImage('${imageHash}')" title="Click to view full image" /><span style="margin-left:8px;color:#3b82f6;cursor:pointer;" onclick="showFullImage('${imageHash}')"><i class="fas fa-expand"></i> View Full</span></div>`;
                     }
                 } else {
-                    description = JSON.stringify(l.args, null, 2);
+                    description = formatArgsClean(l.args);
                 }
                 
                 html += `
@@ -643,23 +676,46 @@
             const timeline = document.getElementById('chainTimeline');
             
             if (idEl) idEl.textContent = `Batch ID: ${batchId}`;
-            if (timeline) timeline.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin" style="font-size:24px;color:#6366f1;"></i><p style="margin-top:12px;color:#64748b;">Loading supply chain history...</p></div>';
+            if (timeline) timeline.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin" style="font-size:24px;color:#6366f1;"></i><p style="margin-top:12px;color:#64748b;">Searching blockchain directly...</p></div>';
             section.style.display = 'block';
 
             try {
-                console.time('Chain fetch');
-                const logs = await Blockchain.getChainForBatch(batchId);
-                console.timeEnd('Chain fetch');
+                console.log(`🔍 Collector direct search for batch: ${batchId}`);
+                const batchData = await Blockchain.searchBatchInBlockchain(batchId);
                 
-                if (!logs || logs.length === 0) {
-                    timeline.innerHTML = `<div style="text-align:center;padding:40px;color:#ef4444;"><i class="fas fa-exclamation-triangle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i><p style="font-size:16px;margin:0;">No supply chain history found</p><p style="font-size:14px;margin:8px 0 0 0;opacity:0.8;">This batch hasn't been processed through the supply chain yet</p></div>`;
+                if (!batchData || !batchData.found) {
+                    timeline.innerHTML = `
+                        <div style="text-align:center;padding:40px;color:#ef4444;">
+                            <i class="fas fa-exclamation-triangle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i>
+                            <h4 style="margin-bottom:8px;">No events found for ${batchId}</h4>
+                            <p style="color:#64748b;margin-bottom:16px;">This batch does not exist on the blockchain.</p>
+                            <div style="background:#f8f9fa;padding:12px;border-radius:8px;text-align:left;max-width:400px;margin:0 auto;">
+                                <p style="margin:0;font-size:14px;color:#495057;"><strong>Collector Checklist:</strong></p>
+                                <ul style="margin:8px 0 0 20px;font-size:13px;color:#6c757d;">
+                                    <li>Verify batch ID is correct</li>
+                                    <li>Check if farmer has created this batch</li>
+                                    <li>Ensure blockchain connection is active</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `;
                     return;
                 }
                 
-                renderChainFromLogs(batchId, logs, timeline);
+                renderChainFromLogs(batchId, batchData.chain || [], timeline);
             } catch (e) {
                 console.error('Chain fetch error:', e);
-                timeline.innerHTML = `<div style="text-align:center;padding:40px;color:#ef4444;"><i class="fas fa-exclamation-triangle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i><p style="font-size:16px;margin:0;">Error loading supply chain</p><p style="font-size:14px;margin:8px 0 0 0;opacity:0.8;">${e.message || 'Network or contract error'}</p></div>`;
+                timeline.innerHTML = `
+                    <div style="text-align:center;padding:40px;color:#ef4444;">
+                        <i class="fas fa-exclamation-circle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i>
+                        <h4 style="margin-bottom:8px;">Search Error</h4>
+                        <p style="color:#64748b;margin-bottom:16px;">Failed to search blockchain for ${batchId}</p>
+                        <div style="background:#f8f9fa;padding:12px;border-radius:8px;text-align:left;max-width:400px;margin:0 auto;">
+                            <p style="margin:0;font-size:14px;color:#495057;"><strong>Error Details:</strong></p>
+                            <p style="margin:4px 0;font-size:13px;color:#6c757d;">${e.message || 'Unknown error occurred'}</p>
+                        </div>
+                    </div>
+                `;
             }
         }
 
