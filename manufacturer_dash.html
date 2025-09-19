@@ -547,6 +547,14 @@
                 </body>
                 </html>
             `;
+            printWindow.document.open();
+            printWindow.document.write(html);
+            printWindow.document.close();
+            // Give the new window a moment to load images before printing
+            printWindow.onload = () => {
+                printWindow.focus();
+                printWindow.print();
+            };
         }
 
         // Dialog functionality (safeguarded init)
@@ -623,15 +631,28 @@
             try {
                 // Create products on blockchain
                 const manufacturerId = (await getCurrentUser())?.email || 'Unknown Manufacturer';
-                
+                // Convert to integers for BigInt conversion in blockchain.js
+                const quantityProcessedInt = Math.round(Number(formData.quantityProcessed));
+                const wastageInt = Math.round(Number(formData.wastage));
+                if (Number.isNaN(quantityProcessedInt) || Number.isNaN(wastageInt)) {
+                    throw new Error('Quantity and wastage must be valid numbers');
+                }
+                const processingTs = Math.floor(new Date(formData.processingDate).getTime() / 1000);
+                const expiryTs = Math.floor(new Date(formData.expiryDate).getTime() / 1000);
+                if (!Number.isFinite(processingTs) || !Number.isFinite(expiryTs)) {
+                    throw new Error('Invalid processing or expiry date');
+                }
+                // Create a single on-chain Product (represents the manufactured lot)
+                const productId = `${batchId}-PRD-${Date.now()}`;
                 await Blockchain.createProduct({
+                    productId,
                     sourceBatchId: batchId,
                     productType: formData.productType,
-                    quantityProcessed: formData.quantityProcessed,
-                    wastage: formData.wastage,
-                    manufacturerId: manufacturerId,
-                    expiryDate: new Date(formData.expiryDate).getTime() / 1000,
-                    notes: `Processed on ${formData.processingDate}. Packaged on ${formData.packagingDate}.`
+                    quantityProcessed: quantityProcessedInt,
+                    wastage: wastageInt,
+                    processingDate: processingTs,
+                    expiryDate: expiryTs,
+                    manufacturerId: manufacturerId
                 });
 
                 // Generate serial numbers and QR codes
@@ -694,6 +715,11 @@
 
                 // Store QR URLs for download/print
                 window.currentQRUrls = qrUrls;
+                // Wire buttons for this batch
+                const dlBtn = document.getElementById('downloadAllQRBtn');
+                const prBtn = document.getElementById('printQRBtn');
+                if (dlBtn) dlBtn.onclick = () => downloadAllQRs(qrUrls, batchId);
+                if (prBtn) prBtn.onclick = () => printQRCodes(qrUrls, batchId);
 
                 alert(`Successfully created ${formData.productQuantity} products with serial numbers!`);
 
