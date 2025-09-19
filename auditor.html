@@ -17,8 +17,182 @@
 </head>
 
 <body>
+    <input type="file" id="qrUploadSearch" accept="image/*" style="display:none;">
     <!-- Auth Check Script -->
     <script>
+        // Upload QR button triggers file input for audit form
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadQrBtn = document.getElementById('uploadQrBtn');
+            const qrUploadAuditor = document.getElementById('qrUploadAuditor');
+            const collectionIdInput = document.getElementById('collectionId');
+            if (uploadQrBtn && qrUploadAuditor) {
+                uploadQrBtn.addEventListener('click', function() {
+                    qrUploadAuditor.click();
+                });
+            }
+            if (qrUploadAuditor) {
+                qrUploadAuditor.addEventListener('change', async function(e) {
+                    const file = e.target.files && e.target.files[0];
+                    const hint = document.getElementById('qrUploadHint');
+                    const collectionError = document.getElementById('collectionError');
+                    const collectionDetails = document.getElementById('collectionDetails');
+                    const submitBtn = document.getElementById('submitBtn');
+                    if (!file) return;
+                    // File type and size check
+                    if (!file.type.match(/^image\/(jpeg|png|jpg)$/)) {
+                        hint.textContent = 'Please upload a JPG or PNG image.';
+                        hint.style.color = '#ef4444';
+                        return;
+                    }
+                    if (file.size > 2 * 1024 * 1024) {
+                        hint.textContent = 'Image is too large (max 2MB).';
+                        hint.style.color = '#ef4444';
+                        return;
+                    }
+                    hint.textContent = 'Processing image...';
+                    hint.style.color = '#6b7280';
+                    const reader = new FileReader();
+                    reader.onload = function(ev) {
+                        const img = new window.Image();
+                        img.onload = async function() {
+                            const canvas = document.createElement('canvas');
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0);
+                            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                            const qrCode = window.jsQR ? jsQR(imageData.data, imageData.width, imageData.height) : null;
+                            if (qrCode) {
+                                let batchId = '';
+                                if (qrCode.data.includes('#')) {
+                                    batchId = qrCode.data.split('#')[1];
+                                } else if (qrCode.data.includes('BATCH_')) {
+                                    const match = qrCode.data.match(/BATCH_\d+/);
+                                    if (match) batchId = match[0];
+                                } else {
+                                    batchId = qrCode.data;
+                                }
+                                if (batchId) {
+                                    collectionIdInput.value = batchId;
+                                    hint.textContent = 'QR code read successfully! Fetching batch data...';
+                                    hint.style.color = '#10b981';
+                                    // Try to fetch collection/batch data for auditor
+                                    try {
+                                        if (window.Blockchain && window.Blockchain.getBatchDetails) {
+                                            const batch = await window.Blockchain.getBatchDetails(batchId);
+                                            if (batch) {
+                                                // Populate details (mimic fetchCollectionBtn logic)
+                                                document.getElementById('collectionInfo').value = `${batch.cropType || batch[2]} - ${(batch.collectedQuantity || batch[3] || '').toString()}kg`;
+                                                document.getElementById('collectorName').value = batch.collector || batch[4] || '';
+                                                document.getElementById('collectionDate').value = new Date(Number(batch.collectionDate || batch[5]) * 1000).toLocaleDateString();
+                                                document.getElementById('reportedCondition').value = batch.condition || '—';
+                                                collectionDetails.style.display = 'block';
+                                                collectionError.style.display = 'none';
+                                                submitBtn.disabled = false;
+                                            } else {
+                                                collectionError.textContent = 'Batch not found or not forwarded to auditor.';
+                                                collectionError.style.display = 'block';
+                                                collectionDetails.style.display = 'none';
+                                                submitBtn.disabled = true;
+                                            }
+                                        }
+                                    } catch (err) {
+                                        collectionError.textContent = 'Error fetching batch: ' + (err.message || err);
+                                        collectionError.style.display = 'block';
+                                        collectionDetails.style.display = 'none';
+                                        submitBtn.disabled = true;
+                                    }
+                                } else {
+                                    hint.textContent = 'QR code found, but batch ID could not be extracted.';
+                                    hint.style.color = '#ef4444';
+                                }
+                            } else {
+                                hint.textContent = 'No QR code found in the uploaded image. Try a clearer image.';
+                                hint.style.color = '#ef4444';
+                            }
+                        };
+                        img.onerror = function() {
+                            hint.textContent = 'Could not load the image.';
+                            hint.style.color = '#ef4444';
+                        };
+                        img.src = ev.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+        });
+
+        // --- Advanced Search Upload QR Button ---
+        setTimeout(function() {
+            // Wait for enhanced search to render
+            const searchBar = document.querySelector('#enhanced-search-container input[type="text"]');
+            let scanBtn = null;
+            // Try to find the Scan QR button and replace it
+            document.querySelectorAll('button').forEach(btn => {
+                if (btn.textContent && btn.textContent.trim().toLowerCase().includes('scan qr')) {
+                    scanBtn = btn;
+                }
+            });
+            if (scanBtn) {
+                scanBtn.innerHTML = '<i class="fas fa-upload"></i> Upload QR';
+                scanBtn.id = 'uploadQrSearchBtn';
+                // Remove any event listeners that might trigger the scan modal
+                const newBtn = scanBtn.cloneNode(true);
+                scanBtn.parentNode.replaceChild(newBtn, scanBtn);
+                newBtn.onclick = function(e) {
+                    e.stopPropagation();
+                    document.getElementById('qrUploadSearch').click();
+                };
+            }
+        }, 500);
+
+        // QR upload for search bar
+        setTimeout(function() {
+            const qrUploadSearch = document.getElementById('qrUploadSearch');
+            if (qrUploadSearch) {
+                qrUploadSearch.addEventListener('change', function(e) {
+                    const file = e.target.files && e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = function(ev) {
+                        const img = new window.Image();
+                        img.onload = function() {
+                            const canvas = document.createElement('canvas');
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0);
+                            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                            const qrCode = window.jsQR ? jsQR(imageData.data, imageData.width, imageData.height) : null;
+                            if (qrCode) {
+                                let batchId = '';
+                                if (qrCode.data.includes('#')) {
+                                    batchId = qrCode.data.split('#')[1];
+                                } else if (qrCode.data.includes('BATCH_')) {
+                                    const match = qrCode.data.match(/BATCH_\d+/);
+                                    if (match) batchId = match[0];
+                                } else {
+                                    batchId = qrCode.data;
+                                }
+                                if (batchId && searchBar) {
+                                    searchBar.value = batchId;
+                                    // Try to trigger search
+                                    const searchBtn = searchBar.parentElement.querySelector('button');
+                                    if (searchBtn) searchBtn.click();
+                                }
+                            } else {
+                                alert('No QR code found in the uploaded image.');
+                            }
+                        };
+                        img.onerror = function() {
+                            alert('Could not load the image.');
+                        };
+                        img.src = ev.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+        }, 500);
         // Check authentication
         const user = localStorage.getItem('ayurtrace_user');
         if (!user) {
@@ -35,7 +209,8 @@
         <div class="container">
             <div class="navbar-content">
                 <a href="index.html" class="logo">
-                    <img src="assets/icons/ayutrace_logo_svg.svg" alt="AyurTrace Logo" style="height: 32px; width: auto;">
+                    <img src="assets/icons/ayutrace_logo_svg.svg" alt="AyurTrace Logo"
+                        style="height: 32px; width: auto;">
                 </a>
                 <div class="nav-links">
                     <a href="#" class="active"><i class="fas fa-home"></i> Dashboard</a>
@@ -100,12 +275,21 @@
                     <div class="form-group">
                         <label for="collectionId">Collection ID (from search above)</label>
                         <div class="input-group">
-                            <input type="text" id="collectionId" class="form-input" placeholder="Collection ID will be filled from search" readonly>
+                            <input type="text" id="collectionId" class="form-input"
+                                placeholder="Collection ID will be filled from search" readonly>
                             <button type="button" id="fetchCollectionBtn" class="get-location-btn">
                                 <i class="fas fa-sync"></i>
                             </button>
+                            <button type="button" id="uploadQrBtn" class="get-location-btn"
+                                style="background:#10b981;color:#fff;margin-left:8px;display:flex;align-items:center;gap:6px;">
+                                <i class="fas fa-upload"></i> Upload QR
+                            </button>
+                            <input type="file" id="qrUploadAuditor" accept="image/*" style="display:none;">
+                            <div id="qrUploadHint" style="font-size: 0.95em; color: #6b7280; margin-top: 4px;">Upload a clear image of a QR code (JPG, PNG, max 2MB).</div>
                         </div>
-                        <p id="collectionError" class="error-message" style="color: #ef4444; margin-top: 8px; display: none;"></p>
+
+                        <p id="collectionError" class="error-message"
+                            style="color: #ef4444; margin-top: 8px; display: none;"></p>
                     </div>
 
                     <div id="collectionDetails" style="display: none;">
@@ -152,18 +336,19 @@
                             </div>
                             <div class="form-group">
                                 <label for="moistureContent">Moisture Content (%)</label>
-                                <input type="number" id="moistureContent" class="form-input" 
-                                    placeholder="e.g., 12.5" step="0.1" min="0" max="100">
+                                <input type="number" id="moistureContent" class="form-input" placeholder="e.g., 12.5"
+                                    step="0.1" min="0" max="100">
                             </div>
                         </div>
                         <div class="form-group">
                             <label for="auditNotes">Audit Notes</label>
-                            <textarea id="auditNotes" class="form-input" 
-                                placeholder="Detailed observations about quality, purity, storage conditions, etc." required></textarea>
+                            <textarea id="auditNotes" class="form-input"
+                                placeholder="Detailed observations about quality, purity, storage conditions, etc."
+                                required></textarea>
                         </div>
                         <div class="form-group">
                             <label for="recommendations">Recommendations</label>
-                            <textarea id="recommendations" class="form-input" 
+                            <textarea id="recommendations" class="form-input"
                                 placeholder="Any recommendations for processing or handling"></textarea>
                         </div>
                     </div>
@@ -193,7 +378,7 @@
 
     <script>
         // Initialize dashboard
-        document.addEventListener('DOMContentLoaded', async function() {
+        document.addEventListener('DOMContentLoaded', async function () {
             // Get user data using the proper auth system
             const user = await getCurrentUser();
             if (user && user.name) {
@@ -220,7 +405,7 @@
             const collectionError = document.getElementById('collectionError');
             const submitBtn = document.getElementById('submitBtn');
 
-            fetchBtn.addEventListener('click', async function() {
+            fetchBtn.addEventListener('click', async function () {
                 const collectionId = document.getElementById('collectionId').value.trim();
                 if (!collectionId) {
                     showError('Please enter a collection ID');
@@ -251,7 +436,7 @@
                     // Check if already audited
                     const audits = JSON.parse(localStorage.getItem('audit_history') || '[]');
                     const alreadyAudited = audits.find(a => a.collectionId === collectionId);
-                    
+
                     if (alreadyAudited) {
                         showError('This collection has already been audited');
                         return;
@@ -262,11 +447,11 @@
                     document.getElementById('collectorName').value = collection.collector;
                     document.getElementById('collectionDate').value = new Date(collection.collectionDate).toLocaleDateString();
                     document.getElementById('reportedCondition').value = collection.condition;
-                    
+
                     collectionDetails.style.display = 'block';
                     collectionError.style.display = 'none';
                     submitBtn.disabled = false;
-                    
+
                     fetchBtn.innerHTML = '<i class="fas fa-check"></i>';
                     setTimeout(() => {
                         fetchBtn.innerHTML = '<i class="fas fa-sync"></i>';
@@ -287,7 +472,7 @@
             const auditResultSelect = document.getElementById('auditResult');
             const qualityGradeSelect = document.getElementById('qualityGrade');
 
-            auditResultSelect.addEventListener('change', function() {
+            auditResultSelect.addEventListener('change', function () {
                 if (this.value === 'Rejected') {
                     qualityGradeSelect.value = 'Rejected';
                     qualityGradeSelect.disabled = true;
@@ -301,7 +486,7 @@
 
             // Form submission
             const auditForm = document.getElementById('auditForm');
-            auditForm.addEventListener('submit', async function(e) {
+            auditForm.addEventListener('submit', async function (e) {
                 e.preventDefault();
 
                 const auditResult = document.getElementById('auditResult').value;
@@ -314,7 +499,7 @@
                     console.error(err);
                     alert(err.message || 'Failed to record audit on-chain');
                 }
-                    
+
                 // Reset form UI
                 auditForm.reset();
                 collectionDetails.style.display = 'none';
@@ -333,7 +518,7 @@
         function loadStats() {
             const audits = JSON.parse(localStorage.getItem('audit_history') || '[]');
             const collections = JSON.parse(localStorage.getItem('collected_batches') || '[]');
-            
+
             const totalAudited = audits.length;
             const pendingAudit = collections.filter(c => c.status === 'Pending Audit').length;
             const approved = audits.filter(a => a.auditResult === 'Approved').length;
@@ -351,7 +536,7 @@
         function loadAuditHistory() {
             const audits = JSON.parse(localStorage.getItem('audit_history') || '[]');
             const container = document.getElementById('auditHistory');
-            
+
             if (audits.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
@@ -378,7 +563,7 @@
         }
 
         // Logout functionality (single, using signOut from supabase-auth.js)
-        (function() {
+        (function () {
             const logoutBtn = document.getElementById('logoutBtn');
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', async (e) => {
