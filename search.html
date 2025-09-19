@@ -58,7 +58,15 @@
         },
 
         handleURLHash() {
-            const serialNumber = window.location.hash.substring(1);
+            // Check both hash and URL parameters for serial number
+            let serialNumber = window.location.hash.substring(1);
+            
+            // If no hash, check URL parameters
+            if (!serialNumber) {
+                const urlParams = new URLSearchParams(window.location.search);
+                serialNumber = urlParams.get('serial');
+            }
+            
             if (serialNumber) {
                 document.getElementById('searchResultId').textContent = `Serial Number: ${serialNumber}`;
                 this.search(serialNumber);
@@ -75,15 +83,19 @@
                 const serialMapping = JSON.parse(localStorage.getItem('serial_mapping') || '{}');
                 let batchId = serialMapping[serialNumber];
                 
-                console.log(`Searching for serial: ${serialNumber}`);
-                console.log('Serial mapping:', serialMapping);
+                // Also check manufactured_products for new format
+                const manufacturedProducts = JSON.parse(localStorage.getItem('manufactured_products') || '[]');
+                const productMatch = manufacturedProducts.find(p => p.serialNumber === serialNumber);
                 
-                // If no mapping found, assume serialNumber is directly a batch ID
-                if (!batchId) {
+                if (productMatch) {
+                    batchId = productMatch.batchId;
+                    console.log(`Found in manufactured products: ${serialNumber} -> ${batchId}`);
+                } else if (batchId) {
+                    console.log(`Found in serial mapping: ${serialNumber} -> ${batchId}`);
+                } else {
+                    // If no mapping found, assume serialNumber is directly a batch ID
                     batchId = serialNumber;
                     console.log(`No mapping found, using as batch ID: ${batchId}`);
-                } else {
-                    console.log(`Found mapping: ${serialNumber} -> ${batchId}`);
                 }
                 
                 const logs = await Blockchain.getChainForBatch(batchId);
