@@ -164,8 +164,9 @@
                     const baseLoc = meta.base || (l.args.farmLocation || 'Not specified');
                     description = `${l.args.cropType} • ${l.args.quantity} kg • Location: ${baseLoc} • Farmer: ${farmer}`;
                     const imageHash = meta.ipfs || l.args.photoHash;
-                    if (imageHash && Blockchain?.getImageFromPinata) {
-                        description += `<br><div style="margin-top:8px;"><img src="${Blockchain.getImageFromPinata(imageHash)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:2px solid #e5e7eb;" onclick="showFullImage('${imageHash}')" title="Click to view full image" /><span style="margin-left:8px;color:#3b82f6;cursor:pointer;" onclick="showFullImage('${imageHash}')"><i class="fas fa-expand"></i> View Full</span></div>`;
+                    if (imageHash && Blockchain?.getImageUrl) {
+                        description += `                    if (imageHash && Blockchain?.getImageUrl) {
+                        description += `<br><div style="margin-top:8px;"><img src="${Blockchain.getImageUrl(imageHash)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:2px solid #e5e7eb;" onclick="showFullImage('${imageHash}')" title="Click to view full image" /><span style="margin-left:8px;color:#3b82f6;cursor:pointer;" onclick="showFullImage('${imageHash}')"><i class="fas fa-expand"></i> View Full</span></div>`;`;
                     }
                 } else {
                     description = formatArgsClean(l.args);
@@ -192,7 +193,7 @@
 
     function showFullImage(ipfsHash) {
         if (!ipfsHash) return;
-        const fullUrl = Blockchain.getImageFromPinata(ipfsHash);
+                const fullUrl = Blockchain.getImageUrl(ipfsHash);
         
         // Create modal overlay
         const overlay = document.createElement('div');

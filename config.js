@@ -9,6 +9,13 @@ window.config = {
     // Blockchain
     GANACHE_URL: 'https://608200750e14.ngrok-free.app',
     CONTRACT_ADDRESS: '0x07998771f190c6A34255366e2E712912C315F9D0',
+    
+    // Pinata IPFS Configuration
+    PINATA_API_KEY: 'f07648ca073181e7b248',
+    PINATA_SECRET_KEY: 'e63b5163d8617ac63c75a9813d3858e9600c4de7cecf5880ddf57b6d5d5afc2b',
+    PINATA_JWT: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJjZDc4NTU2MS02ZWJmLTQxY2ItODM5ZS1lZDllY2MwYWNhYjAiLCJlbWFpbCI6InJhbnZlZXJzaW5naDE4d0BnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkExIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiZjA3NjQ4Y2EwNzMxODFlN2IyNDgiLCJzY29wZWRLZXlTZWNyZXQiOiJlNjNiNTE2M2Q4NjE3YWM2M2M3NWE5ODEzZDM4NThlOTYwMGM0ZGU3Y2VjZjU4ODBkZGY1N2I2ZDVkNWFmYzJiIiwiZXhwIjoxNzg5NzkxOTA2fQ.ZBF9b3FcxRBTKdgcPNnk4UdqYAJnm8D3VzRfTcPy2uU',
+    PINATA_GATEWAY: 'https://pink-decisive-woodpecker-623.mypinata.cloud',
+    PINATA_UPLOAD_URL: 'https://api.pinata.cloud/pinning/pinFileToIPFS',
     CONTRACT_ABI: [
         // Events
         {"anonymous":false,"inputs":[{"indexed":true,"internalType":"string","name":"batchId","type":"string"},{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":false,"internalType":"string","name":"cropType","type":"string"},{"indexed":false,"internalType":"uint256","name":"quantity","type":"uint256"},{"indexed":false,"internalType":"string","name":"farmLocation","type":"string"},{"indexed":false,"internalType":"bytes32","name":"photoHash","type":"bytes32"},{"indexed":false,"internalType":"uint256","name":"timestamp","type":"uint256"}],"name":"BatchCreated","type":"event"},

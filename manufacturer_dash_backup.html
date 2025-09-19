@@ -502,7 +502,7 @@
                     let desc = `${args.cropType || 'Unknown crop'} • ${args.quantity || '0'} kg • Location: ${baseLoc} • Farmer: ${farmer}`;
                     const imageHash = meta.ipfs || args.photoHash;
                     if (imageHash) {
-                        desc += `<br><div style="margin-top:8px;"><img src="${Blockchain.getImageFromPinata(imageHash)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:2px solid #e5e7eb;" onclick="showFullImage('${imageHash}')" title="Click to view full image" /><span style="margin-left:8px;color:#3b82f6;cursor:pointer;" onclick="showFullImage('${imageHash}')"><i class="fas fa-expand"></i> View Full</span></div>`;
+                        desc += `<br><div style="margin-top:8px;"><img src="${Blockchain.getImageUrl(imageHash)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:2px solid #e5e7eb;" onclick="showFullImage('${imageHash}')" title="Click to view full image" /><span style="margin-left:8px;color:#3b82f6;cursor:pointer;" onclick="showFullImage('${imageHash}')"><i class="fas fa-expand"></i> View Full</span></div>`;
                     }
                     return desc; 
                 } },
@@ -563,7 +563,7 @@
             `;
             
             const img = document.createElement('img');
-            img.src = Blockchain.getImageFromPinata(ipfsHash);
+            img.src = Blockchain.getImageUrl(ipfsHash);
             img.style.cssText = `
                 max-width: 90%; max-height: 90%; border-radius: 12px; 
                 box-shadow: 0 20px 60px rgba(0,0,0,0.3);
@@ -918,7 +918,7 @@
                 return;
             }
             const urlHash = Blockchain.getOriginalIPFSHash(photoHash);
-            const url = urlHash ? Blockchain.getImageFromPinata(urlHash) : null;
+            const url = urlHash ? Blockchain.getImageUrl(urlHash) : null;
             if (url) {
                 window.open(url, '_blank');
             } else {

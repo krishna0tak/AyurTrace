@@ -9,6 +9,27 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="theme.css">
     <style>
+        /* Performance optimized animations */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .spinner, .fa-spin {
+            animation: spin 1s linear infinite;
+            will-change: transform;
+        }
+        
+        /* Optimized transitions */
+        .batch-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .batch-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
+        }
+        
         .capture-btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -337,6 +358,17 @@
                 <h3 class="card-header">
                     <i class="fas fa-history"></i>
                     Recent Batches
+                    <div style="float: right; font-size: 14px;">
+                        <button onclick="debugUserProfile()" style="background: #8b5cf6; color: white; border: none; padding: 6px 12px; border-radius: 6px; margin-right: 8px; cursor: pointer; font-size: 12px;">
+                            <i class="fas fa-user-cog"></i> Debug Profile
+                        </button>
+                        <button onclick="setupUserProfile()" style="background: #059669; color: white; border: none; padding: 6px 12px; border-radius: 6px; margin-right: 8px; cursor: pointer; font-size: 12px;">
+                            <i class="fas fa-user-plus"></i> Setup Profile
+                        </button>
+                        <button onclick="loadRecentBatches(true)" style="background: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
                 </h3>
                 <div id="recentBatches">
                     <div class="empty-state">
@@ -609,83 +641,92 @@
                 });
             }
 
-            // Image capture functionality
+            // Image capture functionality (FIXED - No duplicates)
             let capturedImageBlob = null;
             let imageMetadata = null;
+            let imageUploadInProgress = false;
 
+            // Remove any existing listeners to prevent duplicates (FIXED)
+            const existingCaptureBtn = document.getElementById('captureImageBtn');
+            const existingFileInput = document.getElementById('imageFileInput');
+            
+            if (existingCaptureBtn) {
+                // Clone to remove all existing event listeners
+                const newCaptureBtn = existingCaptureBtn.cloneNode(true);
+                existingCaptureBtn.parentNode.replaceChild(newCaptureBtn, existingCaptureBtn);
+            }
+            
+            if (existingFileInput) {
+                // Clone to remove all existing event listeners
+                const newFileInput = existingFileInput.cloneNode(true);
+                existingFileInput.parentNode.replaceChild(newFileInput, existingFileInput);
+            }
+            
+            // Get fresh references after cloning
             const captureBtn = document.getElementById('captureImageBtn');
             const fileInput = document.getElementById('imageFileInput');
             const imagePreview = document.getElementById('imagePreview');
             const previewImg = document.getElementById('previewImg');
             const metadataDiv = document.getElementById('imageMetadata');
 
-            captureBtn.addEventListener('click', function() {
-                fileInput.click();
-            });
+            function handleCaptureClick(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('📸 Capture button clicked (single event)');
+                if (!imageUploadInProgress && fileInput) {
+                    fileInput.click();
+                }
+            }
 
-            fileInput.addEventListener('change', function(e) {
+            function handleFileChange(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
                 const file = e.target.files[0];
-                if (file) {
+                if (file && !imageUploadInProgress) {
+                    console.log('📷 Processing selected file:', file.name);
+                    imageUploadInProgress = true;
                     capturedImageBlob = file;
                     
-                    // Get current location and time
-                    if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(
-                            function(position) {
-                                const lat = position.coords.latitude.toFixed(6);
-                                const lng = position.coords.longitude.toFixed(6);
-                                const timestamp = new Date().toLocaleString();
-                                
-                                imageMetadata = {
-                                    location: `${lat}, ${lng}`,
-                                    timestamp: timestamp,
-                                    coordinates: { lat: parseFloat(lat), lng: parseFloat(lng) }
-                                };
-                                
-                                // Show preview
-                                const reader = new FileReader();
-                                reader.onload = function(e) {
-                                    previewImg.src = e.target.result;
-                                    metadataDiv.innerHTML = `📍 Location: ${imageMetadata.location}<br>🕒 Time: ${imageMetadata.timestamp}`;
-                                    imagePreview.style.display = 'block';
-                                };
-                                reader.readAsDataURL(file);
-                            },
-                            function(error) {
-                                // Still show image but without location
-                                const timestamp = new Date().toLocaleString();
-                                imageMetadata = {
-                                    location: 'Location unavailable',
-                                    timestamp: timestamp
-                                };
-                                
-                                const reader = new FileReader();
-                                reader.onload = function(e) {
-                                    previewImg.src = e.target.result;
-                                    metadataDiv.innerHTML = `📍 Location: ${imageMetadata.location}<br>🕒 Time: ${imageMetadata.timestamp}`;
-                                    imagePreview.style.display = 'block';
-                                };
-                                reader.readAsDataURL(file);
-                            }
-                        );
-                    } else {
-                        // No geolocation, just timestamp
-                        const timestamp = new Date().toLocaleString();
-                        imageMetadata = {
-                            location: 'Location unavailable',
-                            timestamp: timestamp
-                        };
+                    // Update UI immediately
+                    captureBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                    captureBtn.disabled = true;
+                    
+                    // Simple metadata without geolocation (FIXED)
+                    const timestamp = new Date().toLocaleString();
+                    imageMetadata = {
+                        timestamp: timestamp,
+                        filename: file.name,
+                        size: Math.round(file.size / 1024) + ' KB',
+                        uploadedBy: 'Farmer'
+                    };
+                    
+                    // Show preview immediately
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        previewImg.src = e.target.result;
+                        metadataDiv.innerHTML = `
+                            <div style="font-size: 12px; color: #666;">
+                                🕒 <strong>Time:</strong> ${imageMetadata.timestamp}<br>
+                                📁 <strong>File:</strong> ${imageMetadata.filename} (${imageMetadata.size})
+                            </div>
+                        `;
+                        imagePreview.style.display = 'block';
                         
-                        const reader = new FileReader();
-                        reader.onload = function(e) {
-                            previewImg.src = e.target.result;
-                            metadataDiv.innerHTML = `📍 Location: ${imageMetadata.location}<br>🕒 Time: ${imageMetadata.timestamp}`;
-                            imagePreview.style.display = 'block';
-                        };
-                        reader.readAsDataURL(file);
-                    }
+                        // Reset button
+                        captureBtn.innerHTML = '<i class="fas fa-camera"></i> Image Selected ✓';
+                        captureBtn.disabled = false;
+                        imageUploadInProgress = false;
+                        
+                        console.log('✅ Image processed successfully');
+                    };
+                    reader.readAsDataURL(file);
                 }
-            });
+            }
+
+            // Add event listeners (clean)
+            captureBtn.addEventListener('click', handleCaptureClick);
+            fileInput.addEventListener('change', handleFileChange);
 
             // Enhanced form submission handler
             const newBatchForm = document.getElementById('newBatchForm');
@@ -713,18 +754,29 @@
                         
                         let photoHash = '0x' + '0'.repeat(64); // default placeholder
                         
-                        // Upload image to Pinata if captured
+                        // Upload image to Pinata if captured (OPTIMIZED)
                         if (capturedImageBlob && imageMetadata) {
-                            const uploadBtn = document.querySelector('#newBatchForm button[type="submit"]');
-                            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading Image...';
-                            uploadBtn.disabled = true;
-                            
                             try {
-                                const ipfsHash = await Blockchain.uploadImageToPinata(capturedImageBlob, imageMetadata);
+                                console.log('📤 Starting optimized image upload...');
+                                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading Image to IPFS...';
+                                
+                                // Enhanced metadata for upload
+                                const uploadMetadata = {
+                                    batchId: batchId,
+                                    cropType: cropName,
+                                    farmLocation: farmLocation,
+                                    uploadedBy: 'Farmer',
+                                    ...imageMetadata
+                                };
+                                
+                                const ipfsHash = await Blockchain.uploadImageToPinata(capturedImageBlob, uploadMetadata);
+                                console.log('✅ Image uploaded successfully:', ipfsHash);
+                                
                                 photoHash = ethers.id(ipfsHash); // Convert IPFS hash to bytes32
+                                
                                 // Store the mapping for later retrieval
                                 Blockchain.storeIPFSMapping(photoHash, ipfsHash);
-                                console.log('Image uploaded to IPFS:', ipfsHash);
+                                
                                 // Augment farmLocation with farmer name + IPFS so other roles can read it easily on-chain
                                 if (typeof farmLocation === 'string') {
                                     const u = await getCurrentUser();
@@ -736,13 +788,15 @@
                                         farmLocation = `${farmLocation} ::${tagParts.join(' ::')}`;
                                     }
                                 }
+                                
+                                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Blockchain Record...';
+                                
                             } catch (err) {
-                                console.warn('Image upload failed, proceeding without image:', err);
+                                console.error('❌ Image upload failed:', err);
+                                alert(`⚠️ Image upload failed: ${err.message}\nProceeding without image...`);
                                 // Continue with default photoHash
+                                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Batch...';
                             }
-                            
-                            uploadBtn.innerHTML = '<i class="fas fa-plus"></i> Create Batch';
-                            uploadBtn.disabled = false;
                         }
 
                         // Ensure FARMER name is embedded even if no image or upload failed
@@ -756,7 +810,28 @@
                             } catch {}
                         }
 
-                        await Blockchain.createBatch({ batchId, cropType: cropName, quantity, harvestDate, farmLocation, photoHash });
+                        // Create batch on blockchain (FIXED)
+                        console.log('🔗 Creating batch on blockchain...');
+                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recording on Blockchain...';
+                        
+                        const txResult = await Blockchain.createBatch({ 
+                            batchId, 
+                            cropType: cropName, 
+                            quantity, 
+                            harvestDate, 
+                            farmLocation, 
+                            photoHash 
+                        });
+                        console.log('✅ Blockchain transaction completed:', txResult);
+                        
+                        // IMPORTANT: Clear all caches to force fresh data load
+                        if (window.Blockchain && window.Blockchain.cache) {
+                            console.log('🗑️ Clearing all caches for fresh data...');
+                            window.Blockchain.cache.clear();
+                            window.Blockchain.batchCache.clear();
+                            window.Blockchain.eventCache.clear();
+                        }
+                        
                         // Store lightweight meta off-chain too (farmer name, ipfs)
                         try {
                             const u = await getCurrentUser();
@@ -766,19 +841,25 @@
                             Blockchain.storeBatchMeta(batchId, meta);
                         } catch {}
                         
-                        // No local persistence: always fetch real-time from blockchain
-
+                        // Reset form and UI
                         newBatchForm.reset();
                         createBatchSection.style.display = 'none';
                         imagePreview.style.display = 'none';
                         capturedImageBlob = null;
                         imageMetadata = null;
                         
-                        // Show success message and generate QR code
-                        alert('✅ Batch created on blockchain with image!');
+                        // Reset button
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalBtnText;
+                        
+                        // Show success and refresh data
+                        alert(`✅ Batch ${batchId} created successfully on blockchain!`);
                         generateQRCode(batchId);
+                        
+                        // Force refresh of all data from blockchain
+                        console.log('🔄 Refreshing all data from blockchain...');
                         await loadStats();
-                        await loadRecentBatches();
+                        await loadRecentBatches(true); // Force fresh data
                         
                         console.log('🎉 Batch creation completed successfully');
                         
@@ -976,6 +1057,9 @@
             try {
                 await Blockchain.init();
                 console.log('Blockchain initialized successfully');
+                
+                // Set up user profile for proper batch indexing
+                await setupUserProfile();
             } catch (error) {
                 console.warn('Failed to initialize blockchain:', error);
             }
@@ -983,6 +1067,91 @@
             // Load data (will try blockchain first, then localStorage)
             await loadStats();
             await loadRecentBatches();
+        }
+
+        // Set up user profile for proper batch indexing
+        async function setupUserProfile() {
+            try {
+                const currentUser = await getCurrentUser();
+                if (!currentUser) {
+                    console.warn('No user logged in, skipping profile setup');
+                    alert('Please log in first');
+                    return;
+                }
+
+                const username = currentUser.actorId;
+                const name = currentUser.name || currentUser.actorId;
+                
+                console.log('👤 Setting up user profile for:', { name, username });
+                
+                // Check if profile already exists
+                const existingProfile = await Blockchain.getUserProfile();
+                console.log('Existing profile:', existingProfile);
+                
+                if (!existingProfile || !existingProfile.username || existingProfile.username !== username) {
+                    console.log('📝 Profile needs to be set up or updated');
+                    try {
+                        await Blockchain.setUserProfile(name, username, 1); // Role.Farmer = 1
+                        console.log('✅ User profile set up successfully');
+                        alert('✅ User profile set up successfully!');
+                        // Clear cache and reload batches
+                        if (window.Blockchain && window.Blockchain.cache) {
+                            window.Blockchain.cache.clear();
+                        }
+                        await loadRecentBatches(true);
+                    } catch (profileError) {
+                        console.warn('⚠️ Profile setup failed:', profileError.message);
+                        alert('⚠️ Profile setup failed: ' + profileError.message);
+                    }
+                } else {
+                    console.log('✅ User profile already exists and is correct');
+                    alert('✅ User profile already exists and is correct');
+                }
+            } catch (error) {
+                console.error('❌ Error setting up user profile:', error);
+                alert('❌ Error setting up user profile: ' + error.message);
+            }
+        }
+
+        // Debug user profile and batch data
+        async function debugUserProfile() {
+            try {
+                await Blockchain.init();
+                
+                const currentUser = await getCurrentUser();
+                if (!currentUser) {
+                    alert('No user logged in');
+                    return;
+                }
+
+                const username = currentUser.actorId;
+                console.log('🔍 Debugging for username:', username);
+                
+                // Get profile
+                const profile = await Blockchain.getUserProfile();
+                console.log('Profile:', profile);
+                
+                // Get batch IDs by username
+                const batchIds = await Blockchain.contractRO.getBatchIdsByFarmerUsername(username);
+                console.log('Batch IDs for username:', batchIds);
+                
+                // Get all batches for user
+                const batches = await Blockchain.getBatchesForUsername(username);
+                console.log('All batches:', batches);
+                
+                alert(`Debug Info:
+Profile Username: ${profile?.username || 'Not set'}
+Profile Name: ${profile?.name || 'Not set'}
+Current Username: ${username}
+Batch IDs: ${batchIds?.length || 0}
+Loaded Batches: ${batches?.length || 0}
+
+Check console for detailed logs.`);
+                
+            } catch (error) {
+                console.error('Debug error:', error);
+                alert('Debug error: ' + error.message);
+            }
         }
 
         // Generate QR Code function
@@ -1150,10 +1319,10 @@
                     `;
                     
                     const imageHash = meta.ipfs || l.args.photoHash;
-                    if (imageHash && Blockchain?.getImageFromPinata) {
+                    if (imageHash && Blockchain?.getImageUrl) {
                         imageSection = `
                             <div style="margin-top: 12px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
-                                <img src="${Blockchain.getImageFromPinata(imageHash)}" 
+                                <img src="${Blockchain.getImageUrl(imageHash)}" 
                                      style="width: 100%; max-height: 200px; object-fit: cover; cursor: pointer;" 
                                      onclick="showFullImage('${imageHash}')" 
                                      title="Click to view full image" 
@@ -1198,7 +1367,7 @@
         // Show full image modal
         function showFullImage(ipfsHash) {
             if (!ipfsHash) return;
-            const fullUrl = Blockchain.getImageFromPinata(ipfsHash);
+            const fullUrl = Blockchain.getImageUrl(ipfsHash);
             
             // Create modal overlay
             const overlay = document.createElement('div');
@@ -1251,7 +1420,7 @@
             const originalIPFSHash = Blockchain.getOriginalIPFSHash(photoHash);
             
             if (originalIPFSHash) {
-                const imageUrl = Blockchain.getImageFromPinata(originalIPFSHash);
+                const imageUrl = Blockchain.getImageUrl(originalIPFSHash);
                 modalImg.src = imageUrl;
                 modalDesc.textContent = `Image stored on IPFS: ${originalIPFSHash}`;
                 
@@ -1349,87 +1518,117 @@
             }
         }
 
-        async function loadRecentBatches() {
-            const recentBatchesContainer = document.getElementById('recentBatches');
+        // Load recent batches with real-time blockchain data (FIXED)
+        async function loadRecentBatches(forceFresh = false) {
+            console.log('🔄 Loading recent batches...', forceFresh ? '(forcing fresh data)' : '(cache allowed)');
+            const batchesList = document.getElementById('recentBatches');
             
-            // Show loading state
-            recentBatchesContainer.innerHTML = `
-                <div class="empty-state" style="text-align:center;padding:20px;">
-                    <i class="fas fa-spinner fa-spin" style="font-size:24px;color:#6366f1;margin-bottom:12px;"></i>
-                    <p style="color:#64748b;margin:0;">Loading your batches from blockchain...</p>
-                    <span style="font-size:12px;color:#94a3b8;">Searching by your username</span>
-                </div>
-            `;
-            
-            let batches = [];
-            
-            try {
-                console.time('Load batches by username');
-                await Blockchain.init();
-                
-                // Get current user from Supabase
-                const user = await getCurrentUser();
-                const username = user?.actorId || user?.username || '';
-                
-                if (!username) {
-                    console.warn('No username found, cannot search blockchain');
-                    throw new Error('Username not available');
-                }
-                
-                console.log(`🔍 Searching blockchain for batches by username: ${username}`);
-                
-                // Use on-chain index to fetch by username (preferred over event scan)
-                const userBatches = await Blockchain.getBatchesForUsername(username);
-                console.timeEnd('Load batches by username');
-                
-                if (userBatches && userBatches.length > 0) {
-                    batches = userBatches;
-                    console.log(`✅ Found ${batches.length} batches for ${username} on blockchain`);
-                } else {
-                    console.log(`📭 No batches found for ${username} on blockchain`);
-                }
-            } catch (error) {
-                console.warn('❌ Blockchain username search failed:', error.message);
-                console.log('📦 No fallback to localStorage - only showing blockchain data');
-            }
-            
-            if (batches.length === 0) {
-                recentBatchesContainer.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-seedling"></i>
-                        <p>No batches created yet</p>
-                        <span>Create your first batch to get started with blockchain tracking</span>
+            if (batchesList) {
+                // Show loading state
+                batchesList.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #6b7280;">
+                        <div style="display: inline-block; width: 32px; height: 32px; border: 3px solid #e5e7eb; border-top: 3px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <p style="margin-top: 15px;">Loading batches from blockchain...</p>
+                        <small style="color: #9ca3af;">Real-time data from smart contract</small>
                     </div>
                 `;
-                return;
-            }
 
-            const recentBatches = batches.slice(0, 5);
-            recentBatchesContainer.innerHTML = recentBatches.map(batch => {
-                const qrCodeData = `${window.location.origin}/search.html#${batch.id}`;
-                const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(qrCodeData)}`;
-                
-                return `
-                <div class="batch-item" style="display: flex; align-items: center; justify-content: space-between; padding: 16px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 12px;">
-                    <div class="batch-info" style="flex: 1;">
-                        <h4 style="margin: 0 0 8px 0; color: #1e293b;">${batch.id}</h4>
-                        <p style="margin: 0 0 4px 0; color: #64748b;">${batch.cropType} - ${batch.quantity}kg</p>
-                        <small style="color: #94a3b8;">Created: ${new Date(batch.timestamp || Date.now()).toLocaleDateString()}</small>
-                    </div>
-                    <div class="batch-status status-${batch.status.toLowerCase().replace(' ', '-')}" style="margin: 0 16px;">
-                        ${batch.status}
-                    </div>
-                    <div class="batch-qr" style="text-align: center;">
-                        <img src="${qrCodeImageUrl}" alt="QR Code" style="width: 60px; height: 60px; cursor: pointer; border-radius: 4px;" 
-                             onclick="viewSupplyChain('${batch.id}')" title="Click to view supply chain">
-                        <div style="font-size: 10px; color: #6b7280; margin-top: 4px;">
-                            <a href="#" onclick="downloadQRCode('${qrCodeImageUrl}', '${batch.id}')" style="color: #3b82f6; text-decoration: none;">
-                                <i class="fas fa-download"></i>
-                            </a>
+                try {
+                    const startTime = Date.now();
+                    
+                    // Clear cache for fresh data when needed
+                    if (forceFresh && window.Blockchain && window.Blockchain.cache) {
+                        console.log('🗑️ Force clearing batch cache for fresh data...');
+                        const keysToDelete = [];
+                        for (const key of window.Blockchain.cache.keys()) {
+                            if (key.includes('batches_username') || key.includes('batch_detail')) {
+                                keysToDelete.push(key);
+                            }
+                        }
+                        keysToDelete.forEach(key => window.Blockchain.cache.delete(key));
+                    }
+                    
+                    const currentUser = await getCurrentUser();
+                    const username = currentUser?.actorId || '';
+                    
+                    if (!username) {
+                        batchesList.innerHTML = `
+                            <div style="text-align: center; padding: 40px; color: #dc2626;">
+                                <i class="fas fa-exclamation-triangle" style="font-size: 32px; margin-bottom: 15px;"></i>
+                                <p>No user logged in. Please log in to view batches.</p>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    await Blockchain.init();
+                    const batches = await Blockchain.getBatchesForUsername(username);
+                    
+                    const loadTime = Date.now() - startTime;
+                    console.log(`⚡ Loaded ${batches.length} batches in ${loadTime}ms`);
+
+                    if (batches && batches.length > 0) {
+                        // Sort by timestamp (newest first)
+                        batches.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                        
+                        batchesList.innerHTML = batches.map(batch => `
+                            <div class="batch-card" style="background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 16px; border-left: 4px solid #3b82f6;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                                    <h4 style="margin: 0; color: #1f2937; font-weight: 600;">
+                                        <i class="fas fa-seedling" style="color: #059669; margin-right: 8px;"></i>
+                                        ${batch.id}
+                                    </h4>
+                                    <div style="display: flex; gap: 8px;">
+                                        <button onclick="showChainInline('${batch.id}')" 
+                                                style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            <i class="fas fa-qrcode"></i> Show Chain
+                                        </button>
+                                        <button onclick="generateQRCode('${batch.id}')" 
+                                                style="background: #059669; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                                            <i class="fas fa-qr-code"></i> QR Code
+                                        </button>
+                                    </div>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px; color: #6b7280;">
+                                    <div><strong>Crop:</strong> ${batch.cropType}</div>
+                                    <div><strong>Quantity:</strong> ${batch.quantity} kg</div>
+                                    <div><strong>Location:</strong> ${batch.farmLocation?.split('::')[0] || batch.farmLocation}</div>
+                                    <div><strong>Date:</strong> ${batch.harvestDate}</div>
+                                </div>
+                                <div style="margin-top: 12px; font-size: 12px; color: #9ca3af;">
+                                    <i class="fas fa-clock"></i> Created: ${new Date(batch.timestamp).toLocaleString()}
+                                    <span style="margin-left: 15px; color: #059669;">
+                                        <i class="fas fa-check-circle"></i> On Blockchain
+                                    </span>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        batchesList.innerHTML = `
+                            <div style="text-align: center; padding: 40px; color: #6b7280;">
+                                <i class="fas fa-seedling" style="font-size: 48px; margin-bottom: 20px; color: #d1d5db;"></i>
+                                <h3 style="margin: 0 0 10px 0; color: #374151;">No Batches Yet</h3>
+                                <p>Create your first batch to get started with AyurTrace!</p>
+                                <button onclick="showCreateBatchForm()" style="background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 8px; margin-top: 15px; cursor: pointer;">
+                                    <i class="fas fa-plus"></i> Create First Batch
+                                </button>
+                            </div>
+                        `;
+                    }
+                } catch (error) {
+                    console.error('❌ Error loading batches:', error);
+                    batchesList.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #dc2626;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 32px; margin-bottom: 15px;"></i>
+                            <h3 style="margin: 0 0 10px 0;">Failed to Load Batches</h3>
+                            <p style="margin-bottom: 15px;">${error.message}</p>
+                            <button onclick="loadRecentBatches(true)" style="background: #dc2626; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;">
+                                <i class="fas fa-redo"></i> Retry (Fresh Data)
+                            </button>
                         </div>
-                    </div>
-                </div>
-            `}).join('');
+                    `;
+                }
+            }
         }
 
         // Logout functionality
@@ -1442,5 +1641,4 @@
         }
     </script>
 </body>
-
 </html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Batches</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="supabase-auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
+    <script src="blockchain.js"></script>
+</head>
+<body>
+    <h1>Debug Batches</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function debugBatches() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h3>Starting debug...</h3>';
+            
+            try {
+                // Check current user
+                results.innerHTML += '<h4>1. Checking current user...</h4>';
+                const user = await getCurrentUser();
+                results.innerHTML += `<p>User: ${JSON.stringify(user)}</p>`;
+                
+                if (!user) {
+                    results.innerHTML += '<p style="color: red;">No user logged in!</p>';
+                    return;
+                }
+                
+                const username = user.actorId;
+                results.innerHTML += `<p>Username (actorId): ${username}</p>`;
+                
+                // Initialize blockchain
+                results.innerHTML += '<h4>2. Initializing blockchain...</h4>';
+                await Blockchain.init();
+                results.innerHTML += '<p style="color: green;">Blockchain initialized successfully</p>';
+                
+                // Check if getBatchIdsByFarmerUsername function exists
+                results.innerHTML += '<h4>3. Checking contract functions...</h4>';
+                const hasV2Function = typeof Blockchain.contractRO.getBatchIdsByFarmerUsername === 'function';
+                results.innerHTML += `<p>Has getBatchIdsByFarmerUsername: ${hasV2Function}</p>`;
+                
+                if (hasV2Function) {
+                    // Try to get batches by username
+                    results.innerHTML += '<h4>4. Getting batches by username...</h4>';
+                    const batchIds = await Blockchain.contractRO.getBatchIdsByFarmerUsername(username);
+                    results.innerHTML += `<p>Batch IDs for username "${username}": ${JSON.stringify(batchIds)}</p>`;
+                    
+                    if (batchIds.length > 0) {
+                        results.innerHTML += '<h4>5. Getting batch details...</h4>';
+                        for (let i = 0; i < batchIds.length; i++) {
+                            const batchId = batchIds[i];
+                            try {
+                                const details = await Blockchain.contractRO.getBatchDetailsV2(batchId);
+                                results.innerHTML += `<p>Batch ${batchId}: ${JSON.stringify(details)}</p>`;
+                            } catch (e) {
+                                results.innerHTML += `<p style="color: red;">Error getting details for ${batchId}: ${e.message}</p>`;
+                            }
+                        }
+                    }
+                } else {
+                    results.innerHTML += '<p style="color: orange;">V2 functions not available, trying legacy method...</p>';
+                }
+                
+                // Try getBatchesForUsername method
+                results.innerHTML += '<h4>6. Using getBatchesForUsername method...</h4>';
+                const batches = await Blockchain.getBatchesForUsername(username);
+                results.innerHTML += `<p>Batches found: ${batches.length}</p>`;
+                results.innerHTML += `<p>Batch data: ${JSON.stringify(batches, null, 2)}</p>`;
+                
+                // Check profile setup
+                results.innerHTML += '<h4>7. Checking user profile...</h4>';
+                try {
+                    const profile = await Blockchain.contractRO.profiles(Blockchain.signer.address);
+                    results.innerHTML += `<p>Profile: ${JSON.stringify(profile)}</p>`;
+                } catch (e) {
+                    results.innerHTML += `<p style="color: red;">Error getting profile: ${e.message}</p>`;
+                }
+                
+            } catch (error) {
+                results.innerHTML += `<p style="color: red;">Error: ${error.message}</p>`;
+                console.error('Debug error:', error);
+            }
+        }
+        
+        // Run debug when page loads
+        window.addEventListener('load', debugBatches);
+    </script>
+</body>
+</html>

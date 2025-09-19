@@ -2,6 +2,15 @@
 (function () {
   const cfg = window.AppConfig || window.config || {};
 
+  // Pinata Configuration
+  const PINATA_CONFIG = {
+    API_KEY: 'f07648ca073181e7b248',
+    API_SECRET: 'e63b5163d8617ac63c75a9813d3858e9600c4de7cecf5880ddf57b6d5d5afc2b',
+    JWT: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJjZDc4NTU2MS02ZWJmLTQxY2ItODM5ZS1lZDllY2MwYWNhYjAiLCJlbWFpbCI6InJhbnZlZXJzaW5naDE4d0BnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkExIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiZjA3NjQ4Y2EwNzMxODFlN2IyNDgiLCJzY29wZWRLZXlTZWNyZXQiOiJlNjNiNTE2M2Q4NjE3YWM2M2M3NWE5ODEzZDM4NThlOTYwMGM0ZGU3Y2VjZjU4ODBkZGY1N2I2ZDVkNWFmYzJiIiwiZXhwIjoxNzg5NzkxOTA2fQ.ZBF9b3FcxRBTKdgcPNnk4UdqYAJnm8D3VzRfTcPy2uU',
+    GATEWAY: 'https://pink-decisive-woodpecker-623.mypinata.cloud',
+    UPLOAD_URL: 'https://api.pinata.cloud/pinning/pinFileToIPFS'
+  };
+
   const Blockchain = {
     provider: null,
     signer: null,
@@ -9,6 +18,35 @@
     contractRW: null,
     cache: new Map(), // Add caching for performance
     batchCache: new Map(), // Cache for batch details
+    eventCache: new Map(), // Cache for events
+    cacheExpiry: 30000, // 30 seconds cache
+
+    // Caching helper methods
+    getCacheKey(method, ...args) {
+      return `${method}_${args.join('_')}`;
+    },
+
+    isCacheValid(timestamp) {
+      return Date.now() - timestamp < this.cacheExpiry;
+    },
+
+    getCached(key) {
+      const cached = this.cache.get(key);
+      if (cached && this.isCacheValid(cached.timestamp)) {
+        console.log('📋 Cache hit for:', key);
+        return cached.data;
+      }
+      return null;
+    },
+
+    setCached(key, data) {
+      this.cache.set(key, { data, timestamp: Date.now() });
+      // Cleanup old cache entries (keep only last 100)
+      if (this.cache.size > 100) {
+        const keys = Array.from(this.cache.keys());
+        keys.slice(0, keys.length - 100).forEach(k => this.cache.delete(k));
+      }
+    },
 
     async init() {
       // Use Ganache RPC directly with provided private key
@@ -33,41 +71,114 @@
       return this.contractRW;
     },
 
-    // --- Image Upload to Pinata ---
+    // --- Image Upload to Pinata (OPTIMIZED) ---
     async uploadImageToPinata(imageBlob, metadata = {}) {
-      const cfg = window.AppConfig || window.config || {};
-      if (!cfg.PINATA_JWT || !cfg.PINATA_UPLOAD_URL) {
-        throw new Error('Pinata credentials not configured in config.js');
+      try {
+        console.log('📤 Starting Pinata upload...', { size: imageBlob.size, type: imageBlob.type });
+        
+        // Validate input
+        if (!imageBlob || !(imageBlob instanceof Blob)) {
+          throw new Error('Invalid image blob provided');
+        }
+
+        // Create optimized form data
+        const formData = new FormData();
+        
+        // Add file with optimized name
+        const timestamp = Date.now();
+        const fileName = `ayurtrace_${timestamp}.${imageBlob.type.split('/')[1] || 'jpg'}`;
+        formData.append('file', imageBlob, fileName);
+        
+        // Add comprehensive metadata
+        const pinataMetadata = {
+          name: fileName,
+          keyvalues: {
+            app: 'AyurTrace',
+            uploadedBy: metadata.uploadedBy || 'Farmer',
+            timestamp: new Date().toISOString(),
+            location: metadata.location || 'Unknown',
+            batchId: metadata.batchId || 'Unknown',
+            size: imageBlob.size,
+            ...metadata
+          }
+        };
+        formData.append('pinataMetadata', JSON.stringify(pinataMetadata));
+        
+        // Add options for faster processing
+        formData.append('pinataOptions', JSON.stringify({
+          cidVersion: 1,
+          wrapWithDirectory: false
+        }));
+
+        // Upload with timeout and retry logic
+        const uploadPromise = fetch(PINATA_CONFIG.UPLOAD_URL, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${PINATA_CONFIG.JWT}`
+          },
+          body: formData
+        });
+
+        // Add 30-second timeout
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Upload timeout after 30 seconds')), 30000)
+        );
+
+        const response = await Promise.race([uploadPromise, timeoutPromise]);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Pinata upload failed: ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log('✅ Pinata upload successful:', { 
+          hash: result.IpfsHash, 
+          size: result.PinSize,
+          timestamp: result.Timestamp 
+        });
+        
+        // Immediately test the uploaded image
+        const imageUrl = this.getImageUrl(result.IpfsHash);
+        console.log('🔗 Image URL:', imageUrl);
+        
+        return result.IpfsHash;
+      } catch (error) {
+        console.error('❌ Pinata upload error:', error);
+        throw new Error(`Image upload failed: ${error.message}`);
       }
-
-      const formData = new FormData();
-      formData.append('file', imageBlob);
-      formData.append('pinataMetadata', JSON.stringify({
-        name: `crop-${Date.now()}.jpg`,
-        ...metadata
-      }));
-
-      const response = await fetch(cfg.PINATA_UPLOAD_URL, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${cfg.PINATA_JWT}`
-        },
-        body: formData
-      });
-
-      if (!response.ok) {
-        throw new Error(`Pinata upload failed: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      return result.IpfsHash;
     },
 
-    // Get IPFS image URL from hash
-    getImageFromPinata(ipfsHash) {
-      const cfg = window.AppConfig || window.config || {};
-      const gateway = cfg.PINATA_GATEWAY || 'https://gateway.pinata.cloud';
-      return `${gateway}/ipfs/${ipfsHash}`;
+    // --- Get Image URL from IPFS Hash ---
+    getImageUrl(ipfsHash) {
+      if (!ipfsHash) return null;
+      // Remove ipfs:// prefix if present
+      const hash = ipfsHash.replace('ipfs://', '');
+      return `${PINATA_CONFIG.GATEWAY}/ipfs/${hash}`;
+    },
+
+    // --- Fetch Image with Authentication ---
+    async fetchImageWithAuth(ipfsHash) {
+      try {
+        const imageUrl = this.getImageUrl(ipfsHash);
+        if (!imageUrl) return null;
+
+        const response = await fetch(imageUrl, {
+          headers: {
+            'x-pinata-gateway-token': PINATA_CONFIG.JWT
+          }
+        });
+
+        if (!response.ok) {
+          console.warn(`Failed to fetch image from Pinata: ${response.status}`);
+          return null;
+        }
+
+        return response.blob();
+      } catch (error) {
+        console.error('Error fetching image from Pinata:', error);
+        return null;
+      }
     },
 
     // Store IPFS hash mapping (for demo - in production, store in contract or database)
@@ -110,14 +221,14 @@
       try {
         const meta = this.parseFarmLocationMeta(args.farmLocation || '');
         if (meta.ipfs) {
-          return this.getImageFromPinata(meta.ipfs);
+          return this.getImageUrl(meta.ipfs);
         }
       } catch {}
       // fallback: use stored mapping from photoHash -> ipfs hash if available
       try {
         if (args.photoHash) {
           const original = this.getOriginalIPFSHash(args.photoHash);
-          if (original) return this.getImageFromPinata(original);
+          if (original) return this.getImageUrl(original);
         }
       } catch {}
       return null;
@@ -135,15 +246,45 @@
       const farmerName = session?.name || session?.actorId || '';
       const farmerUsername = session?.actorId || ''; // Always use actorId as username
 
+      console.log('🌾 Creating batch with farmer details:', { farmerName, farmerUsername, batchId });
+
+      // Ensure user profile is set up first (this is crucial for indexing)
+      if (farmerUsername && c.setProfile) {
+        try {
+          console.log('👤 Setting up user profile...');
+          const role = 1; // Role.Farmer enum value
+          const profileTx = await c.setProfile(farmerName, farmerUsername, role);
+          await profileTx.wait();
+          console.log('✅ User profile set successfully');
+        } catch (profileError) {
+          console.warn('⚠️ Profile setup failed (may already exist):', profileError.message);
+        }
+      }
+
       if (c.createBatchV2) {
+        console.log('📦 Using createBatchV2 with farmer details...');
         const tx = await c.createBatchV2(batchId, cropType, BigInt(quantity), harvestDate, farmLocation, hash, farmerName, farmerUsername);
         const receipt = await tx.wait();
+        console.log('✅ Batch created with V2, clearing caches...');
+        
+        // Clear caches to ensure fresh data
+        this.cache.clear();
+        this.batchCache.clear();
+        this.eventCache.clear();
+        
         return receipt;
       }
 
       // Fallback to legacy
+      console.log('📦 Using legacy createBatch...');
       const tx = await c.createBatch(batchId, cropType, BigInt(quantity), harvestDate, farmLocation, hash);
       const receipt = await tx.wait();
+      
+      // Clear caches to ensure fresh data
+      this.cache.clear();
+      this.batchCache.clear();
+      this.eventCache.clear();
+      
       return receipt;
     },
     async getBatchDetails(batchId) {
@@ -356,9 +497,10 @@
       try { return await this.contractRO.getBatchIdsByFarmerName(name); } catch { return []; }
     },
 
-    // High-level: fetch batches for a specific username in real time
+    // High-level: fetch batches for a specific username in real time (OPTIMIZED)
     async getBatchesForUsername(username) {
       await this.init();
+      
       // If no username provided, try to get from current session
       const actualUsername = username || (await (window.getCurrentActorId ? window.getCurrentActorId() : Promise.resolve('')));
       if (!actualUsername) {
@@ -366,47 +508,83 @@
         return [];
       }
       
-      console.log('Fetching batches for username:', actualUsername);
+      // Check cache first
+      const cacheKey = this.getCacheKey('batches_username', actualUsername);
+      const cached = this.getCached(cacheKey);
+      if (cached) {
+        console.log('📋 Returning cached batches for username:', actualUsername);
+        return cached;
+      }
+      
+      console.log('🔍 Fetching batches for username:', actualUsername);
+      const startTime = Date.now();
+      
+      // Debug: Check if user profile exists
+      try {
+        const profile = await this.contractRO.profiles(this.signer.address);
+        console.log('👤 Current user profile:', profile);
+        if (!profile.username || profile.username !== actualUsername) {
+          console.warn('⚠️ User profile not set or username mismatch:', { 
+            profileUsername: profile.username, 
+            actualUsername 
+          });
+        }
+      } catch (e) {
+        console.warn('⚠️ Could not get user profile:', e.message);
+      }
       
       // 1) Get IDs by username (V2 index) - only if function exists
       let ids = [];
       try { 
         if (this.contractRO.getBatchIdsByFarmerUsername) {
+          console.log('🔍 Querying getBatchIdsByFarmerUsername for:', actualUsername);
           ids = await this.findBatchesByFarmerUsername(actualUsername); 
-          console.log('V2 username index returned:', ids);
+          console.log('✅ V2 username index returned:', ids.length, 'batches', ids);
+        } else {
+          console.warn('⚠️ getBatchIdsByFarmerUsername function not available');
         }
       } catch (e) { 
-        console.warn('V2 username fetch failed:', e.message);
+        console.warn('⚠️ V2 username fetch failed:', e.message);
       }
       
       // 2) Fallback: resolve address then get legacy address-indexed IDs
       if ((!ids || ids.length === 0) && this.contractRO.getAccountByUsername) {
         try {
           const addr = await this.contractRO.getAccountByUsername(actualUsername);
-          console.log('Resolved username to address:', addr);
+          console.log('📍 Resolved username to address:', addr);
           if (addr && addr !== ethers.ZeroAddress && this.contractRO.getFarmerBatchIds) {
             ids = await this.contractRO.getFarmerBatchIds(addr);
-            console.log('Legacy address-based IDs:', ids);
+            console.log('✅ Legacy address-based IDs:', ids.length, 'batches');
           }
         } catch (e) {
-          console.warn('Address resolution failed:', e.message);
+          console.warn('⚠️ Address resolution failed:', e.message);
         }
       }
       
       if (!ids || ids.length === 0) {
-        console.warn('No batch IDs found for username:', actualUsername);
+        console.warn('❌ No batch IDs found for username:', actualUsername);
+        this.setCached(cacheKey, []);
         return [];
       }
 
-      // 3) Load details for each ID (prefer V2 getter to get name/username)
-      const results = [];
-      for (const id of ids) {
+      // 3) Load details for each ID in parallel (OPTIMIZED)
+      console.log('⚡ Loading batch details in parallel...');
+      const batchPromises = ids.map(async (id) => {
         try {
+          // Check individual batch cache
+          const batchCacheKey = this.getCacheKey('batch_detail', id);
+          const cachedBatch = this.getCached(batchCacheKey);
+          if (cachedBatch) {
+            return cachedBatch;
+          }
+
           const d = (this.contractRO.getBatchDetailsV2)
             ? await this.contractRO.getBatchDetailsV2(id)
             : await this.contractRO.getBatchDetails(id);
+          
           const arr = Array.isArray(d) ? d : [d.batchId, d.cropType, d.quantity, d.harvestDate, d.farmLocation, d.photoHash, d.status, d.owner, d.timestamp, d.farmerName, d.farmerUsername];
-          results.push({
+          
+          const result = {
             id: arr[0],
             cropType: arr[1] || 'Unknown',
             quantity: arr[2] ? String(arr[2]) : '0',
@@ -417,13 +595,25 @@
             timestamp: Number(arr[8] || Date.now()),
             farmerName: arr[9] || '',
             farmerUsername: arr[10] || ''
-          });
+          };
+
+          // Cache individual batch
+          this.setCached(batchCacheKey, result);
+          return result;
         } catch (e) {
-          console.warn('Failed to load batch', id, e.message);
+          console.warn('⚠️ Failed to load batch', id, e.message);
+          return null;
         }
-      }
+      });
+
+      // Wait for all batches to load
+      const results = (await Promise.all(batchPromises)).filter(Boolean);
       
-      console.log('Final batch results:', results);
+      const endTime = Date.now();
+      console.log(`⚡ Loaded ${results.length} batches in ${endTime - startTime}ms`);
+      
+      // Cache the final results
+      this.setCached(cacheKey, results);
       return results;
     },
 
@@ -706,6 +896,41 @@
         const all = JSON.parse(localStorage.getItem('batch_meta') || '{}');
         return all[batchId] || null;
       } catch { return null; }
+    },
+
+    // User profile management
+    async setUserProfile(name, username, role = 1) {
+      const c = this.requireSigner();
+      if (!c.setProfile) {
+        console.warn('setProfile function not available in contract');
+        return null;
+      }
+      
+      try {
+        console.log('👤 Setting user profile:', { name, username, role });
+        const tx = await c.setProfile(name, username, role);
+        const receipt = await tx.wait();
+        console.log('✅ Profile set successfully');
+        return receipt;
+      } catch (error) {
+        console.error('❌ Error setting profile:', error);
+        throw error;
+      }
+    },
+
+    async getUserProfile(address = null) {
+      const targetAddress = address || this.signer?.address;
+      if (!targetAddress) {
+        throw new Error('No address provided and no signer available');
+      }
+      
+      try {
+        const profile = await this.contractRO.profiles(targetAddress);
+        return profile;
+      } catch (error) {
+        console.error('Error getting user profile:', error);
+        return null;
+      }
     }
   };
 
