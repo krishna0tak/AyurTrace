@@ -358,17 +358,6 @@
                 <h3 class="card-header">
                     <i class="fas fa-history"></i>
                     Recent Batches
-                    <div style="float: right; font-size: 14px;">
-                        <button onclick="debugUserProfile()" style="background: #8b5cf6; color: white; border: none; padding: 6px 12px; border-radius: 6px; margin-right: 8px; cursor: pointer; font-size: 12px;">
-                            <i class="fas fa-user-cog"></i> Debug Profile
-                        </button>
-                        <button onclick="setupUserProfile()" style="background: #059669; color: white; border: none; padding: 6px 12px; border-radius: 6px; margin-right: 8px; cursor: pointer; font-size: 12px;">
-                            <i class="fas fa-user-plus"></i> Setup Profile
-                        </button>
-                        <button onclick="loadRecentBatches(true)" style="background: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;">
-                            <i class="fas fa-sync"></i> Refresh
-                        </button>
-                    </div>
                 </h3>
                 <div id="recentBatches">
                     <div class="empty-state">
@@ -1057,9 +1046,6 @@
             try {
                 await Blockchain.init();
                 console.log('Blockchain initialized successfully');
-                
-                // Set up user profile for proper batch indexing
-                await setupUserProfile();
             } catch (error) {
                 console.warn('Failed to initialize blockchain:', error);
             }
@@ -1067,89 +1053,6 @@
             // Load data (will try blockchain first, then localStorage)
             await loadStats();
             await loadRecentBatches();
-        }
-
-        // Set up user profile for proper batch indexing
-        async function setupUserProfile() {
-            try {
-                const currentUser = await getCurrentUser();
-                if (!currentUser) {
-                    console.warn('No user logged in, skipping profile setup');
-                    alert('Please log in first');
-                    return;
-                }
-
-                const username = currentUser.actorId;
-                const name = currentUser.name || currentUser.actorId;
-                
-                console.log('👤 Setting up user profile for:', { name, username });
-                
-                // Check if profile already exists
-                const existingProfile = await Blockchain.getUserProfile();
-                console.log('Existing profile:', existingProfile);
-                
-                if (!existingProfile || !existingProfile.username || existingProfile.username !== username) {
-                    console.log('📝 Profile needs to be set up or updated');
-                    try {
-                        await Blockchain.setUserProfile(name, username, 1); // Role.Farmer = 1
-                        console.log('✅ User profile set up successfully');
-                        // Clear cache and reload batches
-                        if (window.Blockchain && window.Blockchain.cache) {
-                            window.Blockchain.cache.clear();
-                        }
-                        await loadRecentBatches(true);
-                    } catch (profileError) {
-                        console.warn('⚠️ Profile setup failed:', profileError.message);
-                        alert('⚠️ Profile setup failed: ' + profileError.message);
-                    }
-                } else {
-                    console.log('✅ User profile already exists and is correct');
-                }
-            } catch (error) {
-                console.error('❌ Error setting up user profile:', error);
-                alert('❌ Error setting up user profile: ' + error.message);
-            }
-        }
-
-        // Debug user profile and batch data
-        async function debugUserProfile() {
-            try {
-                await Blockchain.init();
-                
-                const currentUser = await getCurrentUser();
-                if (!currentUser) {
-                    alert('No user logged in');
-                    return;
-                }
-
-                const username = currentUser.actorId;
-                console.log('🔍 Debugging for username:', username);
-                
-                // Get profile
-                const profile = await Blockchain.getUserProfile();
-                console.log('Profile:', profile);
-                
-                // Get batch IDs by username
-                const batchIds = await Blockchain.contractRO.getBatchIdsByFarmerUsername(username);
-                console.log('Batch IDs for username:', batchIds);
-                
-                // Get all batches for user
-                const batches = await Blockchain.getBatchesForUsername(username);
-                console.log('All batches:', batches);
-                
-                alert(`Debug Info:
-Profile Username: ${profile?.username || 'Not set'}
-Profile Name: ${profile?.name || 'Not set'}
-Current Username: ${username}
-Batch IDs: ${batchIds?.length || 0}
-Loaded Batches: ${batches?.length || 0}
-
-Check console for detailed logs.`);
-                
-            } catch (error) {
-                console.error('Debug error:', error);
-                alert('Debug error: ' + error.message);
-            }
         }
 
         // Generate QR Code function
