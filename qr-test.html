@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Test - AyurTrace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-6 max-w-2xl">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">
+                🧪 QR Code Flow Test
+            </h1>
+            
+            <div class="space-y-6">
+                <!-- Step 1: Simulate QR Generation -->
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <h2 class="text-lg font-semibold text-gray-700 mb-3">
+                        📱 Step 1: Generate QR Code (Manufacturer)
+                    </h2>
+                    <div class="flex items-center space-x-4">
+                        <div id="qrContainer" class="border border-gray-300 rounded p-2 bg-gray-50 min-h-[160px] flex items-center justify-center">
+                            <span class="text-gray-400">QR Code will appear here</span>
+                        </div>
+                        <div class="flex-1">
+                            <input type="text" id="serialInput" value="BATCH_17583043674-P001" 
+                                   placeholder="Enter Serial Number" 
+                                   class="w-full border border-gray-300 rounded px-3 py-2 mb-3">
+                            <button onclick="generateTestQR()" 
+                                    class="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600">
+                                <i class="fas fa-qrcode mr-2"></i> Generate QR Code
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Step 2: Simulate QR Scan -->
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <h2 class="text-lg font-semibold text-gray-700 mb-3">
+                        🔍 Step 2: Scan QR Code (Consumer)
+                    </h2>
+                    <div class="space-y-3">
+                        <p class="text-gray-600 text-sm">
+                            Click the button below to simulate scanning the QR code:
+                        </p>
+                        <button onclick="simulateQRScan()" 
+                                class="w-full bg-green-500 text-white py-3 px-4 rounded hover:bg-green-600">
+                            <i class="fas fa-camera mr-2"></i> Simulate QR Code Scan
+                        </button>
+                        <div id="scanResult" class="hidden p-3 bg-green-50 border border-green-200 rounded">
+                            <p class="text-green-800 font-medium">✅ QR Code Scanned Successfully!</p>
+                            <p class="text-green-700 text-sm">Redirecting to product history...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Step 3: Manual Test Links -->
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <h2 class="text-lg font-semibold text-gray-700 mb-3">
+                        🔗 Step 3: Manual Test Links
+                    </h2>
+                    <div class="space-y-2">
+                        <a href="search.html?serial=BATCH_17583043674-P001" target="_blank"
+                           class="block w-full bg-purple-500 text-white py-2 px-4 rounded hover:bg-purple-600 text-center">
+                            <i class="fas fa-external-link-alt mr-2"></i> Test Direct Link (Query Format)
+                        </a>
+                        <a href="search.html#BATCH_17583043674-P001" target="_blank"
+                           class="block w-full bg-indigo-500 text-white py-2 px-4 rounded hover:bg-indigo-600 text-center">
+                            <i class="fas fa-hashtag mr-2"></i> Test Hash Link Format
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Instructions -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h3 class="text-blue-800 font-semibold mb-2">📋 Testing Instructions:</h3>
+                    <ol class="text-blue-700 text-sm space-y-1 list-decimal list-inside">
+                        <li>Generate QR code for a product serial number</li>
+                        <li>Simulate scanning the QR code</li>
+                        <li>Verify it redirects to search.html with product details</li>
+                        <li>Check that no automatic redirect happens from manufacturer dashboard</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSerial = '';
+        
+        function generateTestQR() {
+            const serial = document.getElementById('serialInput').value;
+            const qrContainer = document.getElementById('qrContainer');
+            
+            if (!serial) {
+                alert('Please enter a serial number');
+                return;
+            }
+            
+            currentSerial = serial;
+            const searchUrl = `${window.location.origin}${window.location.pathname.replace('qr-test.html', 'search.html')}?serial=${serial}`;
+            
+            qrContainer.innerHTML = '<div class="text-center text-gray-500">Generating QR Code...</div>';
+            
+            try {
+                if (typeof QRCode !== 'undefined') {
+                    // Use QRCode.js library
+                    qrContainer.innerHTML = '';
+                    new QRCode(qrContainer, {
+                        text: searchUrl,
+                        width: 150,
+                        height: 150,
+                        colorDark: "#000000",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.M
+                    });
+                } else if (typeof qrcode !== 'undefined') {
+                    // Use qrcode library
+                    qrcode.toDataURL(searchUrl, { width: 150 }, (err, url) => {
+                        if (err) throw err;
+                        qrContainer.innerHTML = `<img src="${url}" alt="QR Code" class="mx-auto border border-gray-300 rounded"/>`;
+                    });
+                } else {
+                    // Fallback to external service
+                    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(searchUrl)}`;
+                    qrContainer.innerHTML = `
+                        <img src="${qrApiUrl}" alt="QR Code" class="mx-auto border border-gray-300 rounded"
+                             onload="console.log('QR Code loaded from API')"
+                             onerror="this.parentElement.innerHTML='<div class=\\'text-red-500 text-sm\\'>QR generation failed</div>'"
+                        />
+                    `;
+                }
+                
+                console.log('QR Code generated for:', searchUrl);
+            } catch (error) {
+                qrContainer.innerHTML = '<div class="text-red-500 text-sm">QR generation failed</div>';
+                console.error('QR generation error:', error);
+            }
+        }
+        
+        function simulateQRScan() {
+            if (!currentSerial) {
+                alert('Please generate a QR code first');
+                return;
+            }
+            
+            const scanResult = document.getElementById('scanResult');
+            scanResult.classList.remove('hidden');
+            
+            // Simulate scanning delay
+            setTimeout(() => {
+                const searchUrl = `search.html?serial=${currentSerial}`;
+                console.log('Simulating QR scan redirect to:', searchUrl);
+                window.open(searchUrl, '_blank');
+            }, 2000);
+        }
+        
+        // Auto-generate QR on page load
+        window.addEventListener('load', () => {
+            generateTestQR();
+        });
+    </script>
+</body>
+</html>

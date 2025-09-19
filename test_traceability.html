@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Product Traceability Test - AyurTrace</title>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
+</head>
+<body>
+    <h1>Product Traceability Test</h1>
+    
+    <div id="test-section">
+        <h2>Test Serial Number Lookup</h2>
+        <p>Enter a serial number to test the traceability chain:</p>
+        <input type="text" id="serialInput" placeholder="e.g., BATCH_17583043674-P001" style="width: 300px; padding: 8px;">
+        <button onclick="testSerial()">Test Serial Number</button>
+        
+        <div id="results" style="margin-top: 20px; padding: 16px; background: #f5f5f5; border-radius: 8px;">
+            <h3>Results:</h3>
+            <div id="output">Enter a serial number to see results...</div>
+        </div>
+        
+        <div id="stored-data" style="margin-top: 20px; padding: 16px; background: #e8f4fd; border-radius: 8px;">
+            <h3>Stored Data Check:</h3>
+            <div id="storage-output">Loading stored data...</div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="blockchain.js"></script>
+    <script>
+        // Load and display current stored data
+        function displayStoredData() {
+            const manufacturedProducts = JSON.parse(localStorage.getItem('manufactured_products') || '[]');
+            const serialMapping = JSON.parse(localStorage.getItem('serial_mapping') || '{}');
+            
+            document.getElementById('storage-output').innerHTML = `
+                <h4>Manufactured Products (${manufacturedProducts.length} items):</h4>
+                <pre style="font-size: 12px; max-height: 200px; overflow-y: auto; background: white; padding: 8px; border-radius: 4px;">${JSON.stringify(manufacturedProducts, null, 2)}</pre>
+                
+                <h4>Serial Mapping (${Object.keys(serialMapping).length} items):</h4>
+                <pre style="font-size: 12px; max-height: 200px; overflow-y: auto; background: white; padding: 8px; border-radius: 4px;">${JSON.stringify(serialMapping, null, 2)}</pre>
+            `;
+        }
+        
+        async function testSerial() {
+            const serialNumber = document.getElementById('serialInput').value.trim();
+            if (!serialNumber) {
+                alert('Please enter a serial number');
+                return;
+            }
+            
+            const output = document.getElementById('output');
+            output.innerHTML = '<p>🔍 Testing serial number lookup...</p>';
+            
+            try {
+                // Initialize blockchain
+                await Blockchain.init();
+                
+                // Simulate the search.html logic
+                const serialMapping = JSON.parse(localStorage.getItem('serial_mapping') || '{}');
+                let batchId = serialMapping[serialNumber];
+                
+                const manufacturedProducts = JSON.parse(localStorage.getItem('manufactured_products') || '[]');
+                const productMatch = manufacturedProducts.find(p => p.serialNumber === serialNumber);
+                
+                let result = '<h4>Search Results:</h4>';
+                
+                if (productMatch) {
+                    batchId = productMatch.batchId;
+                    result += `<p>✅ Found in manufactured products: <strong>${serialNumber}</strong> → <strong>${batchId}</strong></p>`;
+                    result += `<p>Product Details:</p>`;
+                    result += `<pre style="font-size: 12px; background: white; padding: 8px; border-radius: 4px;">${JSON.stringify(productMatch, null, 2)}</pre>`;
+                } else if (batchId) {
+                    result += `<p>✅ Found in serial mapping: <strong>${serialNumber}</strong> → <strong>${batchId}</strong></p>`;
+                } else {
+                    batchId = serialNumber;
+                    result += `<p>⚠️ No mapping found, using as batch ID: <strong>${batchId}</strong></p>`;
+                }
+                
+                // Try to get blockchain data
+                result += '<h4>Blockchain Query:</h4>';
+                const chainData = await Blockchain.getChainForBatch(batchId);
+                
+                if (chainData && chainData.length > 0) {
+                    result += `<p>✅ Found ${chainData.length} blockchain events for batch <strong>${batchId}</strong></p>`;
+                    result += '<h4>Chain Events:</h4>';
+                    chainData.forEach((event, index) => {
+                        result += `<p><strong>Event ${index + 1}:</strong> ${event.fragment?.name || 'Unknown'} - ${new Date(Number(event.args?.timestamp || 0) * 1000).toLocaleString()}</p>`;
+                    });
+                } else {
+                    result += `<p>❌ No blockchain events found for batch <strong>${batchId}</strong></p>`;
+                }
+                
+                // Test the link that would be generated
+                result += '<h4>Generated Links:</h4>';
+                result += `<p>Hash format: <a href="search.html#${serialNumber}" target="_blank">search.html#${serialNumber}</a></p>`;
+                result += `<p>Query format: <a href="search.html?serial=${serialNumber}" target="_blank">search.html?serial=${serialNumber}</a></p>`;
+                
+                output.innerHTML = result;
+                
+            } catch (error) {
+                output.innerHTML = `<p>❌ Error: ${error.message}</p>`;
+                console.error('Test error:', error);
+            }
+        }
+        
+        // Auto-load stored data when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            displayStoredData();
+            
+            // Update stored data every 5 seconds
+            setInterval(displayStoredData, 5000);
+        });
+        
+        // Test with example if available
+        const manufacturedProducts = JSON.parse(localStorage.getItem('manufactured_products') || '[]');
+        if (manufacturedProducts.length > 0) {
+            document.getElementById('serialInput').value = manufacturedProducts[0].serialNumber;
+        }
+    </script>
+</body>
+</html>

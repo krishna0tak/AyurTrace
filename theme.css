@@ -181,21 +181,39 @@ header,
 /* Stats Section */
 .quick-stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 24px;
-    margin-bottom: 48px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
 }
 
 .stat-card {
     background: var(--surface);
     border-radius: var(--radius);
-    padding: 24px;
+    padding: 20px;
     border: 1px solid var(--border);
     box-shadow: var(--shadow-sm);
     display: flex;
     align-items: center;
-    gap: 16px;
-    transition: all 0.2s ease;
+    gap: 12px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary) 0%, var(--primary-dark) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.stat-card:hover::before {
+    opacity: 1;
 }
 
 .stat-card:hover {
@@ -204,14 +222,16 @@ header,
 }
 
 .stat-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.25rem;
+    font-size: 1rem;
     color: white;
+    flex-shrink: 0;
+    transition: all 0.3s ease;
 }
 
 .stat-icon.total {
@@ -230,18 +250,33 @@ header,
     background: #8b5cf6;
 }
 
+.stat-info {
+    flex: 1;
+    min-width: 0;
+}
+
 .stat-number {
-    font-size: 2rem;
+    font-size: 1.75rem;
     font-weight: 700;
     line-height: 1;
+    color: var(--text-primary);
+    margin: 0 0 4px 0;
+    font-variant-numeric: tabular-nums;
+    transition: color 0.3s ease;
+}
+
+.stat-card:hover .stat-number {
     color: var(--primary);
-    margin: 0;
 }
 
 .stat-label {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--text-secondary);
     margin: 0;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Cards */
@@ -978,6 +1013,31 @@ header,
 @media (max-width: 768px) {
     .container {
         padding: 0 16px;
+    }
+
+    .quick-stats {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+
+    .stat-card {
+        padding: 16px;
+        gap: 10px;
+    }
+
+    .stat-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 0.9rem;
+    }
+
+    .stat-number {
+        font-size: 1.5rem;
+    }
+
+    .stat-label {
+        font-size: 0.8rem;
     }
 
     .navbar-content {

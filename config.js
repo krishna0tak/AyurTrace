@@ -7,7 +7,7 @@ window.config = {
     SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrdGtsanJnYmtlbmJ2dnBxY2JlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc5OTkwMjMsImV4cCI6MjA3MzU3NTAyM30.2KHill336u0RcXSKjEfhqWCTofAs8B0eCZ7JXsHcyrQ',
 
     // Blockchain
-    GANACHE_URL: 'https://79fa1f4b24fd.ngrok-free.app',
+    GANACHE_URL: 'HTTP://127.0.0.1:7545',
     CONTRACT_ADDRESS: '0x07998771f190c6A34255366e2E712912C315F9D0',
     
     // Pinata IPFS Configuration

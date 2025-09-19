@@ -21,6 +21,33 @@
     <script src="blockchain.js"></script>
     <script src="enhanced-search.js"></script>
     <script>
+        // Ensure QRCode library is loaded before using it
+        function waitForQRCode() {
+            return new Promise((resolve) => {
+                let attempts = 0;
+                const maxAttempts = 50; // 5 seconds max wait
+                
+                const checkQRCode = () => {
+                    attempts++;
+                    if (typeof QRCode !== 'undefined') {
+                        console.log('✅ QRCode library loaded');
+                        resolve();
+                    } else if (typeof window.QRCode !== 'undefined') {
+                        window.QRCode = window.QRCode;
+                        console.log('✅ QRCode library loaded from window.QRCode');
+                        resolve();
+                    } else if (attempts >= maxAttempts) {
+                        console.warn('⚠️ QRCode library not loaded after 5 seconds, continuing anyway');
+                        resolve(); // Continue anyway
+                    } else {
+                        setTimeout(checkQRCode, 100);
+                    }
+                };
+                
+                checkQRCode();
+            });
+        }
+        
         // Check authentication using the proper auth system
         async function checkAuth() {
             const user = await getCurrentUser();
@@ -35,7 +62,10 @@
         }
         
         // Run auth check when page loads
-        document.addEventListener('DOMContentLoaded', checkAuth);
+        document.addEventListener('DOMContentLoaded', async () => {
+            await waitForQRCode(); // Ensure QRCode is loaded
+            await checkAuth();
+        });
     </script>
 
     <nav class="navbar">
@@ -141,6 +171,26 @@
                 </div>
             </section>
 
+            <!-- Batch History Section -->
+            <section style="background:white; border-radius:8px; padding:20px; margin-bottom:20px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+                <h2 style="margin:0 0 20px 0; color:#334155; display:flex; align-items:center; gap:8px;">
+                    <i class="fas fa-history"></i> Manufacturing History
+                </h2>
+                
+                <div style="margin-bottom:16px;">
+                    <button type="button" id="loadHistoryBtn" class="submit-btn" style="background:#6366f1;">
+                        <i class="fas fa-refresh"></i> Load Recent Batches
+                    </button>
+                    <button type="button" id="clearHistoryBtn" class="submit-btn" style="background:#ef4444; margin-left:8px;">
+                        <i class="fas fa-trash"></i> Clear History
+                    </button>
+                </div>
+                
+                <div id="batchHistoryContainer" style="background:#f8f9fa; padding:20px; border-radius:8px; min-height:60px;">
+                    <p style="text-align:center; color:#64748b; margin:0;">Click "Load Recent Batches" to view manufacturing history</p>
+                </div>
+            </section>
+
             <!-- Product Creation Dialog (Hidden by default) -->
             <div id="productDialog" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
                 <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:white; border-radius:12px; padding:24px; max-width:500px; width:90%; max-height:80vh; overflow-y:auto;">
@@ -239,7 +289,71 @@
             oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
             document.getElementById('expiryDate').value = oneYearFromNow.toISOString().split('T')[0];
 
+            // Update dashboard statistics
+            updateDashboardStats();
+
             await Blockchain.init();
+
+            // Function to update dashboard statistics
+            function updateDashboardStats() {
+                try {
+                    // Get data from localStorage
+                    const batchHistory = JSON.parse(localStorage.getItem('batch_history') || '[]');
+                    const inProduction = JSON.parse(localStorage.getItem('in_production') || '[]');
+                    const manufacturedProducts = JSON.parse(localStorage.getItem('manufactured_products') || '[]');
+                    
+                    // Calculate statistics
+                    const totalBatches = batchHistory.length;
+                    const inProductionCount = inProduction.length;
+                    const totalProducts = manufacturedProducts.length;
+                    
+                    // Calculate average wastage percentage from batch history
+                    const batchesWithWastage = batchHistory.filter(batch => 
+                        batch.wastagePercentage !== undefined && batch.wastagePercentage !== null
+                    );
+                    const avgWastage = batchesWithWastage.length > 0 
+                        ? (batchesWithWastage.reduce((sum, batch) => sum + (batch.wastagePercentage || 0), 0) / batchesWithWastage.length).toFixed(1)
+                        : 0;
+                    
+                    // Update UI with animated counters
+                    animateCounter('.stat-card:nth-child(1) .stat-number', totalBatches);
+                    animateCounter('.stat-card:nth-child(2) .stat-number', inProductionCount);
+                    animateCounter('.stat-card:nth-child(3) .stat-number', totalProducts);
+                    animateCounter('.stat-card:nth-child(4) .stat-number', avgWastage, '%');
+                    
+                    console.log('📊 Dashboard stats updated:', {
+                        totalBatches,
+                        inProductionCount,
+                        totalProducts,
+                        avgWastage: avgWastage + '%'
+                    });
+                    
+                } catch (error) {
+                    console.error('Error updating dashboard stats:', error);
+                }
+            }
+            
+            // Function to animate counter numbers
+            function animateCounter(selector, target, suffix = '') {
+                const element = document.querySelector(selector);
+                if (!element) return;
+                
+                const start = 0;
+                const duration = 1000; // 1 second
+                const increment = target / (duration / 16); // 60fps
+                let current = start;
+                
+                const timer = setInterval(() => {
+                    current += increment;
+                    if (current >= target) {
+                        current = target;
+                        clearInterval(timer);
+                    }
+                    
+                    const value = suffix === '%' ? current.toFixed(1) : Math.floor(current);
+                    element.textContent = value + suffix;
+                }, 16);
+            }
 
             // Setup batch search functionality
             const batchSearchInput = document.getElementById('batchSearchInput');
@@ -253,8 +367,8 @@
                     return;
                 }
                 
-                // Update chain display
-                await searchAndDisplayChain(batchId);
+                // Update chain display using farmer.html method
+                await showChainInline(batchId);
             }
 
             // Event listeners for search
@@ -265,6 +379,88 @@
                     searchBatch();
                 }
             });
+
+            // Batch history management
+            const loadHistoryBtn = document.getElementById('loadHistoryBtn');
+            const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+            const historyContainer = document.getElementById('batchHistoryContainer');
+
+            function loadBatchHistory() {
+                const batchHistory = JSON.parse(localStorage.getItem('batch_history') || '[]');
+                
+                if (batchHistory.length === 0) {
+                    historyContainer.innerHTML = '<p style="text-align:center; color:#64748b; margin:0;">No manufacturing history found</p>';
+                    return;
+                }
+
+                // Sort by creation date (newest first)
+                batchHistory.sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate));
+
+                const historyHtml = batchHistory.map(batch => `
+                    <div style="background:white; border:1px solid #e5e7eb; border-radius:8px; padding:16px; margin-bottom:12px;">
+                        <div style="display:flex; justify-content:between; align-items:center; margin-bottom:12px;">
+                            <h4 style="margin:0; color:#374151; font-size:16px;">
+                                <i class="fas fa-cube" style="color:#10b981; margin-right:8px;"></i>
+                                ${batch.batchId}
+                            </h4>
+                            <span style="background:${batch.status === 'completed' ? '#dcfce7' : '#fef3c7'}; color:${batch.status === 'completed' ? '#166534' : '#92400e'}; padding:4px 8px; border-radius:12px; font-size:12px; font-weight:500;">
+                                ${batch.status === 'completed' ? '✓ Completed' : '⚠️ Test Mode'}
+                            </span>
+                        </div>
+                        
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:12px;">
+                            <div>
+                                <span style="color:#6b7280; font-size:12px;">Product Type</span>
+                                <div style="font-weight:500; color:#374151;">${batch.productType}</div>
+                            </div>
+                            <div>
+                                <span style="color:#6b7280; font-size:12px;">Total Products</span>
+                                <div style="font-weight:500; color:#374151;">${batch.totalProducts}</div>
+                            </div>
+                            <div>
+                                <span style="color:#6b7280; font-size:12px;">Created Date</span>
+                                <div style="font-weight:500; color:#374151;">${new Date(batch.createdDate).toLocaleDateString()}</div>
+                            </div>
+                            <div>
+                                <span style="color:#6b7280; font-size:12px;">Expiry Date</span>
+                                <div style="font-weight:500; color:#374151;">${new Date(batch.expiryDate).toLocaleDateString()}</div>
+                            </div>
+                        </div>
+                        
+                        <div style="background:#f9fafb; padding:8px; border-radius:4px; margin-bottom:8px;">
+                            <span style="color:#6b7280; font-size:12px;">Serial Numbers (${batch.serialNumbers.length}):</span>
+                            <div style="font-family:monospace; font-size:11px; color:#374151; margin-top:4px;">
+                                ${batch.serialNumbers.slice(0, 3).join(', ')}${batch.serialNumbers.length > 3 ? ` +${batch.serialNumbers.length - 3} more` : ''}
+                            </div>
+                        </div>
+                        
+                        <div style="display:flex; gap:8px; margin-top:12px;">
+                            <button onclick="viewBatchQRs('${batch.batchId}')" style="background:#3b82f6; color:white; border:none; padding:6px 12px; border-radius:4px; font-size:12px; cursor:pointer;">
+                                <i class="fas fa-qrcode"></i> View QR Codes
+                            </button>
+                            <button onclick="searchBatchInHistory('${batch.batchId}')" style="background:#10b981; color:white; border:none; padding:6px 12px; border-radius:4px; font-size:12px; cursor:pointer;">
+                                <i class="fas fa-search"></i> View Chain
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+
+                historyContainer.innerHTML = historyHtml;
+            }
+
+            function clearBatchHistory() {
+                if (confirm('Are you sure you want to clear all manufacturing history? This cannot be undone.')) {
+                    localStorage.removeItem('batch_history');
+                    historyContainer.innerHTML = '<p style="text-align:center; color:#64748b; margin:0;">Manufacturing history cleared</p>';
+                }
+            }
+
+            // Event listeners for history
+            loadHistoryBtn.addEventListener('click', loadBatchHistory);
+            clearHistoryBtn.addEventListener('click', clearBatchHistory);
+
+            // Auto-load history on page load
+            loadBatchHistory();
 
             // QR scanner setup
             let qrStream = null;
@@ -335,118 +531,337 @@
             stopScanBtn.addEventListener('click', stopScanner);
         });
 
-        // Search and display chain function
-        async function searchAndDisplayChain(batchId) {
-            const idEl = document.getElementById('chainResultId');
+        // Search batch function (copied from farmer.html for consistency)
+        function searchBatch(batchId) {
+            if (!batchId) {
+                alert('Please enter a Batch ID');
+                return;
+            }
+            
+            console.log(`🔍 Searching for batch: ${batchId}`);
+            showChainInline(batchId);
+        }
+
+        // Inline render: fetch logs and render timeline directly from blockchain (from farmer.html)
+        async function showChainInline(batchId) {
+            const section = document.getElementById('chainResults');
             const timeline = document.getElementById('chainTimeline');
+            const idEl = document.getElementById('chainResultId');
             const processBatchSection = document.getElementById('processBatchSection');
             
+            if (!section || !timeline) {
+                console.error('Timeline elements not found');
+                return;
+            }
+
+            // Show loading state
             idEl.textContent = `Batch ID: ${batchId}`;
             timeline.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin" style="font-size:24px;color:#6366f1;"></i><p style="margin-top:12px;color:#64748b;">Searching blockchain directly...</p></div>';
             processBatchSection.style.display = 'none';
 
             try {
-                console.log(`🔍 Manufacturer direct search for batch: ${batchId}`);
+                await Blockchain.init();
+                console.log(`🔍 Direct blockchain search for: ${batchId}`);
                 const batchData = await Blockchain.searchBatchInBlockchain(batchId);
                 
                 if (!batchData || !batchData.found) {
+                    if (timeline) {
+                        timeline.innerHTML = `
+                            <div style="background: white; border-radius: 12px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #ef4444; text-align:center;padding:40px;color:#ef4444;">
+                                <i class="fas fa-exclamation-triangle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i>
+                                <h4 style="margin-bottom:8px;">No batch found: ${batchId}</h4>
+                                <p style="color:#64748b;margin-bottom:16px;">This batch ID does not exist on the blockchain</p>
+                                <div style="background:#f8f9fa;padding:12px;border-radius:8px;text-align:left;max-width:400px;margin:0 auto;">
+                                    <p style="margin:0;font-size:14px;color:#495057;"><strong>Possible reasons:</strong></p>
+                                    <ul style="margin:8px 0 0 20px;font-size:13px;color:#6c757d;">
+                                        <li>Batch ID was typed incorrectly</li>
+                                        <li>Batch was never created on blockchain</li>
+                                        <li>Different blockchain network</li>
+                                    </ul>
+                                </div>
+                                <div style="margin-top:16px;padding:12px;background:#e3f2fd;border-radius:8px;border-left:4px solid #2196f3;">
+                                    <p style="margin:0;font-size:12px;color:#1976d2;text-align:left;"><strong>Debug Info:</strong></p>
+                                    <p style="margin:4px 0 0 0;font-size:11px;color:#1976d2;text-align:left;">Search completed. Result: ${JSON.stringify(batchData)}</p>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    if (section && section.scrollIntoView) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    return;
+                }
+
+                console.log(`✅ Found batch with ${batchData.chain ? batchData.chain.length : 0} chain events`);
+
+                if (timeline && batchData.chain) {
+                    renderChainFromLogs(batchId, batchData.chain, timeline);
+                    
+                    // Show process batch button if chain is valid
+                    if (batchData.chain.length > 0) {
+                        processBatchSection.style.display = 'block';
+                        // Store current batch ID for processing
+                        window.currentBatchId = batchId;
+                    }
+                }
+                if (section && section.scrollIntoView) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } catch (e) {
+                console.error('Direct blockchain search error:', e);
+                if (timeline) {
                     timeline.innerHTML = `
-                        <div style="text-align:center;padding:40px;color:#ef4444;">
-                            <i class="fas fa-exclamation-triangle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i>
-                            <h4 style="margin-bottom:8px;">No events found for ${batchId}</h4>
-                            <p style="color:#64748b;margin-bottom:16px;">This batch does not exist on the blockchain.</p>
+                        <div style="background: white; border-radius: 12px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #ef4444; text-align:center;padding:40px;color:#ef4444;">
+                            <i class="fas fa-exclamation-circle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i>
+                            <h4 style="margin-bottom:8px;">Search Error</h4>
+                            <p style="color:#64748b;margin-bottom:16px;">Failed to search blockchain for ${batchId}</p>
                             <div style="background:#f8f9fa;padding:12px;border-radius:8px;text-align:left;max-width:400px;margin:0 auto;">
-                                <p style="margin:0;font-size:14px;color:#495057;"><strong>Manufacturer Checklist:</strong></p>
-                                <ul style="margin:8px 0 0 20px;font-size:13px;color:#6c757d;">
-                                    <li>Verify the Batch ID is correct</li>
-                                    <li>Check if the batch has been created and collected</li>
-                                    <li>Ensure you have the right blockchain network</li>
-                                </ul>
+                                <p style="margin:0;font-size:14px;color:#495057;"><strong>Error Details:</strong></p>
+                                <p style="margin:4px 0;font-size:13px;color:#6c757d;">${e.message || 'Unknown error occurred'}</p>
+                                <p style="margin:8px 0 0 0;font-size:13px;color:#6c757d;"><strong>Try:</strong> Check your connection, refresh page, or verify blockchain configuration</p>
+                            </div>
+                            <div style="margin-top:16px;padding:12px;background:#fff3cd;border-radius:8px;border-left:4px solid #ffc107;">
+                                <p style="margin:0;font-size:12px;color:#856404;text-align:left;"><strong>Debug Info:</strong></p>
+                                <p style="margin:4px 0 0 0;font-size:11px;color:#856404;text-align:left;">
+                                    Blockchain available: ${!!window.Blockchain}<br>
+                                    Search function available: ${!!(window.Blockchain && window.Blockchain.searchBatchInBlockchain)}<br>
+                                    Error: ${e.name}: ${e.message}
+                                </p>
                             </div>
                         </div>
                     `;
-                    return;
                 }
-                
-                renderTimelineWithImages(timeline, batchData.chain || []);
-                
-                // Show process batch button if chain is valid
-                if (batchData.chain && batchData.chain.length > 0) {
-                    processBatchSection.style.display = 'block';
-                    // Store current batch ID for processing
-                    window.currentBatchId = batchId;
-                }
-                
-            } catch (e) {
-                console.error('Search chain error', e);
-                timeline.innerHTML = `
-                    <div style="text-align:center;padding:40px;color:#ef4444;">
-                        <i class="fas fa-exclamation-circle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i>
-                        <h4 style="margin-bottom:8px;">Search Error</h4>
-                        <p style="color:#64748b;margin-bottom:16px;">Failed to search blockchain for ${batchId}</p>
-                        <div style="background:#f8f9fa;padding:12px;border-radius:8px;text-align:left;max-width:400px;margin:0 auto;">
-                            <p style="margin:0;font-size:14px;color:#495057;"><strong>Error Details:</strong></p>
-                            <p style="margin:4px 0;font-size:13px;color:#6c757d;">${e.message || 'Unknown error occurred'}</p>
-                        </div>
-                    </div>
-                `;
             }
         }
 
-        // Timeline renderer with images
-        function renderTimelineWithImages(container, logs) {
-            container.innerHTML = '';
-            const eventConfig = {
-                BatchCreated: { icon: '🌾', title: 'Batch Created', color: '#10b981', getDescription: (args) => {
-                    const meta = Blockchain.parseFarmLocationMeta(args.farmLocation || '');
-                    const farmer = meta.farmer || 'Unknown Farmer';
-                    const baseLoc = meta.base || (args.farmLocation || 'Not specified');
-                    let desc = `${args.cropType || 'Unknown crop'} • ${args.quantity || '0'} kg • Location: ${baseLoc} • Farmer: ${farmer}`;
-                    const imageHash = meta.ipfs || args.photoHash;
-                    if (imageHash) {
-                        desc += `<br><div style="margin-top:8px;"><img src="${Blockchain.getImageUrl(imageHash)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:2px solid #e5e7eb;" title="Image" /></div>`;
-                    }
-                    return desc; 
-                } },
-                CollectionAdded: { icon: '👷', title: 'Collection Added', color: '#3b82f6', getDescription: (args) => `Collected by ${args.collectorId || 'Unknown'} • ${args.quantity || '0'} kg of ${args.cropName || 'Unknown crop'}` },
-                InspectionAdded: { icon: '🕵️', title: 'Quality Inspection', color: '#8b5cf6', getDescription: (args) => `Result: ${args.result || 'Unknown'} • Inspector: ${args.inspectorId || 'Unknown'}${args.notes ? ` • Notes: ${args.notes}` : ''}` },
-                ProductCreated: { icon: '🏭', title: 'Product Manufactured', color: '#f59e0b', getDescription: (args) => `Product: ${args.productType || 'Unknown'} • Processed: ${args.quantityProcessed || '0'} kg • Manufacturer: ${args.manufacturerId || 'Unknown'}` },
-                ProductReceived: { icon: '📦', title: 'Product Received', color: '#06b6d4', getDescription: (args) => `${args.herbType || 'Product'} • ${args.quantity || '0'} kg • Storage: ${args.storageLocation || 'Unknown location'}` },
-                ProductDispatched: { icon: '🚚', title: 'Product Dispatched', color: '#ef4444', getDescription: (args) => `${args.quantityDispatched || args.quantityToDispatch || '0'} kg dispatched to ${args.destination || 'Unknown destination'}` }
+        // Render chain events with dynamic, user-friendly timeline (copied from farmer.html)
+        function renderChainFromLogs(batchId, logs, container) {
+            const icon = { 
+                BatchCreated: '🌾', 
+                BatchCreatedV2: '🌾',
+                CollectionAdded: '👷', 
+                InspectionAdded: '🕵️', 
+                ProductCreated: '🏭', 
+                ProductReceived: '📦', 
+                ProductDispatched: '🚚' 
             };
-
-            const cleanArgs = (args) => {
+            
+            const iconColor = {
+                BatchCreated: '#10b981', 
+                BatchCreatedV2: '#10b981',
+                CollectionAdded: '#3b82f6', 
+                InspectionAdded: '#8b5cf6', 
+                ProductCreated: '#f59e0b', 
+                ProductReceived: '#06b6d4', 
+                ProductDispatched: '#ef4444'
+            };
+            
+            // Clean formatter to hide hashes and addresses
+            const formatArgsClean = (args) => {
                 try {
-                    const out = { ...args };
-                    delete out.photoHash; delete out.owner; delete out.recordedBy; delete out.account;
-                    for (const k of Object.keys(out)) {
-                        const v = out[k];
-                        if (typeof v === 'string' && /^0x[a-fA-F0-9]{64}$/.test(v)) delete out[k];
-                    }
-                    return out;
-                } catch { return {}; }
+                    const entries = Object.entries(args || {});
+                    const allowed = entries.filter(([k, v]) => {
+                        const key = String(k).toLowerCase();
+                        if (key.includes('hash')) return false;
+                        if (key.includes('owner') || key.includes('recordedby') || key === 'account') return false;
+                        if (typeof v === 'string' && /^0x[a-fA-F0-9]{64}$/.test(v)) return false;
+                        return true;
+                    });
+                    return allowed.map(([k, v]) => {
+                        let val = v;
+                        if (typeof v === 'bigint') val = v.toString();
+                        if (typeof v === 'string' && /^0x[a-fA-F0-9]{40}$/.test(v)) {
+                            val = v.slice(0, 6) + '...' + v.slice(-4);
+                        }
+                        return `<span style="display:inline-block;margin-right:8px;padding:2px 6px;background:#f1f5f9;border-radius:4px;font-size:11px;"><strong>${k}:</strong> ${val}</span>`;
+                    }).join('') || 'Event recorded on blockchain';
+                } catch { return 'Event recorded on blockchain'; }
             };
-
-            let html = '';
+            
+            // Create container with improved styling
+            let html = `
+                <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid var(--primary); max-width: 100%; overflow: hidden;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #e2e8f0;">
+                        <i class="fas fa-timeline" style="color: var(--primary); font-size: 1.2rem;"></i>
+                        <div>
+                            <h3 style="margin: 0; color: #1e293b; font-size: 1.1rem; font-weight: 600;">Supply Chain Timeline</h3>
+                            <p style="margin: 0; font-size: 0.875rem; color: #64748b;">Batch ID: ${batchId}</p>
+                        </div>
+                    </div>
+                    <div style="position: relative;">
+            `;
+            
             logs.forEach((l, index) => {
                 const name = l.fragment?.name || 'Event';
-                const config = eventConfig[name] || { icon: '⛓️', title: name, color: '#6b7280', getDescription: () => 'Event details' };
-                const description = l.args ? config.getDescription(cleanArgs(l.args)) : 'No details';
+                const ts = l.args?.timestamp || l.args?.collectionDate || l.args?.date || null;
+                const tsNum = ts != null ? Number(ts) : null;
+                const when = tsNum ? new Date(tsNum * (tsNum > 1e12 ? 1 : 1000)).toLocaleString() : '';
                 const isLast = index === logs.length - 1;
-                const blockInfo = (l.blockNumber !== undefined && l.blockNumber !== null) ? `Block #${Number(l.blockNumber)}` : '';
-                html += `
-                <div style="display:flex; gap:16px; padding-bottom:${isLast ? '0' : '20px'}; position:relative;">
-                    <div style="background:${config.color};color:#fff;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;">${config.icon}</div>
-                    <div style="background:white;padding:12px;border-radius:10px;flex:1;border-left:4px solid ${config.color};">
-                        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
-                            <h4 style="margin:0;font-weight:600;color:#1f2937;font-size:15px;">${config.title}</h4>
-                            ${blockInfo ? `<span style=\"background:#f3f4f6;color:#6b7280;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:500;\">${blockInfo}</span>` : ''}
+                
+                let description = '';
+                let imageSection = '';
+                
+                if ((name === 'BatchCreated' || name === 'BatchCreatedV2') && l.args) {
+                    const meta = Blockchain?.parseFarmLocationMeta ? Blockchain.parseFarmLocationMeta(l.args.farmLocation || '') : {};
+                    const farmer = l.args.farmerName || meta.farmer || 'Unknown Farmer';
+                    const baseLoc = meta.base || (l.args.farmLocation || 'Not specified');
+                    
+                    description = `
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">CROP</span>
+                                <p style="margin: 0; font-size: 0.875rem; color: #1e293b; font-weight: 600;">${l.args.cropType}</p>
+                            </div>
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">QUANTITY</span>
+                                <p style="margin: 0; font-size: 0.875rem; color: #1e293b; font-weight: 600;">${l.args.quantity} kg</p>
+                            </div>
                         </div>
-                        <p style="margin:0;color:#374151;font-size:13px;line-height:1.5;">${description}</p>
+                        <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px; margin-bottom: 0.75rem;">
+                            <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">LOCATION</span>
+                            <p style="margin: 0; font-size: 0.875rem; color: #1e293b;">${baseLoc}</p>
+                        </div>
+                        <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                            <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">FARMER</span>
+                            <p style="margin: 0; font-size: 0.875rem; color: #1e293b;">${farmer}</p>
+                        </div>
+                    `;
+                    
+                    const imageHash = meta.ipfs || l.args.photoHash;
+                    if (imageHash && Blockchain?.getImageUrl) {
+                        imageSection = `
+                            <div style="margin-top: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; max-width: 200px;">
+                                <img src="${Blockchain.getImageUrl(imageHash)}" 
+                                     style="width: 100%; height: 120px; object-fit: cover; cursor: pointer;" 
+                                     onclick="showFullImage('${imageHash}')" 
+                                     title="Click to view full image" 
+                                     alt="Batch Image" />
+                                <div style="padding: 0.5rem; background: #f8fafc; text-align: center;">
+                                    <span style="font-size: 0.75rem; color: #64748b;">📸 Click to enlarge</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                } else if (name === 'CollectionAdded' && l.args) {
+                    description = `
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">COLLECTOR</span>
+                                <p style="margin: 0; font-size: 0.875rem; color: #1e293b;">${l.args.collectorId || 'Unknown'}</p>
+                            </div>
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">COLLECTED</span>
+                                <p style="margin: 0; font-size: 0.875rem; color: #1e293b;">${l.args.quantity || '0'} kg</p>
+                            </div>
+                        </div>
+                    `;
+                } else if (name === 'InspectionAdded' && l.args) {
+                    description = `
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">RESULT</span>
+                                <p style="margin: 0; font-size: 0.875rem; color: #1e293b; font-weight: 600;">${l.args.result || 'Unknown'}</p>
+                            </div>
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">INSPECTOR</span>
+                                <p style="margin: 0; font-size: 0.875rem; color: #1e293b;">${l.args.inspectorId || 'Unknown'}</p>
+                            </div>
+                        </div>
+                        ${l.args.notes ? `<div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;"><span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">NOTES</span><p style="margin: 0; font-size: 0.875rem; color: #1e293b;">${l.args.notes}</p></div>` : ''}
+                    `;
+                } else if (name === 'ProductCreated' && l.args) {
+                    description = `
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">PRODUCT</span>
+                                <p style="margin: 0; font-size: 0.875rem; color: #1e293b;">${l.args.productType || 'Unknown'}</p>
+                            </div>
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">PROCESSED</span>
+                                <p style="margin: 0; font-size: 0.875rem; color: #1e293b;">${l.args.quantityProcessed || '0'} kg</p>
+                            </div>
+                        </div>
+                    `;
+                } else if (name === 'ProductReceived' && l.args) {
+                    description = `
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">PRODUCT</span>
+                                <p style="margin: 0; font-size: 0.875rem; color: #1e293b;">${l.args.herbType || 'Product'}</p>
+                            </div>
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">QUANTITY</span>
+                                <p style="margin: 0; font-size: 0.875rem; color: #1e293b;">${l.args.quantity || '0'} kg</p>
+                            </div>
+                        </div>
+                    `;
+                } else if (name === 'ProductDispatched' && l.args) {
+                    description = `
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">DISPATCHED</span>
+                                <p style="margin: 0; font-size: 0.875rem; color: #1e293b;">${l.args.quantityDispatched || l.args.quantityToDispatch || '0'} kg</p>
+                            </div>
+                            <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px;">
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">DESTINATION</span>
+                                <p style="margin: 0; font-size: 0.875rem; color: #1e293b;">${l.args.destination || 'Unknown'}</p>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    description = `<div style="font-size: 0.875rem; color: #64748b;">${formatArgsClean(l.args)}</div>`;
+                }
+                
+                html += `
+                <div style="display: flex; gap: 1rem; margin-bottom: ${isLast ? '0' : '1.5rem'}; position: relative;">
+                    <div style="display: flex; flex-direction: column; align-items: center; z-index: 1;">
+                        <div style="background: ${iconColor[name] || '#6b7280'}; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            ${icon[name] || '⛓️'}
+                        </div>
+                        ${!isLast ? '<div style="width: 2px; height: 100%; background: #e2e8f0; margin-top: 0.5rem; position: absolute; top: 40px; left: 19px;"></div>' : ''}
+                    </div>
+                    <div style="flex: 1; background: #fafbfc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; min-width: 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                            <h4 style="margin: 0; color: #1e293b; font-size: 1rem; font-weight: 600;">${name.replace(/([A-Z])/g, ' $1').trim()}</h4>
+                            ${when ? `<span style="font-size: 0.75rem; color: #64748b; background: #f1f5f9; padding: 0.25rem 0.5rem; border-radius: 4px; white-space: nowrap;">${when}</span>` : ''}
+                        </div>
+                        <div style="font-size: 0.875rem; color: #4b5563;">
+                            ${description}
+                            ${imageSection}
+                        </div>
                     </div>
                 </div>`;
             });
+            
+            html += `
+                    </div>
+                </div>
+            `;
+            
             container.innerHTML = html;
+        }
+
+        // Show full image modal (from farmer.html)
+        function showFullImage(ipfsHash) {
+            if (!ipfsHash) return;
+            const fullUrl = Blockchain.getImageUrl(ipfsHash);
+            
+            // Create modal overlay
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:1000;';
+            overlay.onclick = (e) => {
+                if (e.target === overlay) overlay.remove();
+            };
+            
+            // Create modal content
+            const modal = document.createElement('div');
+            modal.style.cssText = 'background:white;padding:16px;border-radius:12px;max-width:90%;max-height:90%;overflow:auto;';
+            modal.innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                    <h3 style="margin:0;font-size:18px;font-weight:600;">Image Preview</h3>
+                    <button onclick="this.closest('div[style*=\"position:fixed\"]').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6b7280;">×</button>
+                </div>
+                <img src="${fullUrl}" style="max-width:100%;height:auto;border-radius:8px;" alt="Full image" />
+            `;
+            
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
         }
 
         // Product QR functions
@@ -628,7 +1043,31 @@
             submitProcessBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Products...';
             submitProcessBtn.disabled = true;
 
+            // Track production start
+            const productionRecord = {
+                batchId: batchId,
+                status: 'in-production',
+                startTime: new Date().toISOString(),
+                expectedQuantity: parseInt(formData.productQuantity),
+                productType: formData.productType
+            };
+            
+            // Store in-production status
+            const inProductionList = JSON.parse(localStorage.getItem('in_production') || '[]');
+            inProductionList.push(productionRecord);
+            localStorage.setItem('in_production', JSON.stringify(inProductionList));
+            
+            // Update dashboard stats immediately
+            updateDashboardStats();
+
             try {
+                // Initialize blockchain connection first
+                console.log('🔗 Initializing blockchain connection...');
+                const connected = await Blockchain.init();
+                if (!connected) {
+                    throw new Error('Failed to connect to blockchain. Please check your wallet connection.');
+                }
+                
                 // Create products on blockchain
                 const manufacturerId = (await getCurrentUser())?.email || 'Unknown Manufacturer';
                 // Convert to integers for BigInt conversion in blockchain.js
@@ -642,66 +1081,210 @@
                 if (!Number.isFinite(processingTs) || !Number.isFinite(expiryTs)) {
                     throw new Error('Invalid processing or expiry date');
                 }
-                // Create a single on-chain Product (represents the manufactured lot)
-                const productId = `${batchId}-PRD-${Date.now()}`;
-                await Blockchain.createProduct({
-                    productId,
-                    sourceBatchId: batchId,
-                    productType: formData.productType,
-                    quantityProcessed: quantityProcessedInt,
-                    wastage: wastageInt,
-                    processingDate: processingTs,
-                    expiryDate: expiryTs,
-                    manufacturerId: manufacturerId
-                });
-
-                // Generate serial numbers and QR codes
+                
+                // Verify we have a valid batch ID
+                if (!batchId || batchId.trim() === '') {
+                    throw new Error('No valid batch ID selected. Please search for a batch first.');
+                }
+                
+                // Create individual blockchain entries for each product
+                const createdProducts = [];
                 const serialNumbers = [];
                 const qrUrls = [];
+
+                console.log(`Creating ${formData.productQuantity} individual products on blockchain...`);
+                console.log(`Batch ID: ${batchId}`);
+                console.log(`Product Type: ${formData.productType}`);
+                console.log(`Quantity per product: ${Math.round(quantityProcessedInt / formData.productQuantity)}`);
                 
                 for (let i = 1; i <= formData.productQuantity; i++) {
                     const serialNumber = `${batchId}-P${i.toString().padStart(3, '0')}`;
-                    serialNumbers.push(serialNumber);
+                    const productId = `${batchId}-PRD-${i.toString().padStart(3, '0')}-${Date.now()}`;
                     
-                    // Generate QR code for each product
-                    const qrUrl = await QRCode.toDataURL(`${window.location.origin}/search.html?serial=${serialNumber}`, {
-                        width: 200,
-                        margin: 2,
-                        color: {
-                            dark: '#000000',
-                            light: '#FFFFFF'
+                    console.log(`Creating product ${i}/${formData.productQuantity}: ${serialNumber}`);
+                    submitProcessBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Creating Product ${i}/${formData.productQuantity}...`;
+                    
+                    try {
+                        // Create individual product on blockchain with timeout
+                        console.log(`🔗 Creating blockchain entry for product ${i}...`);
+                        
+                        const createProductPromise = Blockchain.createProduct({
+                            productId,
+                            sourceBatchId: batchId,
+                            productType: formData.productType,
+                            quantityProcessed: Math.round(quantityProcessedInt / formData.productQuantity), // Distribute quantity
+                            wastage: Math.round(wastageInt / formData.productQuantity), // Distribute wastage
+                            processingDate: processingTs,
+                            expiryDate: expiryTs,
+                            manufacturerId: manufacturerId
+                        });
+
+                        // Add timeout to prevent hanging
+                        const timeoutPromise = new Promise((_, reject) => 
+                            setTimeout(() => reject(new Error('Blockchain transaction timeout')), 30000)
+                        );
+
+                        await Promise.race([createProductPromise, timeoutPromise]);
+
+                        console.log(`✅ Created product ${i} on blockchain: ${productId}`);
+                        
+                        serialNumbers.push(serialNumber);
+                        createdProducts.push({
+                            serialNumber,
+                            productId,
+                            batchId,
+                            productType: formData.productType,
+                            manufacturedDate: formData.processingDate,
+                            packagingDate: formData.packagingDate,
+                            expiryDate: formData.expiryDate,
+                            manufacturerId: manufacturerId
+                        });
+
+                        // Generate QR code for each product pointing to search.html
+                        console.log(`🎯 Generating QR code for ${serialNumber}...`);
+                        let qrUrl;
+                        try {
+                            // Ensure QRCode library is available with timeout
+                            const qrWaitPromise = waitForQRCode();
+                            const qrTimeoutPromise = new Promise((_, reject) => 
+                                setTimeout(() => reject(new Error('QRCode library timeout')), 5000)
+                            );
+                            
+                            await Promise.race([qrWaitPromise, qrTimeoutPromise]);
+                            
+                            const searchUrl = `${window.location.origin}/search.html?serial=${serialNumber}`;
+                            console.log(`Generating QR for URL: ${searchUrl}`);
+                            
+                            // Try multiple QR generation methods
+                            if (typeof QRCode !== 'undefined' && QRCode.toDataURL) {
+                                qrUrl = await QRCode.toDataURL(searchUrl, {
+                                    width: 200,
+                                    margin: 2,
+                                    color: {
+                                        dark: '#000000',
+                                        light: '#FFFFFF'
+                                    }
+                                });
+                                console.log('✅ QR generated with QRCode.toDataURL');
+                            } else if (typeof qrcode !== 'undefined') {
+                                // Try alternative qrcode library
+                                qrUrl = await new Promise((resolve, reject) => {
+                                    qrcode.toDataURL(searchUrl, { width: 200 }, (err, url) => {
+                                        if (err) reject(err);
+                                        else resolve(url);
+                                    });
+                                });
+                                console.log('✅ QR generated with qrcode library');
+                            } else {
+                                throw new Error('No QR library available');
+                            }
+                        } catch (qrError) {
+                            console.error('QR code generation failed:', qrError);
+                            
+                            // Fallback to external QR service
+                            try {
+                                const searchUrl = `${window.location.origin}/search.html?serial=${serialNumber}`;
+                                const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(searchUrl)}`;
+                                qrUrl = apiUrl;
+                                console.log('✅ QR generated with external API');
+                            } catch (fallbackError) {
+                                // Final fallback - create SVG placeholder with actual QR pattern
+                                console.error('All QR generation methods failed:', fallbackError);
+                                qrUrl = `data:image/svg+xml;base64,${btoa(`<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg"><rect width="200" height="200" fill="#ffffff" stroke="#000000" stroke-width="2"/><text x="100" y="60" text-anchor="middle" font-family="Arial" font-size="14" fill="#000000" font-weight="bold">QR Code</text><text x="100" y="80" text-anchor="middle" font-family="Arial" font-size="10" fill="#000000">${serialNumber}</text><text x="100" y="100" text-anchor="middle" font-family="Arial" font-size="8" fill="#666666">📱 Scan with QR reader</text><text x="100" y="120" text-anchor="middle" font-family="Arial" font-size="8" fill="#666666">URL: search.html?serial=${serialNumber}</text><rect x="50" y="130" width="100" height="50" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="5,5"/></svg>`)}`;
+                            }
                         }
-                    });
-                    
-                    qrUrls.push({
-                        url: qrUrl,
-                        serial: serialNumber,
-                        productId: `${formData.productType} - ${serialNumber}`
-                    });
+
+                        qrUrls.push({
+                            url: qrUrl,
+                            serial: serialNumber,
+                            productId: `${formData.productType} - ${serialNumber}`,
+                            searchLink: `${window.location.origin}/search.html?serial=${serialNumber}`,
+                            hashLink: `${window.location.origin}/search.html#${serialNumber}`
+                        });
+
+                        console.log(`✅ Generated QR for ${serialNumber}:`);
+                        console.log(`   📱 QR code contains product serial number`);
+                        console.log(`   🔍 Scan QR to view complete product history`);
+
+                    } catch (productError) {
+                        console.error(`❌ Error creating product ${i}:`, productError);
+                        
+                        // Show detailed error but continue
+                        const continueAnyway = confirm(
+                            `Error creating product ${i}: ${productError.message}\n\n` +
+                            `This could be due to:\n` +
+                            `• Blockchain connection issues\n` +
+                            `• Network timeout\n` +
+                            `• Invalid data\n\n` +
+                            `Continue with remaining products?`
+                        );
+                        
+                        if (!continueAnyway) {
+                            throw new Error(`Stopped at product ${i}: ${productError.message}`);
+                        }
+                    }
                 }
 
-                // Store product information
-                const products = serialNumbers.map((serial, index) => ({
-                    serialNumber: serial,
+                console.log(`✅ Successfully created ${createdProducts.length} products on blockchain`);
+
+                // Store product information in localStorage for search.html
+                const existingProducts = JSON.parse(localStorage.getItem('manufactured_products') || '[]');
+                const allProducts = [...existingProducts, ...createdProducts];
+                localStorage.setItem('manufactured_products', JSON.stringify(allProducts));
+
+                // Also create serial mapping for backward compatibility
+                const existingMapping = JSON.parse(localStorage.getItem('serial_mapping') || '{}');
+                createdProducts.forEach(product => {
+                    existingMapping[product.serialNumber] = product.batchId;
+                });
+                localStorage.setItem('serial_mapping', JSON.stringify(existingMapping));
+
+                // Store batch history in manufacturer dashboard
+                // Calculate wastage (if any failed products)
+                const expectedQuantity = parseInt(formData.productQuantity);
+                const actualProducts = createdProducts.length;
+                const wastageCount = Math.max(0, expectedQuantity - actualProducts);
+                const wastagePercentage = expectedQuantity > 0 ? ((wastageCount / expectedQuantity) * 100).toFixed(2) : 0;
+
+                const batchHistory = {
                     batchId: batchId,
                     productType: formData.productType,
-                    manufacturedDate: formData.processingDate,
+                    quantity: expectedQuantity,
+                    totalProducts: actualProducts,
+                    wastageCount: wastageCount,
+                    wastagePercentage: parseFloat(wastagePercentage),
+                    createdDate: new Date().toISOString(),
+                    processingDate: formData.processingDate,
                     packagingDate: formData.packagingDate,
                     expiryDate: formData.expiryDate,
-                    manufacturerId: manufacturerId
-                }));
-                
-                localStorage.setItem('manufactured_products', JSON.stringify([
-                    ...JSON.parse(localStorage.getItem('manufactured_products') || '[]'),
-                    ...products
-                ]));
+                    serialNumbers: createdProducts.map(p => p.serialNumber),
+                    qrCodes: qrUrls,
+                    status: 'completed',
+                    manufacturerNotes: `Successfully created ${actualProducts}/${expectedQuantity} products with QR codes${wastageCount > 0 ? ` (${wastageCount} failed)` : ''}`
+                };
+
+                // Store batch history
+                const existingBatches = JSON.parse(localStorage.getItem('batch_history') || '[]');
+                existingBatches.push(batchHistory);
+                localStorage.setItem('batch_history', JSON.stringify(existingBatches));
+
+                // Remove from in-production list
+                const inProductionList = JSON.parse(localStorage.getItem('in_production') || '[]');
+                const updatedInProduction = inProductionList.filter(item => item.batchId !== batchId);
+                localStorage.setItem('in_production', JSON.stringify(updatedInProduction));
+
+                console.log(`✅ Stored ${createdProducts.length} products in localStorage:`, createdProducts.map(p => p.serialNumber));
+                console.log(`✅ Stored batch history for batch: ${batchId}`, batchHistory);
+
+                // Update dashboard stats
+                updateDashboardStats();
 
                 // Hide dialog
                 productDialog.style.display = 'none';
 
                 // Show QR codes section
                 document.getElementById('productQRSection').style.display = 'block';
-                document.getElementById('qrCount').textContent = formData.productQuantity;
+                document.getElementById('qrCount').textContent = createdProducts.length;
                 document.getElementById('batchIdDisplay').textContent = batchId;
                 
                 const qrGrid = document.getElementById('qrGrid');
@@ -710,6 +1293,10 @@
                         <img src="${qr.url}" style="width:150px; height:150px; margin-bottom:8px;">
                         <p style="margin:0; font-size:12px; color:#374151; font-weight:500;">${qr.serial}</p>
                         <p style="margin:4px 0 0 0; font-size:11px; color:#6b7280;">${formData.productType}</p>
+                        <small style="color:#10b981; font-size:10px;">✓ On Blockchain</small>
+                        <div style="margin-top:8px; font-size:10px; color:#10b981;">
+                            📱 Scan QR to view product history
+                        </div>
                     </div>
                 `).join('');
 
@@ -721,22 +1308,188 @@
                 if (dlBtn) dlBtn.onclick = () => downloadAllQRs(qrUrls, batchId);
                 if (prBtn) prBtn.onclick = () => printQRCodes(qrUrls, batchId);
 
-                alert(`Successfully created ${formData.productQuantity} products with serial numbers!`);
+                alert(`Successfully created ${createdProducts.length} products on blockchain!
 
-                // Redirect to search.html after 2 seconds
-                setTimeout(() => {
-                    window.location.href = 'search.html';
-                }, 2000);
+🔗 Serial Numbers Generated:
+${serialNumbers.slice(0, 3).join(', ')}${serialNumbers.length > 3 ? ` + ${serialNumbers.length - 3} more` : ''}
+
+📱 QR Codes Generated Successfully!
+• Use Download or Print buttons below to get QR codes
+• Each QR code contains the product serial number
+• When scanned, QR codes will show complete product history
+
+⛓️ Each product has individual blockchain entry
+🔗 Ready for distribution with QR codes!`);
+
+                // No automatic redirect - let user download QR codes instead
+                console.log('✅ Products created successfully. QR codes ready for download.');
 
             } catch (error) {
                 console.error('Error creating products:', error);
-                alert('Error creating products: ' + error.message);
+                
+                // Remove from in-production list on error
+                const inProductionList = JSON.parse(localStorage.getItem('in_production') || '[]');
+                const updatedInProduction = inProductionList.filter(item => item.batchId !== batchId);
+                localStorage.setItem('in_production', JSON.stringify(updatedInProduction));
+                
+                // Update dashboard stats
+                updateDashboardStats();
+                
+                // Show detailed error information
+                const errorMsg = `Error creating products: ${error.message}\n\nPossible causes:\n• Blockchain connection issues\n• Wallet not connected\n• Network problems\n• Invalid form data\n\nCheck the browser console for more details.`;
+                
+                // Ask if user wants to continue in test mode
+                const useTestMode = confirm(errorMsg + '\n\nWould you like to continue in TEST MODE?\n(This will create QR codes without blockchain entries)');
+                
+                if (useTestMode) {
+                    console.log('🧪 Continuing in TEST MODE...');
+                    
+                    // Create test products without blockchain
+                    const createdProducts = [];
+                    const serialNumbers = [];
+                    const qrUrls = [];
+                    
+                    for (let i = 1; i <= formData.productQuantity; i++) {
+                        const serialNumber = `${batchId || 'TEST_BATCH'}-P${i.toString().padStart(3, '0')}`;
+                        const productId = `${batchId || 'TEST_BATCH'}-PRD-${i.toString().padStart(3, '0')}-${Date.now()}`;
+                        
+                        createdProducts.push({
+                            serialNumber,
+                            productId,
+                            batchId: batchId || 'TEST_BATCH',
+                            productType: formData.productType,
+                            manufacturedDate: formData.processingDate,
+                            packagingDate: formData.packagingDate,
+                            expiryDate: formData.expiryDate,
+                            manufacturerId: 'TEST_MANUFACTURER'
+                        });
+                        
+                        serialNumbers.push(serialNumber);
+                        
+                        // Create simple QR code
+                        const qrUrl = `data:image/svg+xml;base64,${btoa(`<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg"><rect width="200" height="200" fill="#f3f4f6" stroke="#d1d5db"/><text x="100" y="70" text-anchor="middle" font-family="Arial" font-size="14" fill="#374151" font-weight="bold">TEST QR</text><text x="100" y="90" text-anchor="middle" font-family="Arial" font-size="10" fill="#6b7280">${serialNumber}</text><text x="100" y="110" text-anchor="middle" font-family="Arial" font-size="8" fill="#9ca3af">search.html?serial=${serialNumber}</text><text x="100" y="130" text-anchor="middle" font-family="Arial" font-size="8" fill="#ef4444">TEST MODE</text></svg>`)}`;
+                        
+                        qrUrls.push({
+                            url: qrUrl,
+                            serial: serialNumber,
+                            productId: `${formData.productType} - ${serialNumber}`,
+                            searchLink: `${window.location.origin}/search.html?serial=${serialNumber}`,
+                            hashLink: `${window.location.origin}/search.html#${serialNumber}`
+                        });
+                    }
+                    
+                    // Store in localStorage
+                    const existingProducts = JSON.parse(localStorage.getItem('manufactured_products') || '[]');
+                    const allProducts = [...existingProducts, ...createdProducts];
+                    localStorage.setItem('manufactured_products', JSON.stringify(allProducts));
+
+                    const existingMapping = JSON.parse(localStorage.getItem('serial_mapping') || '{}');
+                    createdProducts.forEach(product => {
+                        existingMapping[product.serialNumber] = product.batchId;
+                    });
+                    localStorage.setItem('serial_mapping', JSON.stringify(existingMapping));
+                    
+                    // Store batch history for test mode
+                    const batchHistory = {
+                        batchId: batchId || 'TEST_BATCH',
+                        productType: formData.productType,
+                        quantity: formData.productQuantity,
+                        totalProducts: createdProducts.length,
+                        createdDate: new Date().toISOString(),
+                        processingDate: formData.processingDate,
+                        packagingDate: formData.packagingDate,
+                        expiryDate: formData.expiryDate,
+                        serialNumbers: createdProducts.map(p => p.serialNumber),
+                        qrCodes: qrUrls,
+                        status: 'test_mode',
+                        manufacturerNotes: `TEST MODE: Created ${createdProducts.length} products without blockchain`
+                    };
+
+                    const existingBatches = JSON.parse(localStorage.getItem('batch_history') || '[]');
+                    existingBatches.push(batchHistory);
+                    localStorage.setItem('batch_history', JSON.stringify(existingBatches));
+                    
+                    // Show QR codes
+                    productDialog.style.display = 'none';
+                    document.getElementById('productQRSection').style.display = 'block';
+                    document.getElementById('qrCount').textContent = createdProducts.length;
+                    document.getElementById('batchIdDisplay').textContent = batchId || 'TEST_BATCH';
+                    
+                    const qrGrid = document.getElementById('qrGrid');
+                    qrGrid.innerHTML = qrUrls.map(qr => `
+                        <div style="text-align:center; padding:12px; background:white; border-radius:8px; border:1px solid #e5e7eb;">
+                            <img src="${qr.url}" style="width:150px; height:150px; margin-bottom:8px;">
+                            <p style="margin:0; font-size:12px; color:#374151; font-weight:500;">${qr.serial}</p>
+                            <p style="margin:4px 0 0 0; font-size:11px; color:#6b7280;">${formData.productType}</p>
+                            <small style="color:#ef4444; font-size:10px;">⚠️ TEST MODE</small>
+                            <div style="margin-top:8px; font-size:10px; color:#10b981;">
+                                📱 Scan QR to view product history
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    alert('TEST MODE: Created products locally without blockchain.\nQR codes will still work for testing the search functionality.');
+                    
+                } else {
+                    alert('Product creation cancelled. Please check your blockchain connection and try again.');
+                }
             } finally {
                 submitProcessBtn.innerHTML = '<i class="fas fa-cogs"></i> Create Products';
                 submitProcessBtn.disabled = false;
             }
         });
         })();
+
+        // Helper functions for batch history
+        function viewBatchQRs(batchId) {
+            const batchHistory = JSON.parse(localStorage.getItem('batch_history') || '[]');
+            const batch = batchHistory.find(b => b.batchId === batchId);
+            
+            if (!batch || !batch.qrCodes) {
+                alert('QR codes not found for this batch');
+                return;
+            }
+
+            // Show QR codes in a modal or new window
+            const qrWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes');
+            qrWindow.document.write(`
+                <html>
+                <head>
+                    <title>QR Codes - ${batchId}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+                        .qr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+                        .qr-item { background: white; padding: 16px; border-radius: 8px; text-align: center; border: 1px solid #ddd; }
+                        .qr-item img { max-width: 100%; height: auto; margin-bottom: 8px; }
+                        h1 { color: #333; text-align: center; }
+                        .print-btn { background: #6366f1; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 10px; }
+                    </style>
+                </head>
+                <body>
+                    <h1>QR Codes for Batch: ${batchId}</h1>
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <button class="print-btn" onclick="window.print()">🖨️ Print QR Codes</button>
+                        <button class="print-btn" onclick="window.close()">❌ Close</button>
+                    </div>
+                    <div class="qr-grid">
+                        ${batch.qrCodes.map(qr => `
+                            <div class="qr-item">
+                                <img src="${qr.url}" alt="QR Code for ${qr.serial}">
+                                <div style="font-weight: bold; margin-bottom: 4px;">${qr.serial}</div>
+                                <div style="color: #666; font-size: 12px;">${batch.productType}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </body>
+                </html>
+            `);
+        }
+
+        function searchBatchInHistory(batchId) {
+            // Set the batch ID in the search input and trigger search
+            document.getElementById('batchSearchInput').value = batchId;
+            document.getElementById('searchBatchBtn').click();
+        }
 
         // Logout functionality
         document.getElementById('logoutBtn').addEventListener('click', async function(e) {
