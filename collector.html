@@ -55,6 +55,7 @@
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script src="blockchain.js"></script>
+    <script src="enhanced-search.js"></script>
     <script>
         // Check authentication
         async function checkAuth() {
@@ -97,48 +98,8 @@
                 <p>Search and view batch history, then add collections to the blockchain.</p>
             </section>
 
-            <!-- Timeline Search Section (Primary) -->
-            <section class="card" style="margin-bottom: 2rem;">
-                <h3 class="card-header">
-                    <i class="fas fa-timeline"></i>
-                    Batch Timeline & Search
-                </h3>
-                <div class="form-group">
-                    <label for="searchBatchInput">Enter Batch ID to view complete supply chain history</label>
-                    <div class="input-group">
-                        <input type="text" id="searchBatchInput" class="form-input" placeholder="Enter Batch ID (e.g., BATCH_1726614123456)">
-                        <button type="button" id="searchBatchBtn" class="get-location-btn">
-                            <i class="fas fa-search"></i>
-                        </button>
-                        <button type="button" id="qrScanBtn" class="get-location-btn" style="margin-left: 8px; background: #8b5cf6;">
-                            <i class="fas fa-camera"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- QR Scanner (Hidden by default) -->
-                <div id="qrScannerSection" style="display: none; margin-top: 16px; text-align: center;">
-                    <video id="qrVideo" style="width: 100%; max-width: 400px; border-radius: 8px;"></video>
-                    <div style="margin-top: 12px;">
-                        <button type="button" id="stopScanBtn" class="submit-btn" style="background: #ef4444;">
-                            <i class="fas fa-times"></i> Stop Scanner
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Timeline Display -->
-                <div id="chainTimeline" class="relative" style="padding-left: 16px; border-left: 2px solid #e2e8f0; margin-top: 20px;">
-                    <p style="color:#94a3b8;">Search for a Batch ID above to view the complete supply chain history.</p>
-                </div>
-
-                <!-- Action Button to Add Collection -->
-                <div id="timelineActionButton" style="display: none; text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
-                    <button type="button" id="addCollectionFromTimelineBtn" class="submit-btn" style="background: #f59e0b;">
-                        <i class="fas fa-plus"></i>
-                        Add Collection to This Batch
-                    </button>
-                </div>
-            </section>
+            <!-- Enhanced Search Section -->
+            <div id="enhancedSearchContainer"></div>
 
             <!-- Add Collection Form (Hidden initially) -->
             <section class="card hidden" id="addCollectionSection">
@@ -254,8 +215,14 @@
             // QR Scanner functionality
             setupQRScanner();
             
-            // Search functionality
-            setupSearchFeatures();
+            // Initialize Enhanced Search
+            if (window.EnhancedSearch) {
+                EnhancedSearch.init('enhancedSearchContainer', {
+                    enableQRScan: true,
+                    enableImageViewer: true,
+                    enableExport: true
+                });
+            }
             
             // Collection form functionality
             setupCollectionForm();

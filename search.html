@@ -36,7 +36,7 @@
                 <h2 class="text-2xl font-bold text-gray-800">Supply Chain History</h2>
                 <p id="searchResultId" class="text-gray-500 mb-4">Serial Number: -</p>
                 <div id="searchResultTrace" class="relative pl-6 border-l-2 border-gray-200">
-                    <p>Enter a Serial Number in the URL (e.g., search.html#00125) to see the history.</p>
+                    <p>Enter a Serial Number in the URL (e.g., search.html#12345) to see the product history.</p>
                 </div>
             </section>
         </main>
@@ -165,8 +165,7 @@
                     description = `${l.args.cropType} • ${l.args.quantity} kg • Location: ${baseLoc} • Farmer: ${farmer}`;
                     const imageHash = meta.ipfs || l.args.photoHash;
                     if (imageHash && Blockchain?.getImageUrl) {
-                        description += `                    if (imageHash && Blockchain?.getImageUrl) {
-                        description += `<br><div style="margin-top:8px;"><img src="${Blockchain.getImageUrl(imageHash)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:2px solid #e5e7eb;" onclick="showFullImage('${imageHash}')" title="Click to view full image" /><span style="margin-left:8px;color:#3b82f6;cursor:pointer;" onclick="showFullImage('${imageHash}')"><i class="fas fa-expand"></i> View Full</span></div>`;`;
+                        description += `<br><div style="margin-top:8px;"><img src="${Blockchain.getImageUrl(imageHash)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:2px solid #e5e7eb;" onclick="showFullImage('${imageHash}')" title="Click to view full image" /><span style="margin-left:8px;color:#3b82f6;cursor:pointer;" onclick="showFullImage('${imageHash}')"><i class="fas fa-expand"></i> View Full</span></div>`;
                     }
                 } else {
                     description = formatArgsClean(l.args);

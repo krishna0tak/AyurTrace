@@ -18,6 +18,7 @@
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script src="blockchain.js"></script>
+    <script src="enhanced-search.js"></script>
     <script>
         // Check authentication using the proper auth system
         async function checkAuth() {
@@ -92,41 +93,8 @@
                 </div>
             </section>
 
-            <!-- Supply Chain Timeline (First) -->
-            <section class="card" id="chainResultsSection" style="display: block;">
-                <h3 class="card-header">
-                    <i class="fas fa-route"></i>
-                    Supply Chain Timeline
-                </h3>
-                <div style="padding: 16px;">
-                    <div class="form-group">
-                        <label for="searchInput">Search/Scan Batch ID</label>
-                        <div class="input-group">
-                            <input type="text" id="searchInput" class="form-input" placeholder="Enter Batch ID or Collection ID">
-                            <button type="button" id="searchBtn" class="get-location-btn">
-                                <i class="fas fa-search"></i>
-                            </button>
-                            <button type="button" id="qrScanBtn" class="get-location-btn" style="margin-left: 8px; background: #8b5cf6;" title="Scan QR">
-                                <i class="fas fa-camera"></i>
-                            </button>
-                        </div>
-                        <div id="qrScannerSection" style="display: none; margin-top: 16px; text-align: center;">
-                            <video id="qrVideo" style="width: 100%; max-width: 400px; border-radius: 8px;"></video>
-                            <div style="margin-top: 12px;">
-                                <button type="button" id="stopScanBtn" class="submit-btn" style="background: #ef4444;">
-                                    <i class="fas fa-times"></i> Stop Scanner
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="timelineResults" style="margin-top: 20px;">
-                        <p id="chainResultId" class="text-sm" style="color:#64748b; margin-bottom: 12px;">Enter a Batch ID to view supply chain history</p>
-                        <div id="chainTimeline" class="relative" style="padding-left: 16px; border-left: 2px solid #e2e8f0;">
-                            <p style="color:#94a3b8;">Search or scan a Batch ID to view the complete history.</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
+            <!-- Enhanced Search Section -->
+            <div id="enhancedSearchContainer"></div>
 
             <!-- Process Batch Form (Second) -->
             <section class="card">
@@ -176,6 +144,12 @@
                                     placeholder="e.g., Wheat Flour 10kg, Rice Bag 25kg, Herbal Extract" required>
                             </div>
                             <div class="form-group">
+                                <label for="productQuantity">Number of Products to Generate</label>
+                                <input type="number" id="productQuantity" class="form-input" 
+                                    placeholder="How many individual products to create?" required min="1" max="1000" step="1" value="1">
+                                <small class="text-gray-500">Each product will get a unique serial number and QR code</small>
+                            </div>
+                            <div class="form-group">
                                 <label for="expiryDate">Expiry Date</label>
                                 <input type="date" id="expiryDate" class="form-input" required>
                             </div>
@@ -203,14 +177,21 @@
             <section class="card" id="productQRSection" style="display:none;">
                 <h3 class="card-header">
                     <i class="fas fa-qrcode"></i>
-                    Product QR
+                    Product QR Codes
                 </h3>
-                <div style="padding:16px; text-align:center;">
-                    <p id="productQRTitle" style="margin-bottom:12px;color:#334155;">Product ID:</p>
-                    <img id="productQRImg" alt="Product QR" style="width:180px;height:180px;border-radius:8px;border:1px solid #e2e8f0;" />
-                    <div style="margin-top:12px;">
-                        <button id="downloadProductQRBtn" class="submit-btn" type="button">
-                            <i class="fas fa-download"></i> Download QR
+                <div style="padding:16px;">
+                    <div id="qrStats" style="margin-bottom:16px; padding:12px; background:#f8f9fa; border-radius:8px; text-align:center;">
+                        <p style="margin:0; color:#334155; font-weight:500;">Generated <span id="qrCount">0</span> QR codes for batch: <span id="batchIdDisplay">-</span></p>
+                    </div>
+                    <div id="qrGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:16px; margin-bottom:16px;">
+                        <!-- QR codes will be generated here -->
+                    </div>
+                    <div style="text-align:center;">
+                        <button id="downloadAllQRBtn" class="submit-btn" type="button" style="margin-right:8px;">
+                            <i class="fas fa-download"></i> Download All QR Codes
+                        </button>
+                        <button id="printQRBtn" class="submit-btn" type="button" style="background:#6366f1;">
+                            <i class="fas fa-print"></i> Print QR Codes
                         </button>
                     </div>
                 </div>
@@ -253,30 +234,14 @@
 
             await Blockchain.init();
 
-            // Search functionality 
-            const searchBtn = document.getElementById('searchBtn');
-            const searchInput = document.getElementById('searchInput');
-            const batchIdInput = document.getElementById('sourceBatchId');
-            
-            searchBtn.addEventListener('click', async function() {
-                const searchId = searchInput.value.trim();
-                if (!searchId) {
-                    alert('Please enter a Batch ID');
-                    return;
-                }
-                
-                await searchAndDisplayChain(searchId);
-                // Auto-fill batch ID for processing form
-                batchIdInput.value = searchId;
-                fetchBtn.click(); // Trigger batch detail fetch
-            });
-
-            // Enter key support for search
-            searchInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    searchBtn.click();
-                }
-            });
+            // Initialize Enhanced Search
+            if (window.EnhancedSearch) {
+                EnhancedSearch.init('enhancedSearchContainer', {
+                    enableQRScan: true,
+                    enableImageViewer: true,
+                    enableExport: true
+                });
+            }
 
             // QR scanner helpers
             let qrStream = null;
@@ -415,48 +380,97 @@
                     quantityProcessed: parseFloat(document.getElementById('quantityProcessed').value),
                     wastage: parseFloat(document.getElementById('wastage').value),
                     productType: document.getElementById('productType').value,
+                    productQuantity: parseInt(document.getElementById('productQuantity').value),
                     expiryDate: document.getElementById('expiryDate').value,
                     batchLocation: document.getElementById('batchLocation').value,
                     processingNotes: document.getElementById('processingNotes').value
                 };
 
+                // Validation
+                if (formData.productQuantity < 1 || formData.productQuantity > 1000) {
+                    alert('Product quantity must be between 1 and 1000');
+                    return;
+                }
+
+                if (formData.quantityProcessed <= 0) {
+                    alert('Quantity processed must be greater than 0');
+                    return;
+                }
+
+                if (formData.wastage < 0) {
+                    alert('Wastage cannot be negative');
+                    return;
+                }
+
+                if ((formData.quantityProcessed + formData.wastage) > parseFloat(document.getElementById('availableQuantity').value)) {
+                    alert('Total processed quantity and wastage cannot exceed available quantity');
+                    return;
+                }
+
                 const user = await getCurrentUser();
                 const manufacturerId = await getCurrentActorId() || user?.actorId || user?.actor_id || user?.name || 'MAN001';
 
                 try {
-                    const result = await Blockchain.createProduct({
-                        batchId: formData.sourceBatchId,
-                        manufacturerId,
-                        productType: formData.productType,
-                        quantityProcessed: formData.quantityProcessed,
-                        expiryDate: formData.expiryDate,
-                        location: formData.batchLocation
-                    });
+                    // Show progress
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Products...';
+                    submitBtn.disabled = true;
 
-                    if (result?.productId) {
-                        // Store serial number mapping for search
-                        const serialMapping = JSON.parse(localStorage.getItem('serial_mapping') || '{}');
-                        const serialNumber = result.productId.replace('PROD_', '');
-                        serialMapping[serialNumber] = formData.sourceBatchId;
-                        localStorage.setItem('serial_mapping', JSON.stringify(serialMapping));
+                    const productIds = [];
+                    const serialMapping = JSON.parse(localStorage.getItem('serial_mapping') || '{}');
 
-                        // Show QR for the product
-                        showProductQR(result.productId);
-                        
-                        // Refresh timeline
-                        await searchAndDisplayChain(formData.sourceBatchId);
+                    // Create multiple products
+                    for (let i = 0; i < formData.productQuantity; i++) {
+                        const result = await Blockchain.createProduct({
+                            batchId: formData.sourceBatchId,
+                            manufacturerId,
+                            productType: formData.productType,
+                            quantityProcessed: formData.quantityProcessed / formData.productQuantity, // Divide total quantity
+                            expiryDate: formData.expiryDate,
+                            location: formData.batchLocation
+                        });
+
+                        if (result?.productId) {
+                            productIds.push(result.productId);
+                            
+                            // Generate 5-digit serial number
+                            const serialNumber = String(Math.floor(10000 + Math.random() * 90000));
+                            serialMapping[serialNumber] = formData.sourceBatchId;
+                            
+                            // Store product details for QR generation
+                            const productDetails = JSON.parse(localStorage.getItem('product_details') || '{}');
+                            productDetails[serialNumber] = {
+                                productId: result.productId,
+                                batchId: formData.sourceBatchId,
+                                productType: formData.productType,
+                                expiryDate: formData.expiryDate,
+                                manufacturerId: manufacturerId,
+                                serialNumber: serialNumber
+                            };
+                            localStorage.setItem('product_details', JSON.stringify(productDetails));
+                        }
                     }
 
-                    alert('Product created successfully and added to blockchain!');
+                    localStorage.setItem('serial_mapping', JSON.stringify(serialMapping));
+
+                    if (productIds.length > 0) {
+                        // Show multiple QR codes
+                        showMultipleProductQRs(productIds, formData.sourceBatchId);
+                        
+                        // Refresh timeline
+                        // await searchAndDisplayChain(formData.sourceBatchId);
+                    }
+
+                    alert(`Successfully created ${productIds.length} products and added to blockchain!`);
                 } catch (err) {
                     console.error(err);
-                    alert(err.message || 'Failed to create product on blockchain');
+                    alert(err.message || 'Failed to create products on blockchain');
                 }
 
                 // Reset form
                 processForm.reset();
                 batchDetails.style.display = 'none';
                 submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-cogs"></i> Process Batch & Generate Product';
                 document.getElementById('processingDate').value = new Date().toISOString().split('T')[0];
                 document.getElementById('expiryDate').value = oneYearFromNow.toISOString().split('T')[0];
 
@@ -574,14 +588,107 @@
         }
 
         // Product QR functions
-        function showProductQR(productId) {
-            document.getElementById('productQRSection').style.display = 'block';
-            document.getElementById('productQRTitle').textContent = `Product ID: ${productId}`;
+        function showMultipleProductQRs(productIds, batchId) {
+            const section = document.getElementById('productQRSection');
+            const qrGrid = document.getElementById('qrGrid');
+            const qrCount = document.getElementById('qrCount');
+            const batchIdDisplay = document.getElementById('batchIdDisplay');
             
-            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`search.html#${productId.replace('PROD_', '')}`)}`;
-            document.getElementById('productQRImg').src = qrUrl;
+            section.style.display = 'block';
+            qrCount.textContent = productIds.length;
+            batchIdDisplay.textContent = batchId;
             
-            document.getElementById('downloadProductQRBtn').onclick = () => downloadQR(qrUrl, `${productId}_QR.png`);
+            // Clear previous QR codes
+            qrGrid.innerHTML = '';
+            
+            // Get serial mapping to find serial numbers
+            const productDetails = JSON.parse(localStorage.getItem('product_details') || '{}');
+            const qrUrls = [];
+            
+            // Generate QR codes for each product
+            productIds.forEach((productId, index) => {
+                // Find serial number for this product
+                let serialNumber = null;
+                for (const [serial, details] of Object.entries(productDetails)) {
+                    if (details.productId === productId) {
+                        serialNumber = serial;
+                        break;
+                    }
+                }
+                
+                if (!serialNumber) {
+                    serialNumber = String(Math.floor(10000 + Math.random() * 90000));
+                }
+                
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`${window.location.origin}/search.html#${serialNumber}`)}`;
+                qrUrls.push({ url: qrUrl, serial: serialNumber, productId });
+                
+                const qrItem = document.createElement('div');
+                qrItem.style.cssText = `
+                    border: 1px solid #e2e8f0; 
+                    border-radius: 8px; 
+                    padding: 12px; 
+                    text-align: center; 
+                    background: white;
+                `;
+                qrItem.innerHTML = `
+                    <img src="${qrUrl}" alt="Product QR ${index + 1}" style="width:100%; height:auto; border-radius:4px; margin-bottom:8px;" />
+                    <p style="margin:0; font-size:12px; color:#666; font-weight:500;">Serial: ${serialNumber}</p>
+                    <p style="margin:4px 0 0 0; font-size:11px; color:#999;">${productId}</p>
+                `;
+                qrGrid.appendChild(qrItem);
+            });
+            
+            // Setup download buttons
+            document.getElementById('downloadAllQRBtn').onclick = () => downloadAllQRs(qrUrls, batchId);
+            document.getElementById('printQRBtn').onclick = () => printQRCodes(qrUrls, batchId);
+        }
+        
+        function downloadAllQRs(qrUrls, batchId) {
+            qrUrls.forEach(({ url, serial }, index) => {
+                setTimeout(() => {
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `${batchId}_Serial_${serial}_QR.png`;
+                    link.click();
+                }, index * 500); // Stagger downloads
+            });
+        }
+        
+        function printQRCodes(qrUrls, batchId) {
+            const printWindow = window.open('', '_blank');
+            const html = `
+                <html>
+                <head>
+                    <title>QR Codes - Batch ${batchId}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        .qr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+                        .qr-item { text-align: center; border: 1px solid #ddd; padding: 15px; border-radius: 8px; }
+                        .qr-item img { width: 150px; height: 150px; }
+                        .qr-item p { margin: 8px 0 0 0; font-size: 12px; }
+                        @media print { .qr-grid { grid-template-columns: repeat(3, 1fr); } }
+                    </style>
+                </head>
+                <body>
+                    <h2>Product QR Codes - Batch: ${batchId}</h2>
+                    <p>Generated on: ${new Date().toLocaleDateString()}</p>
+                    <div class="qr-grid">
+                        ${qrUrls.map(({ url, serial, productId }) => `
+                            <div class="qr-item">
+                                <img src="${url}" alt="QR Code ${serial}" />
+                                <p><strong>Serial: ${serial}</strong></p>
+                                <p>${productId}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </body>
+                </html>
+            `;
+            printWindow.document.write(html);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => printWindow.print(), 1000);
         }
 
         function downloadQR(qrUrl, filename) {

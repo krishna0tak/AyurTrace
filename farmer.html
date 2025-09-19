@@ -853,7 +853,7 @@
                         submitBtn.innerHTML = originalBtnText;
                         
                         // Show success and refresh data
-                        alert(`✅ Batch ${batchId} created successfully on blockchain!`);
+                        console.log(`✅ Batch ${batchId} created successfully on blockchain!`);
                         generateQRCode(batchId);
                         
                         // Force refresh of all data from blockchain
@@ -1093,7 +1093,6 @@
                     try {
                         await Blockchain.setUserProfile(name, username, 1); // Role.Farmer = 1
                         console.log('✅ User profile set up successfully');
-                        alert('✅ User profile set up successfully!');
                         // Clear cache and reload batches
                         if (window.Blockchain && window.Blockchain.cache) {
                             window.Blockchain.cache.clear();
@@ -1105,7 +1104,6 @@
                     }
                 } else {
                     console.log('✅ User profile already exists and is correct');
-                    alert('✅ User profile already exists and is correct');
                 }
             } catch (error) {
                 console.error('❌ Error setting up user profile:', error);
@@ -1490,16 +1488,22 @@ Check console for detailed logs.`);
             let batches = [];
             
             try {
-                // Try to fetch from blockchain first
-                const blockchainBatches = await Blockchain.getFarmerBatches();
-                if (blockchainBatches && blockchainBatches.length > 0) {
-                    batches = blockchainBatches;
+                // Get current user and fetch their specific batches
+                const currentUser = await getCurrentUser();
+                const username = currentUser?.actorId || '';
+                
+                if (username) {
+                    console.log('📊 Loading stats for username:', username);
+                    await Blockchain.init();
+                    batches = await Blockchain.getBatchesForUsername(username);
+                    console.log('📊 Stats loaded:', batches.length, 'batches for user');
                 } else {
-                    // Fallback to localStorage
-                    batches = JSON.parse(localStorage.getItem('farmer_batches') || '[]');
+                    console.warn('📊 No username available for stats');
+                    batches = [];
                 }
             } catch (error) {
-                console.warn('Failed to fetch stats from blockchain, using localStorage:', error);
+                console.warn('Failed to fetch stats from blockchain:', error);
+                // Fallback to localStorage as last resort
                 batches = JSON.parse(localStorage.getItem('farmer_batches') || '[]');
             }
             

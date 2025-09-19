@@ -13,6 +13,7 @@
     <script src="supabase-auth.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
     <script src="blockchain.js"></script>
+    <script src="enhanced-search.js"></script>
 </head>
 
 <body>
@@ -86,29 +87,8 @@
                 </div>
             </section>
 
-            <!-- Supply Chain Timeline (First) -->
-            <section class="card" id="auditorChainSection" style="display: block;">
-                <h3 class="card-header">
-                    <i class="fas fa-route"></i>
-                    Supply Chain Timeline
-                </h3>
-                <div style="padding: 16px;">
-                    <div class="form-group">
-                        <label for="searchInput">Search Batch or Collection ID</label>
-                        <div class="input-group">
-                            <input type="text" id="searchInput" class="form-input" placeholder="Enter Batch ID (e.g., BATCH_... or COL_...)" required>
-                            <button type="button" id="searchBtn" class="get-location-btn">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </div>
-                        <p id="searchError" class="error-message" style="color: #ef4444; margin-top: 8px; display: none;"></p>
-                    </div>
-                    <div id="timelineResults" style="margin-top: 20px;">
-                        <p id="auditorChainId" class="text-sm" style="color:#64748b; margin-bottom: 12px;">Enter a Batch ID to view supply chain history</p>
-                        <div id="auditorTimeline" class="relative" style="padding-left: 16px; border-left: 2px solid #e2e8f0;"></div>
-                    </div>
-                </div>
-            </section>
+            <!-- Enhanced Search Section -->
+            <div id="enhanced-search-container"></div>
 
             <!-- Audit Form (Second) -->
             <section class="card">
@@ -226,28 +206,12 @@
 
             await Blockchain.init();
 
-            // Search functionality 
-            const searchBtn = document.getElementById('searchBtn');
-            const searchInput = document.getElementById('searchInput');
-            const collectionIdInput = document.getElementById('collectionId');
-            
-            searchBtn.addEventListener('click', async function() {
-                const searchId = searchInput.value.trim();
-                if (!searchId) {
-                    showSearchError('Please enter a Batch or Collection ID');
-                    return;
-                }
-                
-                await searchAndDisplayChain(searchId);
-                // Auto-fill collection ID for audit form if it's a collection
-                collectionIdInput.value = searchId;
-            });
-
-            // Enter key support for search
-            searchInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    searchBtn.click();
-                }
+            // Initialize Enhanced Search
+            EnhancedSearch.init('enhanced-search-container', {
+                title: 'Supply Chain Timeline Search',
+                showStats: true,
+                enableExport: true,
+                stakeholderType: 'auditor'
             });
 
             // Fetch collection details
@@ -257,7 +221,7 @@
             const submitBtn = document.getElementById('submitBtn');
 
             fetchBtn.addEventListener('click', async function() {
-                const collectionId = collectionIdInput.value.trim();
+                const collectionId = document.getElementById('collectionId').value.trim();
                 if (!collectionId) {
                     showError('Please enter a collection ID');
                     return;
@@ -319,15 +283,6 @@
                 submitBtn.disabled = true;
             }
 
-            function showSearchError(message) {
-                const searchError = document.getElementById('searchError');
-                searchError.textContent = message;
-                searchError.style.display = 'block';
-                setTimeout(() => {
-                    searchError.style.display = 'none';
-                }, 3000);
-            }
-
             // Update quality grade based on audit result
             const auditResultSelect = document.getElementById('auditResult');
             const qualityGradeSelect = document.getElementById('qualityGrade');
@@ -353,18 +308,13 @@
                 const auditNotes = document.getElementById('auditNotes').value;
                 const inspectorId = await getCurrentActorId();
                 try {
-                    await Blockchain.addInspection({ batchId: collectionIdInput.value, inspectorId: inspectorId || 'unknown', result: auditResult, notes: auditNotes });
+                    await Blockchain.addInspection({ batchId: document.getElementById('collectionId').value, inspectorId: inspectorId || 'unknown', result: auditResult, notes: auditNotes });
                     alert('Audit added on-chain and forwarded.');
-                    
-                    // Refresh timeline after audit
-                    if (collectionIdInput.value) {
-                        await searchAndDisplayChain(collectionIdInput.value);
-                    }
                 } catch (err) {
                     console.error(err);
                     alert(err.message || 'Failed to record audit on-chain');
                 }
-
+                    
                 // Reset form UI
                 auditForm.reset();
                 collectionDetails.style.display = 'none';
@@ -379,140 +329,6 @@
             loadStats();
             loadAuditHistory();
         });
-
-        // Search and display chain function
-        async function searchAndDisplayChain(batchId) {
-            const idEl = document.getElementById('auditorChainId');
-            const timeline = document.getElementById('auditorTimeline');
-            
-            idEl.textContent = `Batch ID: ${batchId}`;
-            timeline.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin" style="font-size:24px;color:#6366f1;"></i><p style="margin-top:12px;color:#64748b;">Searching blockchain directly...</p></div>';
-
-            try {
-                console.log(`🔍 Auditor direct search for batch: ${batchId}`);
-                const batchData = await Blockchain.searchBatchInBlockchain(batchId);
-                
-                if (!batchData || !batchData.found) {
-                    timeline.innerHTML = `
-                        <div style="text-align:center;padding:40px;color:#ef4444;">
-                            <i class="fas fa-exclamation-triangle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i>
-                            <h4 style="margin-bottom:8px;">No events found for ${batchId}</h4>
-                            <p style="color:#64748b;margin-bottom:16px;">This batch does not exist on the blockchain.</p>
-                            <div style="background:#f8f9fa;padding:12px;border-radius:8px;text-align:left;max-width:400px;margin:0 auto;">
-                                <p style="margin:0;font-size:14px;color:#495057;"><strong>Auditor Checklist:</strong></p>
-                                <ul style="margin:8px 0 0 20px;font-size:13px;color:#6c757d;">
-                                    <li>Verify batch ID is correct</li>
-                                    <li>Check if batch was created and collected</li>
-                                    <li>Ensure farmer used correct blockchain</li>
-                                </ul>
-                            </div>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                renderTimelineWithImages(timeline, batchData.chain || []);
-            } catch (e) {
-                console.error('Search chain error', e);
-                timeline.innerHTML = `
-                    <div style="text-align:center;padding:40px;color:#ef4444;">
-                        <i class="fas fa-exclamation-circle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i>
-                        <h4 style="margin-bottom:8px;">Search Error</h4>
-                        <p style="color:#64748b;margin-bottom:16px;">Failed to search blockchain for ${batchId}</p>
-                        <div style="background:#f8f9fa;padding:12px;border-radius:8px;text-align:left;max-width:400px;margin:0 auto;">
-                            <p style="margin:0;font-size:14px;color:#495057;"><strong>Error Details:</strong></p>
-                            <p style="margin:4px 0;font-size:13px;color:#6c757d;">${e.message || 'Unknown error occurred'}</p>
-                        </div>
-                    </div>
-                `;
-            }
-        }
-
-        // Timeline renderer with images
-        function renderTimelineWithImages(container, logs) {
-            container.innerHTML = '';
-            const eventConfig = {
-                BatchCreated: { icon: '🌾', title: 'Batch Created', color: '#10b981', getDescription: (args) => {
-                    const meta = Blockchain.parseFarmLocationMeta(args.farmLocation || '');
-                    const farmer = meta.farmer || 'Unknown Farmer';
-                    const baseLoc = meta.base || (args.farmLocation || 'Not specified');
-                    let desc = `${args.cropType || 'Unknown crop'} • ${args.quantity || '0'} kg • Location: ${baseLoc} • Farmer: ${farmer}`;
-                    const imageHash = meta.ipfs || args.photoHash;
-                    if (imageHash) {
-                        desc += `<br><div style="margin-top:8px;"><img src="${Blockchain.getImageUrl(imageHash)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:2px solid #e5e7eb;" onclick="showFullImage('${imageHash}')" title="Click to view full image" /><span style="margin-left:8px;color:#3b82f6;cursor:pointer;" onclick="showFullImage('${imageHash}')"><i class="fas fa-expand"></i> View Full</span></div>`;
-                    }
-                    return desc; 
-                } },
-                CollectionAdded: { icon: '👷', title: 'Collection Added', color: '#3b82f6', getDescription: (args) => `Collected by ${args.collectorId || 'Unknown'} • ${args.quantity || '0'} kg of ${args.cropName || 'Unknown crop'}` },
-                InspectionAdded: { icon: '🕵️', title: 'Quality Inspection', color: '#8b5cf6', getDescription: (args) => `Result: ${args.result || 'Unknown'} • Inspector: ${args.inspectorId || 'Unknown'}${args.notes ? ` • Notes: ${args.notes}` : ''}` },
-                ProductCreated: { icon: '🏭', title: 'Product Manufactured', color: '#f59e0b', getDescription: (args) => `Product: ${args.productType || 'Unknown'} • Processed: ${args.quantityProcessed || '0'} kg • Manufacturer: ${args.manufacturerId || 'Unknown'}` },
-                ProductReceived: { icon: '📦', title: 'Product Received', color: '#06b6d4', getDescription: (args) => `${args.herbType || 'Product'} • ${args.quantity || '0'} kg • Storage: ${args.storageLocation || 'Unknown location'}` },
-                ProductDispatched: { icon: '🚚', title: 'Product Dispatched', color: '#ef4444', getDescription: (args) => `${args.quantityDispatched || args.quantityToDispatch || '0'} kg dispatched to ${args.destination || 'Unknown destination'}` }
-            };
-
-            let html = '';
-            const cleanArgs = (args) => {
-                try {
-                    const out = { ...args };
-                    delete out.photoHash; delete out.owner; delete out.recordedBy; delete out.account;
-                    for (const k of Object.keys(out)) {
-                        const v = out[k];
-                        if (typeof v === 'string' && /^0x[a-fA-F0-9]{64}$/.test(v)) delete out[k];
-                    }
-                    return out;
-                } catch { return {}; }
-            };
-            logs.forEach((l, index) => {
-                const name = l.fragment?.name || 'Event';
-                const config = eventConfig[name] || { icon: '⛓️', title: name, color: '#6b7280', getDescription: () => 'Event details' };
-                const description = l.args ? config.getDescription(cleanArgs(l.args)) : 'No details';
-                const isLast = index === logs.length - 1;
-                const blockInfo = (l.blockNumber !== undefined && l.blockNumber !== null) ? `Block #${Number(l.blockNumber)}` : '';
-                html += `
-                <div style="display:flex; gap:16px; padding-bottom:${isLast ? '0' : '20px'}; position:relative;">
-                    <div style="background:${config.color};color:#fff;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;">${config.icon}</div>
-                    <div style="background:white;padding:12px;border-radius:10px;flex:1;border-left:4px solid ${config.color};">
-                        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
-                            <h4 style="margin:0;font-weight:600;color:#1f2937;font-size:15px;">${config.title}</h4>
-                            ${blockInfo ? `<span style=\"background:#f3f4f6;color:#6b7280;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:500;\">${blockInfo}</span>` : ''}
-                        </div>
-                        <p style="margin:0;color:#374151;font-size:13px;line-height:1.5;">${description}</p>
-                    </div>
-                </div>`;
-            });
-            container.innerHTML = html;
-        }
-
-        // Image modal functions
-        function showFullImage(ipfsHash) {
-            const modal = document.createElement('div');
-            modal.style.cssText = `
-                position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-                background: rgba(0,0,0,0.8); z-index: 10000; display: flex; 
-                align-items: center; justify-content: center; cursor: pointer;
-            `;
-            
-            const img = document.createElement('img');
-            img.src = Blockchain.getImageUrl(ipfsHash);
-            img.style.cssText = `
-                max-width: 90%; max-height: 90%; border-radius: 12px; 
-                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            `;
-            
-            modal.appendChild(img);
-            document.body.appendChild(modal);
-            
-            modal.onclick = () => document.body.removeChild(modal);
-            
-            // Close on Escape key
-            const closeOnEscape = (e) => {
-                if (e.key === 'Escape') {
-                    document.body.removeChild(modal);
-                    document.removeEventListener('keydown', closeOnEscape);
-                }
-            };
-            document.addEventListener('keydown', closeOnEscape);
-        }
 
         function loadStats() {
             const audits = JSON.parse(localStorage.getItem('audit_history') || '[]');

@@ -13,6 +13,7 @@
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script src="blockchain.js"></script>
+    <script src="enhanced-search.js"></script>
     <script src="supabase-auth.js"></script>
 </head>
 <body>
@@ -48,43 +49,8 @@
                 <p>Manage your distribution operations with ease.</p>
             </section>
 
-            <!-- Timeline Search Section (Primary) -->
-            <section class="card">
-                <div class="card-header">
-                    <h2><i class="fas fa-timeline"></i> Batch Timeline & Search</h2>
-                    <p>Search or scan batch IDs to view complete supply chain history</p>
-                </div>
-                <div class="card-content">
-                    <div class="form-group">
-                        <label for="traceBatchIdInput">Enter or Scan Batch ID</label>
-                        <div class="input-group">
-                            <input type="text" id="traceBatchIdInput" class="input-field" placeholder="e.g., BATCH_1726614123456">
-                            <button type="button" id="traceSearchBtn" class="btn-primary">
-                                <i class="fas fa-search"></i> Search
-                            </button>
-                            <button type="button" id="qrScanBtn" class="btn-secondary">
-                                <i class="fas fa-camera"></i> Scan QR
-                            </button>
-                        </div>
-                    </div>
-                    <div id="qrScannerSection" style="display:none; margin-top: 20px; text-align:center;" class="scanner-section">
-                        <video id="qrVideo" class="qr-video"></video>
-                        <div style="margin-top:16px;">
-                            <button type="button" id="stopScanBtn" class="btn-danger">
-                                <i class="fas fa-times"></i> Stop Scanner
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Timeline Display -->
-                    <div id="chainTimeline" class="timeline-container">
-                        <div class="empty-state">
-                            <i class="fas fa-search"></i>
-                            <p>Search or scan a Batch ID to view the complete supply chain history</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
+            <!-- Enhanced Search Section -->
+            <div id="enhancedSearchContainer"></div>
 
             <section class="card">
                 <div class="card-header">
@@ -250,6 +216,15 @@
 
         document.addEventListener('DOMContentLoaded', async function() {
             try { await Blockchain.init(); } catch(e) { console.error(e); alert('Blockchain init failed'); }
+
+            // Initialize Enhanced Search
+            if (window.EnhancedSearch) {
+                EnhancedSearch.init('enhancedSearchContainer', {
+                    enableQRScan: true,
+                    enableImageViewer: true,
+                    enableExport: true
+                });
+            }
 
             const receptionForm = document.getElementById('receptionForm');
             const dispatchForm = document.getElementById('dispatchForm');
