@@ -22,15 +22,38 @@
     <!-- Auth Check Script -->
     <script>
         // Upload QR button triggers file input for audit form
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', async function () {
             // Always start with submit button disabled
             const submitBtn = document.getElementById('submitBtn');
             if (submitBtn) submitBtn.disabled = true;
             const uploadQrBtn = document.getElementById('uploadQrBtn');
             const qrUploadAuditor = document.getElementById('qrUploadAuditor');
             const collectionIdInput = document.getElementById('collectionId');
+            // Disable QR upload until blockchain is ready
+            if (uploadQrBtn) uploadQrBtn.disabled = true;
+            let blockchainReady = false;
+            try {
+                await Blockchain.init();
+                blockchainReady = true;
+            } catch (err) {
+                console.error('Blockchain failed to initialize:', err);
+                const hint = document.getElementById('qrUploadHint');
+                if (hint) {
+                    hint.textContent = 'Blockchain connection failed. Please try again later.';
+                    hint.style.color = '#ef4444';
+                }
+            }
+            if (blockchainReady && uploadQrBtn) uploadQrBtn.disabled = false;
             if (uploadQrBtn && qrUploadAuditor) {
                 uploadQrBtn.addEventListener('click', function () {
+                    if (!blockchainReady) {
+                        const hint = document.getElementById('qrUploadHint');
+                        if (hint) {
+                            hint.textContent = 'Blockchain not ready. Please wait...';
+                            hint.style.color = '#ef4444';
+                        }
+                        return;
+                    }
                     qrUploadAuditor.click();
                 });
             }
@@ -76,6 +99,7 @@
                                 } else {
                                     batchId = qrCode.data;
                                 }
+                                console.log('Scanned QR batchId:', batchId);
                                 if (batchId) {
                                     collectionIdInput.value = batchId;
                                     hint.textContent = 'QR code read successfully! Fetching batch data...';
@@ -84,6 +108,7 @@
                                     try {
                                         if (window.Blockchain && window.Blockchain.getBatchDetails) {
                                             const batch = await window.Blockchain.getBatchDetails(batchId);
+                                            console.log('Fetched batch details:', batch);
                                             if (batch) {
                                                 // Robustly extract fields from batch (object or array)
                                                 let cropType = batch.cropType || batch[2] || '';
@@ -164,13 +189,21 @@
                                                 collectionError.style.display = 'block';
                                                 collectionDetails.style.display = 'none';
                                                 if (submitBtn) submitBtn.disabled = true;
+                                                console.error('Batch not found for batchId:', batchId);
                                             }
+                                        } else {
+                                            collectionError.textContent = 'Blockchain not ready or getBatchDetails missing.';
+                                            collectionError.style.display = 'block';
+                                            collectionDetails.style.display = 'none';
+                                            if (submitBtn) submitBtn.disabled = true;
+                                            console.error('window.Blockchain or getBatchDetails not available');
                                         }
                                     } catch (err) {
                                         collectionError.textContent = 'Error fetching batch: ' + (err.message || err);
                                         collectionError.style.display = 'block';
                                         collectionDetails.style.display = 'none';
-                                        submitBtn.disabled = true;
+                                        if (submitBtn) submitBtn.disabled = true;
+                                        console.error('Error fetching batch:', err);
                                     }
                                 } else {
                                     hint.textContent = 'QR code found, but batch ID could not be extracted.';
