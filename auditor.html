@@ -112,10 +112,8 @@
 
                                                 // Assign fields to UI
                                                 document.getElementById('collectionInfo').value = `${cropType} - ${collectedQuantity}kg`;
-                                                // Show location in Collector field
                                                 document.getElementById('collectorName').value = location;
                                                 document.getElementById('collectionDate').value = collectionDate ? new Date(Number(collectionDate) * 1000).toLocaleDateString() : '';
-                                                document.getElementById('reportedCondition').value = reportedCondition;
                                                 // If Quality Grade field exists, set it
                                                 const qualityGradeField = document.getElementById('qualityGrade');
                                                 if (qualityGradeField && qualityGrade) {
