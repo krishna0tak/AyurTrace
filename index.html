@@ -85,7 +85,14 @@
                     <p class="text-sm text-medium-gray mt-4">🌿 Instantly verify product authenticity</p>
                 </div>
                 <div class="order-1 lg:order-2">
-                    <img src="assets/images/spring-farm.jpg" alt="Lush green farm with fresh crops" class="rounded-xl shadow-2xl w-full h-64 sm:h-80 lg:h-96 object-cover">
+                    <img src="assets/images/spring-farm-optimized.jpg" 
+                         srcset="assets/images/spring-farm-mobile.jpg 768w, 
+                                 assets/images/spring-farm-optimized.jpg 1200w" 
+                         sizes="(max-width: 768px) 768px, 1200px"
+                         alt="Lush green farm with fresh crops" 
+                         class="rounded-xl shadow-2xl w-full h-64 sm:h-80 lg:h-96 object-cover" 
+                         loading="lazy" 
+                         decoding="async">
                 </div>
             </div>
         </section>
