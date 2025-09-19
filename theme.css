@@ -751,6 +751,68 @@ header,
     min-height: 60px;
 }
 
+/* Enhanced Timeline Styles - Only for distributor supply chain display */
+.timeline-container .timeline-item {
+    transition: all 0.3s ease;
+}
+
+.timeline-container .timeline-item:hover {
+    transform: translateX(4px);
+}
+
+/* Timeline content cards - Only within timeline containers */
+.timeline-container .timeline-content {
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.timeline-container .timeline-content:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    border-color: #c7d2fe;
+}
+
+.timeline-container .timeline-content::before {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 20px;
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 8px solid #f8fafc;
+}
+
+/* Timeline icons - Only within timeline containers */
+.timeline-container .timeline-icon {
+    position: relative;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+/* Responsive timeline adjustments */
+@media (max-width: 768px) {
+    .timeline-container {
+        padding-left: 16px;
+        border-left-width: 2px;
+    }
+    
+    .timeline-container .timeline-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+    }
+    
+    .timeline-container .timeline-content {
+        padding: 16px;
+    }
+}
+
 /* Scanner Section */
 .scanner-section {
     background: white;
