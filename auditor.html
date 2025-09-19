@@ -23,6 +23,9 @@
     <script>
         // Upload QR button triggers file input for audit form
         document.addEventListener('DOMContentLoaded', function () {
+            // Always start with submit button disabled
+            const submitBtn = document.getElementById('submitBtn');
+            if (submitBtn) submitBtn.disabled = true;
             const uploadQrBtn = document.getElementById('uploadQrBtn');
             const qrUploadAuditor = document.getElementById('qrUploadAuditor');
             const collectionIdInput = document.getElementById('collectionId');
@@ -119,7 +122,6 @@
                                                 }
                                                 document.getElementById('collectionInfo').value = `${weightOnly}kg`;
                                                 document.getElementById('collectorName').value = location;
-                                                document.getElementById('collectionDate').value = dateFromInfo || (collectionDate ? new Date(Number(collectionDate) * 1000).toLocaleDateString() : '');
                                                 // If Quality Grade field exists, set it
                                                 const qualityGradeField = document.getElementById('qualityGrade');
                                                 if (qualityGradeField && qualityGrade) {
@@ -154,12 +156,12 @@
 
                                                 collectionDetails.style.display = 'block';
                                                 collectionError.style.display = 'none';
-                                                submitBtn.disabled = false;
+                                                if (submitBtn) submitBtn.disabled = false;
                                             } else {
                                                 collectionError.textContent = 'Batch not found or not forwarded to auditor.';
                                                 collectionError.style.display = 'block';
                                                 collectionDetails.style.display = 'none';
-                                                submitBtn.disabled = true;
+                                                if (submitBtn) submitBtn.disabled = true;
                                             }
                                         }
                                     } catch (err) {
@@ -171,10 +173,12 @@
                                 } else {
                                     hint.textContent = 'QR code found, but batch ID could not be extracted.';
                                     hint.style.color = '#ef4444';
+                                    if (submitBtn) submitBtn.disabled = true;
                                 }
                             } else {
                                 hint.textContent = 'No QR code found in the uploaded image. Try a clearer image.';
                                 hint.style.color = '#ef4444';
+                                if (submitBtn) submitBtn.disabled = true;
                             }
                         };
                         img.onerror = function () {
