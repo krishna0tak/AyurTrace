@@ -93,22 +93,59 @@
                 </div>
             </section>
 
-            <!-- Enhanced Search Section -->
-            <div id="enhancedSearchContainer"></div>
+            <!-- Batch Search & Chain Display Section -->
+            <section class="card">
+                <h3 class="card-header">
+                    <i class="fas fa-search"></i>
+                    Search Batch & View Supply Chain
+                </h3>
+                <div class="form-group">
+                    <label for="batchSearchInput">Enter Batch ID to view complete supply chain</label>
+                    <div class="input-group">
+                        <input type="text" id="batchSearchInput" class="form-input" placeholder="Enter Batch ID (e.g., BATCH_1735262005200)">
+                        <button type="button" id="searchBatchBtn" class="get-location-btn">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        <button type="button" id="qrScanBtn" class="get-location-btn" title="Scan QR Code">
+                            <i class="fas fa-qrcode"></i>
+                        </button>
+                    </div>
+                </div>
 
-            <!-- Process Batch Form (Second) -->
+                <!-- QR Scanner Section (Hidden by default) -->
+                <div id="qrScannerSection" style="display:none; margin-top:16px; padding:16px; background:#f8f9fa; border-radius:8px;">
+                    <div style="text-align:center;">
+                        <video id="qrVideo" style="width:100%; max-width:400px; border-radius:8px;"></video>
+                        <div style="margin-top:12px;">
+                            <button type="button" id="stopScanBtn" class="submit-btn" style="background:#ef4444;">
+                                <i class="fas fa-stop"></i> Stop Scanning
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chain Results -->
+                <div id="chainResults" style="margin-top:20px;">
+                    <div id="chainResultId" style="font-weight:600; color:#334155; margin-bottom:12px;">Search for a batch to view its complete supply chain history</div>
+                    <div id="chainTimeline" style="background:#f8f9fa; padding:20px; border-radius:8px; min-height:60px;">
+                        <p style="text-align:center; color:#64748b; margin:0;">Enter a Batch ID above to see the complete supply chain timeline with images</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Process Batch Form -->
             <section class="card">
                 <h3 class="card-header">
                     <i class="fas fa-plus-circle"></i>
-                    Process New Batch
+                    Process Audited Batch
                 </h3>
                 <form id="processForm">
                     <div class="form-group">
-                        <label for="sourceBatchId">Audited Batch ID (from search above)</label>
+                        <label for="sourceBatchId">Audited Batch ID (auto-filled from search above)</label>
                         <div class="input-group">
-                            <input type="text" id="sourceBatchId" class="form-input" placeholder="Batch ID will be filled from search" readonly required>
-                            <button type="button" id="fetchAuditedBtn" class="get-location-btn" title="Refresh">
-                                <i class="fas fa-sync"></i>
+                            <input type="text" id="sourceBatchId" class="form-input" placeholder="Search for a batch first" readonly required>
+                            <button type="button" id="fetchAuditedBtn" class="get-location-btn" title="Validate Batch">
+                                <i class="fas fa-check"></i>
                             </button>
                         </div>
                         <p id="batchError" class="error-message" style="color: #ef4444; margin-top: 8px; display: none;"></p>
@@ -234,72 +271,105 @@
 
             await Blockchain.init();
 
-            // Initialize Enhanced Search
-            if (window.EnhancedSearch) {
-                EnhancedSearch.init('enhancedSearchContainer', {
-                    enableQRScan: true,
-                    enableImageViewer: true,
-                    enableExport: true
-                });
+            // Setup batch search functionality
+            const batchSearchInput = document.getElementById('batchSearchInput');
+            const searchBatchBtn = document.getElementById('searchBatchBtn');
+            const sourceBatchId = document.getElementById('sourceBatchId');
+
+            // Search batch function
+            async function searchBatch() {
+                const batchId = batchSearchInput.value.trim();
+                if (!batchId) {
+                    alert('Please enter a Batch ID');
+                    return;
+                }
+                
+                // Update chain display
+                await searchAndDisplayChain(batchId);
+                
+                // Auto-fill the form
+                sourceBatchId.value = batchId;
+                
+                // Try to fetch batch details
+                document.getElementById('fetchAuditedBtn').click();
             }
 
-            // QR scanner helpers
+            // Event listeners for search
+            searchBatchBtn.addEventListener('click', searchBatch);
+            batchSearchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    searchBatch();
+                }
+            });
+
+            // QR scanner setup
             let qrStream = null;
+            const qrScanBtn = document.getElementById('qrScanBtn');
+            const qrScannerSection = document.getElementById('qrScannerSection');
+            const qrVideo = document.getElementById('qrVideo');
+            const stopScanBtn = document.getElementById('stopScanBtn');
+
             function stopScanner() {
                 if (qrStream) {
                     qrStream.getTracks().forEach(t => t.stop());
                     qrStream = null;
                 }
-                const s = document.getElementById('qrScannerSection');
-                if (s) s.style.display = 'none';
+                qrScannerSection.style.display = 'none';
             }
-            function setupQRScanner() {
-                const qrScanBtn = document.getElementById('qrScanBtn');
-                const qrScannerSection = document.getElementById('qrScannerSection');
-                const qrVideo = document.getElementById('qrVideo');
-                const stopScanBtn = document.getElementById('stopScanBtn');
-                if (!qrScanBtn) return;
-                qrScanBtn.addEventListener('click', async () => {
-                    if (qrScannerSection.style.display === 'none') {
-                        try {
-                            qrStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                            qrVideo.srcObject = qrStream;
-                            qrVideo.play();
-                            qrScannerSection.style.display = 'block';
-                            const canvas = document.createElement('canvas');
-                            const context = canvas.getContext('2d');
-                            const scan = () => {
-                                if (qrVideo.readyState === qrVideo.HAVE_ENOUGH_DATA) {
-                                    canvas.height = qrVideo.videoHeight;
-                                    canvas.width = qrVideo.videoWidth;
-                                    context.drawImage(qrVideo, 0, 0, canvas.width, canvas.height);
-                                    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-                                    const qrCode = jsQR(imageData.data, imageData.width, imageData.height);
-                                    if (qrCode) {
-                                        let batchId = '';
-                                        if (qrCode.data.includes('#')) batchId = qrCode.data.split('#')[1];
-                                        else if (qrCode.data.includes('BATCH_')) {
-                                            const m = qrCode.data.match(/BATCH_\d+/);
-                                            if (m) batchId = m[0];
-                                        }
-                                        if (batchId) {
-                                            stopScanner();
-                                            searchInput.value = batchId;
-                                            searchBtn.click();
-                                        }
-                                    }
+
+            qrScanBtn.addEventListener('click', async () => {
+                try {
+                    qrStream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { facingMode: 'environment' } 
+                    });
+                    qrVideo.srcObject = qrStream;
+                    qrVideo.play();
+                    qrScannerSection.style.display = 'block';
+                    
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    
+                    const scan = () => {
+                        if (qrVideo.readyState === qrVideo.HAVE_ENOUGH_DATA) {
+                            canvas.height = qrVideo.videoHeight;
+                            canvas.width = qrVideo.videoWidth;
+                            context.drawImage(qrVideo, 0, 0, canvas.width, canvas.height);
+                            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                            const qrCode = jsQR(imageData.data, imageData.width, imageData.height);
+                            
+                            if (qrCode) {
+                                let batchId = '';
+                                if (qrCode.data.includes('#')) {
+                                    // Serial number QR - extract from URL
+                                    const serial = qrCode.data.split('#')[1];
+                                    const serialMapping = JSON.parse(localStorage.getItem('serial_mapping') || '{}');
+                                    batchId = serialMapping[serial] || serial;
+                                } else if (qrCode.data.includes('BATCH_')) {
+                                    const match = qrCode.data.match(/BATCH_\d+/);
+                                    if (match) batchId = match[0];
+                                } else {
+                                    batchId = qrCode.data;
                                 }
-                                if (qrScannerSection.style.display !== 'none') requestAnimationFrame(scan);
-                            };
-                            scan();
-                        } catch (e) {
-                            alert('Camera access denied or not available');
+                                
+                                if (batchId) {
+                                    stopScanner();
+                                    batchSearchInput.value = batchId;
+                                    searchBatch();
+                                }
+                            }
                         }
-                    }
-                });
-                if (stopScanBtn) stopScanBtn.addEventListener('click', stopScanner);
-            }
-            setupQRScanner();
+                        if (qrScannerSection.style.display !== 'none') {
+                            requestAnimationFrame(scan);
+                        }
+                    };
+                    scan();
+                } catch (e) {
+                    alert('Camera access denied or not available');
+                }
+            });
+
+            stopScanBtn.addEventListener('click', stopScanner);
 
             // Fetch audited batch details
             const fetchBtn = document.getElementById('fetchAuditedBtn');
@@ -308,7 +378,7 @@
             const submitBtn = document.getElementById('submitBtn');
 
             fetchBtn.addEventListener('click', async function() {
-                const batchId = batchIdInput.value.trim();
+                const batchId = sourceBatchId.value.trim();
                 if (!batchId) {
                     showError('Please enter a batch ID');
                     return;
@@ -375,7 +445,7 @@
                 e.preventDefault();
 
                 const formData = {
-                    sourceBatchId: batchIdInput.value,
+                    sourceBatchId: sourceBatchId.value,
                     processingDate: document.getElementById('processingDate').value,
                     quantityProcessed: parseFloat(document.getElementById('quantityProcessed').value),
                     wastage: parseFloat(document.getElementById('wastage').value),

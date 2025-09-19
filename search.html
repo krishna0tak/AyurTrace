@@ -75,28 +75,33 @@
                 const serialMapping = JSON.parse(localStorage.getItem('serial_mapping') || '{}');
                 let batchId = serialMapping[serialNumber];
                 
+                console.log(`Searching for serial: ${serialNumber}`);
+                console.log('Serial mapping:', serialMapping);
+                
                 // If no mapping found, assume serialNumber is directly a batch ID
                 if (!batchId) {
                     batchId = serialNumber;
+                    console.log(`No mapping found, using as batch ID: ${batchId}`);
+                } else {
+                    console.log(`Found mapping: ${serialNumber} -> ${batchId}`);
                 }
                 
-                console.log(`Searching for serial: ${serialNumber}, mapped to batch: ${batchId}`);
-                
                 const logs = await Blockchain.getChainForBatch(batchId);
-                console.log(`Found ${logs ? logs.length : 0} events`);
+                console.log(`Found ${logs ? logs.length : 0} events for batch ${batchId}`);
                 
                 if (!logs || logs.length === 0) {
                     traceContainer.innerHTML = `
                         <div class="p-6 text-center">
                             <div class="text-red-500 mb-4">
                                 <i class="fas fa-exclamation-triangle text-4xl mb-2"></i>
-                                <h3 class="text-lg font-semibold">No history found for Batch ID: ${batchId}</h3>
+                                <h3 class="text-lg font-semibold">No history found</h3>
                             </div>
-                            <p class="text-gray-500 mb-4">The batch may not exist or hasn't been processed yet</p>
-                            <div class="text-sm text-gray-400">
-                                <p>Serial Number: ${serialNumber}</p>
-                                <p>Mapped to Batch ID: ${batchId}</p>
-                                <p>Please check if the batch ID is correct or try again later.</p>
+                            <p class="text-gray-500 mb-4">The product may not exist or hasn't been processed yet</p>
+                            <div class="text-sm text-gray-400 bg-gray-100 p-3 rounded">
+                                <p><strong>Serial Number:</strong> ${serialNumber}</p>
+                                <p><strong>Mapped to Batch ID:</strong> ${batchId}</p>
+                                <p><strong>Available Mappings:</strong> ${Object.keys(serialMapping).length} serial numbers</p>
+                                <p>Please check if the serial number is correct or try scanning a different QR code.</p>
                             </div>
                         </div>
                     `;
