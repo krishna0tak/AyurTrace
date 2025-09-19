@@ -111,9 +111,15 @@
                                                 }
 
                                                 // Assign fields to UI
-                                                document.getElementById('collectionInfo').value = `${cropType} - ${collectedQuantity}kg`;
+                                                // Extract date from cropType if present (e.g., '12 - 2024-01-15kg')
+                                                let dateFromInfo = '';
+                                                let weightOnly = collectedQuantity;
+                                                if (typeof cropType === 'string' && cropType.match(/\d{4}-\d{2}-\d{2}/)) {
+                                                    dateFromInfo = cropType.match(/\d{4}-\d{2}-\d{2}/)[0];
+                                                }
+                                                document.getElementById('collectionInfo').value = `${weightOnly}kg`;
                                                 document.getElementById('collectorName').value = location;
-                                                document.getElementById('collectionDate').value = collectionDate ? new Date(Number(collectionDate) * 1000).toLocaleDateString() : '';
+                                                document.getElementById('collectionDate').value = dateFromInfo || (collectionDate ? new Date(Number(collectionDate) * 1000).toLocaleDateString() : '');
                                                 // If Quality Grade field exists, set it
                                                 const qualityGradeField = document.getElementById('qualityGrade');
                                                 if (qualityGradeField && qualityGrade) {
@@ -356,11 +362,11 @@
                     <div id="collectionDetails" style="display: none;">
                         <div class="form-grid">
                             <div class="form-group">
-                                <label>Collection Info</label>
+                                <label>Weight</label>
                                 <input type="text" id="collectionInfo" class="form-input" disabled>
                             </div>
                             <div class="form-group">
-                                <label>Collector</label>
+                                <label>Location</label>
                                 <input type="text" id="collectorName" class="form-input" disabled>
                             </div>
                             <div class="form-group">
