@@ -85,7 +85,7 @@
                                                 // Robustly extract fields from batch (object or array)
                                                 let cropType = batch.cropType || batch[2] || '';
                                                 let collectedQuantity = batch.collectedQuantity || batch[3] || '';
-                                                let collector = batch.collector || batch[4] || '';
+                                                let farmLocation = batch.farmLocation || batch[4] || '';
                                                 let collectionDate = batch.collectionDate || batch[5] || '';
                                                 let reportedCondition = batch.condition || batch.reportedCondition || batch[6] || '—';
                                                 let qualityGrade = batch.qualityGrade || batch[7] || '';
@@ -93,14 +93,27 @@
                                                 if (Array.isArray(batch)) {
                                                     cropType = batch[2] || '';
                                                     collectedQuantity = batch[3] || '';
-                                                    collector = batch[4] || '';
+                                                    farmLocation = batch[4] || '';
                                                     collectionDate = batch[5] || '';
                                                     reportedCondition = batch[6] || '—';
                                                     qualityGrade = batch[7] || '';
                                                 }
-                                                // Recreate and assign all fields
+
+                                                // Parse farmLocation for location, farmer, and IPFS
+                                                let location = farmLocation;
+                                                let farmer = '';
+                                                let ipfs = '';
+                                                if (window.Blockchain && window.Blockchain.parseFarmLocationMeta) {
+                                                    const meta = window.Blockchain.parseFarmLocationMeta(farmLocation);
+                                                    location = meta.base || '';
+                                                    farmer = meta.farmer || '';
+                                                    ipfs = meta.ipfs || '';
+                                                }
+
+                                                // Assign fields to UI
                                                 document.getElementById('collectionInfo').value = `${cropType} - ${collectedQuantity}kg`;
-                                                document.getElementById('collectorName').value = collector;
+                                                // Show location in Collector field
+                                                document.getElementById('collectorName').value = location;
                                                 document.getElementById('collectionDate').value = collectionDate ? new Date(Number(collectionDate) * 1000).toLocaleDateString() : '';
                                                 document.getElementById('reportedCondition').value = reportedCondition;
                                                 // If Quality Grade field exists, set it
@@ -108,6 +121,33 @@
                                                 if (qualityGradeField && qualityGrade) {
                                                     qualityGradeField.value = qualityGrade;
                                                 }
+
+                                                // Add or update Farmer and Image fields if not present
+                                                let farmerField = document.getElementById('farmerName');
+                                                if (!farmerField) {
+                                                    const farmerDiv = document.createElement('div');
+                                                    farmerDiv.className = 'form-group';
+                                                    farmerDiv.innerHTML = `<label>Farmer</label><input type="text" id="farmerName" class="form-input" disabled>`;
+                                                    document.querySelector('#collectionDetails .form-grid').appendChild(farmerDiv);
+                                                    farmerField = document.getElementById('farmerName');
+                                                }
+                                                farmerField.value = farmer;
+
+                                                let imageField = document.getElementById('batchImage');
+                                                if (!imageField) {
+                                                    const imageDiv = document.createElement('div');
+                                                    imageDiv.className = 'form-group';
+                                                    imageDiv.innerHTML = `<label>Batch Image</label><img id="batchImage" style="max-width:120px;max-height:120px;display:block;border:1px solid #eee;margin-top:4px;" />`;
+                                                    document.querySelector('#collectionDetails .form-grid').appendChild(imageDiv);
+                                                    imageField = document.getElementById('batchImage');
+                                                }
+                                                if (ipfs && window.Blockchain && window.Blockchain.getImageUrl) {
+                                                    imageField.src = window.Blockchain.getImageUrl(ipfs);
+                                                    imageField.style.display = 'block';
+                                                } else {
+                                                    imageField.style.display = 'none';
+                                                }
+
                                                 collectionDetails.style.display = 'block';
                                                 collectionError.style.display = 'none';
                                                 submitBtn.disabled = false;
