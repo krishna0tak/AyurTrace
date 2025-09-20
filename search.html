@@ -6,37 +6,264 @@
     <title>Product Trace - AyurTrace</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="theme.css">
     <style>
-        body { font-family: 'Poppins', sans-serif; }
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+        }
+        
         .timeline-item:last-child .timeline-line { display: none; }
+        
+        .timeline-step {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .timeline-step:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .timeline-icon {
+            background: linear-gradient(135deg, #34d399, #10b981);
+            box-shadow: 0 4px 15px rgba(52, 211, 153, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .timeline-icon:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(52, 211, 153, 0.4);
+        }
+        
+        .step-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .step-card:hover {
+            background: rgba(255, 255, 255, 1);
+            border-color: rgba(52, 211, 153, 0.3);
+        }
+        
+        .progress-bar {
+            background: linear-gradient(90deg, #34d399, #10b981);
+            animation: progress-fill 1.5s ease-out;
+        }
+        
+        @keyframes progress-fill {
+            from { width: 0%; }
+            to { width: var(--progress-width); }
+        }
+        
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .badge-success { background: #dcfce7; color: #16a34a; }
+        .badge-warning { background: #fef9c3; color: #ca8a04; }
+        .badge-info { background: #e0e7ff; color: #4f46e5; }
+        .badge-error { background: #fee2e2; color: #ef4444; }
+        
+        .image-thumbnail {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .image-thumbnail:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .detail-chip {
+            background: rgba(52, 211, 153, 0.1);
+            color: #059669;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            border: 1px solid rgba(52, 211, 153, 0.2);
+        }
+        
+        /* Mobile Enhancements */
+        @media (max-width: 768px) {
+            .timeline-step {
+                margin-bottom: 1rem;
+            }
+            
+            .timeline-step .step-card {
+                margin-left: -1rem;
+                border-radius: 1rem;
+            }
+            
+            .timeline-icon {
+                width: 3rem;
+                height: 3rem;
+            }
+            
+            .timeline-icon i {
+                font-size: 1rem;
+            }
+            
+            /* Touch-friendly interactions */
+            .image-thumbnail {
+                min-width: 80px;
+                min-height: 80px;
+                touch-action: manipulation;
+            }
+            
+            .step-card {
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: transparent;
+            }
+            
+            /* Swipe indicator */
+            .swipe-indicator {
+                display: block;
+                animation: swipe-hint 2s ease-in-out infinite;
+            }
+            
+            @keyframes swipe-hint {
+                0%, 100% { transform: translateX(0); opacity: 0.7; }
+                50% { transform: translateX(10px); opacity: 1; }
+            }
+        }
+        
+        @media (min-width: 769px) {
+            .swipe-indicator {
+                display: none;
+            }
+        }
+        
+        /* Improved animations for mobile */
+        .mobile-card-enter {
+            animation: mobileCardEnter 0.5s ease-out;
+        }
+        
+        @keyframes mobileCardEnter {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
     </style>
 </head>
-<body class="bg-gray-100">
-
-    <div id="appLoader" class="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
+<<body class="min-h-screen">
+    <!-- Loading Screen -->
+    <div id="appLoader" class="fixed inset-0 bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center z-50">
         <div class="text-center">
-            <div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-indigo-600 mx-auto"></div>
-            <h2 class="text-2xl font-semibold text-gray-700 mt-4">Loading Product History...</h2>
-            <p class="text-gray-500">Connecting to the blockchain.</p>
+            <div class="relative">
+                <div class="w-20 h-20 border-4 border-green-200 rounded-full animate-spin mx-auto"></div>
+                <div class="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin absolute top-2 left-2"></div>
+            </div>
+            <h2 class="text-2xl font-semibold text-gray-700 mt-6">Loading Product History...</h2>
+            <p class="text-gray-500 mt-2">Connecting to the blockchain network</p>
+            <div class="flex items-center justify-center mt-4 space-x-2">
+                <div class="w-2 h-2 bg-green-500 rounded-full animate-bounce"></div>
+                <div class="w-2 h-2 bg-green-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                <div class="w-2 h-2 bg-green-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+            </div>
         </div>
     </div>
     
-    <div id="appContent" class="hidden">
-        <header class="bg-white shadow-md sticky top-0 z-40">
-            <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-                <a href="index.html" class="text-xl font-bold text-gray-800">AyurTrace</a>
-                <a href="login.html" class="bg-indigo-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-indigo-700 text-sm">Stakeholder Login</a>
+    <!-- App Content -->
+    <div id="appContent" class="hidden min-h-screen">
+        <!-- Header -->
+        <header class="bg-white/80 backdrop-blur-md shadow-lg sticky top-0 z-40 border-b border-green-100">
+            <div class="container mx-auto px-4 py-4">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-3">
+                        <img src="assets/icons/ayutrace_logo_svg.svg" alt="AyurTrace Logo" class="h-8 w-auto">
+                        <div>
+                            <h1 class="text-xl font-bold text-gray-800">AyurTrace</h1>
+                            <p class="text-xs text-gray-500">Supply Chain Transparency</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <a href="index.html" class="text-gray-600 hover:text-green-600 font-medium transition-colors">
+                            <i class="fas fa-home mr-1"></i>Home
+                        </a>
+                        <a href="login.html" class="bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold px-4 py-2 rounded-lg hover:from-green-600 hover:to-green-700 transition-all transform hover:scale-105 shadow-lg">
+                            <i class="fas fa-sign-in-alt mr-1"></i>Stakeholder Login
+                        </a>
+                    </div>
+                </div>
             </div>
         </header>
 
-        <main class="container mx-auto p-4 md:p-6">
-            <section id="searchResults" class="bg-white p-6 rounded-2xl shadow-lg">
-                <h2 class="text-2xl font-bold text-gray-800">Supply Chain History</h2>
-                <p id="searchResultId" class="text-gray-500 mb-4">Serial Number: -</p>
-                <div id="searchResultTrace" class="relative pl-6 border-l-2 border-gray-200">
-                    <p>Enter a Serial Number in the URL (e.g., search.html#12345) to see the product history.</p>
+        <!-- Main Content -->
+        <main class="container mx-auto p-3 lg:p-6 max-w-4xl">
+            <!-- Product Info Header -->
+            <div id="productHeader" class="bg-white/90 backdrop-blur-md p-4 lg:p-6 rounded-xl lg:rounded-2xl shadow-xl mb-4 lg:mb-6 border border-green-100">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 space-y-3 lg:space-y-0">
+                    <div>
+                        <h2 class="text-2xl lg:text-3xl font-bold text-gray-800 mb-2">
+                            <i class="fas fa-link text-green-500 mr-2"></i>Supply Chain Journey
+                        </h2>
+                        <p id="searchResultId" class="text-gray-600 text-base lg:text-lg">Serial Number: -</p>
+                    </div>
+                    <div class="lg:text-right">
+                        <div id="progressIndicator" class="hidden">
+                            <p class="text-sm text-gray-500 mb-1">Journey Progress</p>
+                            <div class="w-full lg:w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div id="progressBar" class="progress-bar h-full rounded-full"></div>
+                            </div>
+                            <p id="progressText" class="text-xs text-gray-600 mt-1">0% Complete</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Stats -->
+                <div id="quickStats" class="hidden grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mt-4">
+                    <div class="text-center p-2 lg:p-3 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
+                        <i class="fas fa-seedling text-green-500 text-lg lg:text-xl mb-1"></i>
+                        <p class="text-xs text-gray-600">Farm Origin</p>
+                        <p id="farmOrigin" class="font-semibold text-xs lg:text-sm truncate">-</p>
+                    </div>
+                    <div class="text-center p-2 lg:p-3 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
+                        <i class="fas fa-calendar text-blue-500 text-lg lg:text-xl mb-1"></i>
+                        <p class="text-xs text-gray-600">Harvest Date</p>
+                        <p id="harvestDate" class="font-semibold text-xs lg:text-sm truncate">-</p>
+                    </div>
+                    <div class="text-center p-2 lg:p-3 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg">
+                        <i class="fas fa-weight-hanging text-yellow-500 text-lg lg:text-xl mb-1"></i>
+                        <p class="text-xs text-gray-600">Quantity</p>
+                        <p id="totalQuantity" class="font-semibold text-xs lg:text-sm truncate">-</p>
+                    </div>
+                    <div class="text-center p-2 lg:p-3 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
+                        <i class="fas fa-check-circle text-purple-500 text-lg lg:text-xl mb-1"></i>
+                        <p class="text-xs text-gray-600">Status</p>
+                        <p id="currentStatus" class="font-semibold text-xs lg:text-sm">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Supply Chain Timeline -->
+            <section id="searchResults" class="bg-white/90 backdrop-blur-md p-4 lg:p-6 rounded-xl lg:rounded-2xl shadow-xl border border-green-100">
+                <div class="flex items-center mb-4 lg:mb-6">
+                    <i class="fas fa-route text-green-500 text-lg lg:text-xl mr-3"></i>
+                    <h3 class="text-lg lg:text-xl font-semibold text-gray-800">Traceability Timeline</h3>
+                </div>
+                
+                <div id="searchResultTrace" class="relative">
+                    <div class="text-center py-8 lg:py-12">
+                        <i class="fas fa-qrcode text-gray-300 text-3xl lg:text-4xl mb-4"></i>
+                        <p class="text-gray-500 text-base lg:text-lg px-4">Enter a Serial Number in the URL to view the product history</p>
+                        <p class="text-gray-400 text-sm mt-2 px-4">Example: search.html#BATCH_1758309213275</p>
+                    </div>
                 </div>
             </section>
         </main>
@@ -76,7 +303,17 @@
         async search(serialNumber) {
             this.currentSerialNumber = serialNumber;
             const traceContainer = document.getElementById('searchResultTrace');
-            traceContainer.innerHTML = '<p>🔍 Searching blockchain for serial number...</p>';
+            traceContainer.innerHTML = `
+                <div class="text-center py-8">
+                    <div class="inline-flex items-center space-x-3">
+                        <div class="animate-spin rounded-full h-8 w-8 border-4 border-green-200 border-t-green-500"></div>
+                        <span class="text-gray-600 font-medium">
+                            <i class="fas fa-search text-green-500 mr-2"></i>
+                            Searching blockchain for serial number...
+                        </span>
+                    </div>
+                </div>
+            `;
 
             try {
                 // First check if this serial number maps to a batch ID
@@ -103,17 +340,36 @@
                 
                 if (!logs || logs.length === 0) {
                     traceContainer.innerHTML = `
-                        <div class="p-6 text-center">
-                            <div class="text-red-500 mb-4">
-                                <i class="fas fa-exclamation-triangle text-4xl mb-2"></i>
-                                <h3 class="text-lg font-semibold">No history found</h3>
+                        <div class="text-center py-12">
+                            <div class="mb-6">
+                                <i class="fas fa-search text-gray-300 text-6xl mb-4"></i>
+                                <h3 class="text-2xl font-semibold text-gray-700 mb-2">No History Found</h3>
+                                <p class="text-gray-500 mb-6">This product may not exist in our blockchain or hasn't been processed yet</p>
                             </div>
-                            <p class="text-gray-500 mb-4">The product may not exist or hasn't been processed yet</p>
-                            <div class="text-sm text-gray-400 bg-gray-100 p-3 rounded">
-                                <p><strong>Serial Number:</strong> ${serialNumber}</p>
-                                <p><strong>Mapped to Batch ID:</strong> ${batchId}</p>
-                                <p><strong>Available Mappings:</strong> ${Object.keys(serialMapping).length} serial numbers</p>
-                                <p>Please check if the serial number is correct or try scanning a different QR code.</p>
+                            
+                            <div class="bg-gradient-to-br from-gray-50 to-gray-100 p-6 rounded-xl border border-gray-200 max-w-md mx-auto">
+                                <h4 class="font-semibold text-gray-800 mb-3"><i class="fas fa-info-circle text-blue-500 mr-2"></i>Search Details</h4>
+                                <div class="space-y-2 text-sm text-gray-600">
+                                    <p><strong>Serial Number:</strong> ${serialNumber}</p>
+                                    <p><strong>Mapped to Batch ID:</strong> ${batchId}</p>
+                                    <p><strong>Available Mappings:</strong> ${Object.keys(serialMapping).length} serial numbers</p>
+                                </div>
+                                
+                                <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                    <p class="text-yellow-800 text-sm">
+                                        <i class="fas fa-lightbulb mr-1"></i>
+                                        Please verify the serial number or try scanning a different QR code
+                                    </p>
+                                </div>
+                                
+                                <div class="mt-4 space-x-3">
+                                    <a href="index.html" class="inline-flex items-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
+                                        <i class="fas fa-home mr-2"></i>Back to Home
+                                    </a>
+                                    <button onclick="location.reload()" class="inline-flex items-center px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                                        <i class="fas fa-redo mr-2"></i>Try Again
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     `;
@@ -123,31 +379,126 @@
             } catch (e) {
                 console.error('Search error:', e);
                 traceContainer.innerHTML = `
-                    <div class="p-6 text-center">
-                        <div class="text-red-600 mb-4">
-                            <i class="fas fa-exclamation-circle text-4xl mb-2"></i>
-                            <h3 class="text-lg font-semibold">Search Error</h3>
+                    <div class="text-center py-12">
+                        <div class="mb-6">
+                            <i class="fas fa-exclamation-triangle text-red-400 text-6xl mb-4"></i>
+                            <h3 class="text-2xl font-semibold text-red-700 mb-2">Search Error</h3>
+                            <p class="text-gray-600 mb-6">We encountered an issue while retrieving the product data</p>
                         </div>
-                        <p class="text-gray-600 mb-4">Could not retrieve data. Please check the Serial Number and your connection.</p>
-                        <div class="text-sm text-gray-500 bg-gray-100 p-3 rounded">
-                            <p><strong>Serial Number:</strong> ${serialNumber}</p>
-                            <p><strong>Error:</strong> ${e.message}</p>
-                            <p><strong>Suggestion:</strong> Try refreshing the page or check your internet connection.</p>
+                        
+                        <div class="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-xl border border-red-200 max-w-md mx-auto">
+                            <h4 class="font-semibold text-red-800 mb-3"><i class="fas fa-bug text-red-500 mr-2"></i>Error Details</h4>
+                            <div class="space-y-2 text-sm text-red-700">
+                                <p><strong>Serial Number:</strong> ${serialNumber}</p>
+                                <p><strong>Error:</strong> ${e.message}</p>
+                            </div>
+                            
+                            <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <p class="text-blue-800 text-sm">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    Try refreshing the page or check your internet connection
+                                </p>
+                            </div>
+                            
+                            <div class="mt-4 space-x-3">
+                                <button onclick="location.reload()" class="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                                    <i class="fas fa-redo mr-2"></i>Retry
+                                </button>
+                                <a href="index.html" class="inline-flex items-center px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                                    <i class="fas fa-home mr-2"></i>Home
+                                </a>
+                            </div>
                         </div>
                     </div>
                 `;
             }
         },
         renderChainFromLogs(batchId, logs, container) {
-            const icon = { 
-                BatchCreated: '🌾', 
-                CollectionAdded: '👷', 
-                InspectionAdded: '🕵️', 
-                ProductCreated: '🏭', 
-                ProductReceived: '📦', 
-                ProductDispatched: '🚚' 
+            // Enhanced icons with better visual representation
+            const stepIcons = { 
+                BatchCreated: { icon: 'fas fa-seedling', color: 'from-green-500 to-green-600', bgColor: 'bg-green-50', textColor: 'text-green-700' }, 
+                CollectionAdded: { icon: 'fas fa-hands-helping', color: 'from-blue-500 to-blue-600', bgColor: 'bg-blue-50', textColor: 'text-blue-700' }, 
+                InspectionAdded: { icon: 'fas fa-search-plus', color: 'from-yellow-500 to-yellow-600', bgColor: 'bg-yellow-50', textColor: 'text-yellow-700' }, 
+                ProductCreated: { icon: 'fas fa-industry', color: 'from-purple-500 to-purple-600', bgColor: 'bg-purple-50', textColor: 'text-purple-700' }, 
+                ProductReceived: { icon: 'fas fa-box-open', color: 'from-indigo-500 to-indigo-600', bgColor: 'bg-indigo-50', textColor: 'text-indigo-700' }, 
+                ProductDispatched: { icon: 'fas fa-shipping-fast', color: 'from-orange-500 to-orange-600', bgColor: 'bg-orange-50', textColor: 'text-orange-700' } 
             };
+
+            // Step titles for better UX
+            const stepTitles = {
+                BatchCreated: 'Farm Batch Created',
+                CollectionAdded: 'Crop Collection',
+                InspectionAdded: 'Quality Inspection',
+                ProductCreated: 'Product Manufacturing',
+                ProductReceived: 'Received by Distributor',
+                ProductDispatched: 'Dispatched to Customer'
+            };
+
             let html = '';
+            const totalSteps = logs.length;
+            
+            // Update progress indicator
+            const supplyChainSteps = ['BatchCreated', 'CollectionAdded', 'InspectionAdded', 'ProductCreated', 'ProductReceived', 'ProductDispatched'];
+            const completedSteps = logs.map(l => l.fragment?.name).filter(name => supplyChainSteps.includes(name));
+            const progressPercent = Math.min(100, (completedSteps.length / supplyChainSteps.length) * 100);
+            const nextStep = supplyChainSteps.find(step => !completedSteps.includes(step));
+            
+            document.getElementById('progressIndicator').classList.remove('hidden');
+            document.getElementById('progressBar').style.setProperty('--progress-width', `${progressPercent}%`);
+            
+            // Enhanced progress text
+            let progressText = `${Math.round(progressPercent)}% Complete`;
+            if (nextStep) {
+                const nextStepTitles = {
+                    'CollectionAdded': 'Crop Collection',
+                    'InspectionAdded': 'Quality Inspection',
+                    'ProductCreated': 'Manufacturing',
+                    'ProductReceived': 'Distribution',
+                    'ProductDispatched': 'Final Delivery'
+                };
+                progressText += ` • Next: ${nextStepTitles[nextStep] || nextStep}`;
+            } else {
+                progressText += ' • Journey Complete 🎉';
+            }
+            document.getElementById('progressText').textContent = progressText;
+
+            // Extract key information for quick stats
+            const batchCreated = logs.find(l => l.fragment?.name === 'BatchCreated');
+            if (batchCreated && batchCreated.args) {
+                const meta = Blockchain?.parseFarmLocationMeta ? Blockchain.parseFarmLocationMeta(batchCreated.args.farmLocation || '') : {};
+                document.getElementById('farmOrigin').textContent = meta.base || 'Unknown';
+                document.getElementById('harvestDate').textContent = batchCreated.args.harvestDate || 'Not specified';
+                document.getElementById('totalQuantity').textContent = `${batchCreated.args.quantity || 0} kg`;
+                
+                // Calculate estimated completion time
+                const startTime = batchCreated.args.timestamp;
+                const currentTime = Math.floor(Date.now() / 1000);
+                const averageDaysPerStep = 2; // Estimated days between steps
+                const remainingSteps = supplyChainSteps.length - completedSteps.length;
+                const estimatedCompletionDays = remainingSteps * averageDaysPerStep;
+                
+                let statusHtml = '';
+                if (progressPercent === 100) {
+                    statusHtml = '<span class="badge badge-success"><i class="fas fa-check-circle"></i> Complete</span>';
+                } else if (progressPercent >= 80) {
+                    statusHtml = `<span class="badge badge-warning"><i class="fas fa-shipping-fast"></i> ~${estimatedCompletionDays} days</span>`;
+                } else if (progressPercent >= 50) {
+                    statusHtml = '<span class="badge badge-info"><i class="fas fa-cog fa-spin"></i> Processing</span>';
+                } else {
+                    statusHtml = '<span class="badge badge-warning"><i class="fas fa-clock"></i> Early Stage</span>';
+                }
+                
+                document.getElementById('currentStatus').innerHTML = statusHtml;
+                document.getElementById('quickStats').classList.remove('hidden');
+            }
+
+            // Update current status
+            const lastStep = logs[logs.length - 1];
+            if (lastStep && !batchCreated) {
+                const stepInfo = stepIcons[lastStep.fragment?.name] || stepIcons.BatchCreated;
+                document.getElementById('currentStatus').innerHTML = `<span class="badge badge-success"><i class="${stepInfo.icon}"></i> ${stepTitles[lastStep.fragment?.name] || 'In Progress'}</span>`;
+            }
+            
             const formatArgsClean = (args) => {
                 try {
                     const entries = Object.entries(args || {});
@@ -164,44 +515,325 @@
                         if (typeof v === 'string' && /^0x[a-fA-F0-9]{40}$/.test(v)) {
                             val = v.slice(0, 6) + '...' + v.slice(-4);
                         }
-                        return `<span class="inline-block mr-3"><strong>${k}:</strong> ${val}</span>`;
-                    }).join(' • ') || 'Event recorded on blockchain';
+                        return `<span class="detail-chip">${k}: ${val}</span>`;
+                    }).join(' ') || 'Event recorded on blockchain';
                 } catch { return 'Event recorded on blockchain'; }
             };
-            logs.forEach(l => {
+
+            logs.forEach((l, index) => {
                 const name = l.fragment?.name || 'Event';
+                const stepInfo = stepIcons[name] || { icon: 'fas fa-link', color: 'from-gray-500 to-gray-600', bgColor: 'bg-gray-50', textColor: 'text-gray-700' };
                 const ts = l.args?.timestamp || l.args?.collectionDate || l.args?.date || null;
                 const tsNum = ts != null ? Number(ts) : null;
                 const when = tsNum ? new Date(tsNum * (tsNum > 1e12 ? 1 : 1000)).toLocaleString() : '';
+                const relativeTime = tsNum ? this.getRelativeTime(new Date(tsNum * (tsNum > 1e12 ? 1 : 1000))) : '';
                 
                 let description = '';
+                let imageHtml = '';
+                
                 if (name === 'BatchCreated' && l.args) {
                     const meta = Blockchain?.parseFarmLocationMeta ? Blockchain.parseFarmLocationMeta(l.args.farmLocation || '') : {};
                     const farmer = meta.farmer || 'Unknown Farmer';
                     const baseLoc = meta.base || (l.args.farmLocation || 'Not specified');
-                    description = `${l.args.cropType} • ${l.args.quantity} kg • Location: ${baseLoc} • Farmer: ${farmer}`;
+                    description = `
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                            <div class="space-y-2">
+                                <p class="font-medium text-gray-800"><i class="fas fa-leaf text-green-500 mr-2"></i>Crop Type: ${l.args.cropType}</p>
+                                <p class="text-gray-600"><i class="fas fa-weight-hanging text-blue-500 mr-2"></i>Quantity: ${l.args.quantity} kg</p>
+                                <p class="text-gray-600"><i class="fas fa-map-marker-alt text-red-500 mr-2"></i>Location: ${baseLoc}</p>
+                                <p class="text-gray-600"><i class="fas fa-user-tie text-purple-500 mr-2"></i>Farmer: ${farmer}</p>
+                            </div>
+                        </div>
+                    `;
+                    
                     const imageHash = meta.ipfs || l.args.photoHash;
                     if (imageHash && Blockchain?.getImageUrl) {
-                        description += `<br><div style="margin-top:8px;"><img src="${Blockchain.getImageUrl(imageHash)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:2px solid #e5e7eb;" onclick="showFullImage('${imageHash}')" title="Click to view full image" /><span style="margin-left:8px;color:#3b82f6;cursor:pointer;" onclick="showFullImage('${imageHash}')"><i class="fas fa-expand"></i> View Full</span></div>`;
+                        imageHtml = `
+                            <div class="mt-4">
+                                <p class="text-sm font-medium text-gray-700 mb-2"><i class="fas fa-camera mr-1"></i>Farm Photo</p>
+                                <img src="${Blockchain.getImageUrl(imageHash)}" 
+                                     class="image-thumbnail w-24 h-24 object-cover rounded-lg border-2 border-gray-200 shadow-md" 
+                                     onclick="showFullImage('${imageHash}')" 
+                                     title="Click to view full image" />
+                                <button onclick="showFullImage('${imageHash}')" class="ml-3 text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                    <i class="fas fa-expand mr-1"></i>View Full Image
+                                </button>
+                            </div>
+                        `;
                     }
                 } else {
-                    description = formatArgsClean(l.args);
+                    description = `<div class="flex flex-wrap gap-2 mt-2">${formatArgsClean(l.args)}</div>`;
                 }
                 
+                const isLastStep = index === logs.length - 1;
+                const stepNumber = index + 1;
+                
                 html += `
-                <div class="timeline-item flex gap-4 pb-8">
-                    <div class="flex flex-col items-center">
-                        <div class="bg-indigo-500 text-white w-12 h-12 rounded-full flex items-center justify-center text-xl">${icon[name] || '⛓️'}</div>
-                        <div class="timeline-line w-0.5 h-full bg-gray-200"></div>
+                <div class="timeline-step mobile-card-enter relative flex gap-4 lg:gap-6 pb-6 lg:pb-8 ${isLastStep ? '' : 'mb-2 lg:mb-4'}" style="animation-delay: ${index * 0.1}s">
+                    <!-- Timeline Line -->
+                    ${!isLastStep ? '<div class="absolute left-5 lg:left-6 top-12 lg:top-16 w-0.5 h-full bg-gradient-to-b from-green-300 to-green-200 timeline-line"></div>' : ''}
+                    
+                    <!-- Step Icon -->
+                    <div class="flex flex-col items-center z-10 flex-shrink-0">
+                        <div class="timeline-icon bg-gradient-to-br ${stepInfo.color} text-white w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center shadow-lg relative">
+                            <i class="${stepInfo.icon} text-sm lg:text-lg"></i>
+                            <div class="absolute -top-1 -right-1 lg:-top-2 lg:-right-2 bg-white text-gray-700 text-xs font-bold w-5 h-5 lg:w-6 lg:h-6 rounded-full flex items-center justify-center border-2 border-gray-200">
+                                ${stepNumber}
+                            </div>
+                        </div>
                     </div>
-                    <div class="bg-gray-50 p-4 rounded-lg flex-1">
-                        <p class="font-bold text-gray-800">${name}</p>
-                        ${when ? `<p class="text-xs text-gray-400 mb-2">${when}</p>` : ''}
-                        <div class="text-xs text-gray-600">${description}</div>
+                    
+                    <!-- Step Content -->
+                    <div class="step-card ${stepInfo.bgColor} p-4 lg:p-6 rounded-lg lg:rounded-xl flex-1 border-l-4 border-gradient-to-b ${stepInfo.color} min-w-0">
+                        <!-- Step Header -->
+                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-3 space-y-2 lg:space-y-0">
+                            <h4 class="font-bold text-base lg:text-lg ${stepInfo.textColor} pr-2">
+                                ${stepTitles[name] || name}
+                            </h4>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="badge badge-success text-xs">
+                                    <i class="fas fa-check"></i>Completed
+                                </span>
+                                ${when ? `<span class="text-xs text-gray-500 bg-white px-2 py-1 rounded whitespace-nowrap">${relativeTime}</span>` : ''}
+                                <span class="swipe-indicator text-gray-400 lg:hidden">
+                                    <i class="fas fa-chevron-right text-xs"></i>
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <!-- Timestamp -->
+                        ${when ? `<p class="text-xs lg:text-sm text-gray-500 mb-3"><i class="far fa-clock mr-1"></i>${when}</p>` : ''}
+                        
+                        <!-- Step Details -->
+                        <div class="space-y-3 lg:space-y-4">
+                            <!-- Main Content -->
+                            <div class="text-xs lg:text-sm text-gray-700">
+                                ${description}
+                                ${imageHtml}
+                            </div>
+                            
+                            <!-- Additional Information Row -->
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4 pt-3 lg:pt-4 border-t border-gray-200">
+                                <!-- Stakeholder Info -->
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 mb-2">Recorded by</p>
+                                    ${this.getStakeholderInfo(name, l.args)}
+                                </div>
+                                
+                                <!-- Verification Status -->
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 mb-2">Verification</p>
+                                    ${this.getVerificationStatus(name, tsNum)}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>`;
             });
-            container.innerHTML = `<p class="text-sm text-gray-500 mb-4">History for Serial Number: ${this.currentSerialNumber} (Batch ID: ${batchId})</p>` + html;
+            
+            container.innerHTML = `
+                <div class="mb-6 p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
+                    <p class="text-sm text-gray-600 mb-1">
+                        <i class="fas fa-info-circle text-blue-500 mr-1"></i>
+                        Traceability information for Serial Number: <strong>${this.currentSerialNumber}</strong>
+                    </p>
+                    <p class="text-xs text-gray-500">Batch ID: ${batchId} • ${totalSteps} recorded events • ${Math.round(progressPercent)}% journey complete</p>
+                </div>
+                ${html}
+                ${progressPercent === 100 ? this.renderCompletionSummary(logs) : this.renderNextSteps(completedSteps, supplyChainSteps)}
+            `;
+        },
+
+        renderCompletionSummary(logs) {
+            const totalDuration = this.calculateJourneyDuration(logs);
+            return `
+                <div class="mt-8 p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border-2 border-green-200">
+                    <div class="text-center">
+                        <i class="fas fa-trophy text-green-500 text-4xl mb-4"></i>
+                        <h4 class="text-xl font-bold text-green-800 mb-2">Journey Complete!</h4>
+                        <p class="text-green-700 mb-4">This product has successfully completed its supply chain journey</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                            <div class="text-center p-3 bg-white rounded-lg shadow-sm">
+                                <i class="fas fa-calendar-check text-blue-500 text-xl mb-2"></i>
+                                <p class="text-xs text-gray-600">Total Duration</p>
+                                <p class="font-semibold text-sm">${totalDuration}</p>
+                            </div>
+                            <div class="text-center p-3 bg-white rounded-lg shadow-sm">
+                                <i class="fas fa-check-double text-green-500 text-xl mb-2"></i>
+                                <p class="text-xs text-gray-600">Steps Completed</p>
+                                <p class="font-semibold text-sm">${logs.length} / ${logs.length}</p>
+                            </div>
+                            <div class="text-center p-3 bg-white rounded-lg shadow-sm">
+                                <i class="fas fa-shield-alt text-purple-500 text-xl mb-2"></i>
+                                <p class="text-xs text-gray-600">Verification</p>
+                                <p class="font-semibold text-sm">100% Verified</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        },
+
+        renderNextSteps(completedSteps, allSteps) {
+            const remainingSteps = allSteps.filter(step => !completedSteps.includes(step));
+            const nextStep = remainingSteps[0];
+            
+            if (!nextStep) return '';
+            
+            const stepTitles = {
+                'BatchCreated': 'Farm Batch Creation',
+                'CollectionAdded': 'Crop Collection',
+                'InspectionAdded': 'Quality Inspection',
+                'ProductCreated': 'Product Manufacturing',
+                'ProductReceived': 'Received by Distributor',
+                'ProductDispatched': 'Dispatched to Customer'
+            };
+            
+            return `
+                <div class="mt-8 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <i class="fas fa-clock text-blue-500 text-xl"></i>
+                        <h4 class="text-lg font-bold text-blue-800">What's Next?</h4>
+                    </div>
+                    
+                    <p class="text-blue-700 mb-4">The next step in this product's journey:</p>
+                    
+                    <div class="bg-white p-4 rounded-lg border border-blue-200">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full flex items-center justify-center">
+                                <i class="fas fa-arrow-right"></i>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-gray-800">${stepTitles[nextStep] || nextStep}</p>
+                                <p class="text-sm text-gray-600">Pending completion by the next stakeholder</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 text-sm text-blue-600">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        ${remainingSteps.length} step${remainingSteps.length > 1 ? 's' : ''} remaining until journey completion
+                    </div>
+                </div>
+            `;
+        },
+
+        calculateJourneyDuration(logs) {
+            if (logs.length < 2) return 'N/A';
+            
+            const firstLog = logs[0];
+            const lastLog = logs[logs.length - 1];
+            
+            const startTime = firstLog.args?.timestamp || firstLog.args?.collectionDate || firstLog.args?.date;
+            const endTime = lastLog.args?.timestamp || lastLog.args?.collectionDate || lastLog.args?.date;
+            
+            if (!startTime || !endTime) return 'N/A';
+            
+            const startMs = Number(startTime) * (startTime > 1e12 ? 1 : 1000);
+            const endMs = Number(endTime) * (endTime > 1e12 ? 1 : 1000);
+            const durationMs = endMs - startMs;
+            const durationDays = Math.floor(durationMs / (1000 * 60 * 60 * 24));
+            
+            if (durationDays === 0) return 'Same day';
+            if (durationDays === 1) return '1 day';
+            return `${durationDays} days`;
+        },
+
+        getRelativeTime(date) {
+            const now = new Date();
+            const diffMs = now - date;
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffMinutes = Math.floor(diffMs / (1000 * 60));
+            
+            if (diffDays > 0) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+            if (diffHours > 0) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+            if (diffMinutes > 0) return `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} ago`;
+            return 'Just now';
+        },
+
+        getStakeholderInfo(eventName, args) {
+            const stakeholderProfiles = {
+                'BatchCreated': {
+                    icon: 'fas fa-user-tie',
+                    title: 'Farmer',
+                    color: 'text-green-600',
+                    bgColor: 'bg-green-50'
+                },
+                'CollectionAdded': {
+                    icon: 'fas fa-hands-helping',
+                    title: 'Collector',
+                    color: 'text-blue-600',
+                    bgColor: 'bg-blue-50'
+                },
+                'InspectionAdded': {
+                    icon: 'fas fa-search-plus',
+                    title: 'Quality Inspector',
+                    color: 'text-yellow-600',
+                    bgColor: 'bg-yellow-50'
+                },
+                'ProductCreated': {
+                    icon: 'fas fa-industry',
+                    title: 'Manufacturer',
+                    color: 'text-purple-600',
+                    bgColor: 'bg-purple-50'
+                },
+                'ProductReceived': {
+                    icon: 'fas fa-box-open',
+                    title: 'Distributor',
+                    color: 'text-indigo-600',
+                    bgColor: 'bg-indigo-50'
+                },
+                'ProductDispatched': {
+                    icon: 'fas fa-shipping-fast',
+                    title: 'Logistics',
+                    color: 'text-orange-600',
+                    bgColor: 'bg-orange-50'
+                }
+            };
+
+            const profile = stakeholderProfiles[eventName] || stakeholderProfiles['BatchCreated'];
+            const stakeholderAddress = args?.owner || args?.recordedBy || args?.account || 'Unknown';
+            const displayAddress = stakeholderAddress === 'Unknown' ? 'Unknown' : 
+                                   stakeholderAddress.slice(0, 6) + '...' + stakeholderAddress.slice(-4);
+
+            return `
+                <div class="flex items-center space-x-2 ${profile.bgColor} px-3 py-2 rounded-lg">
+                    <i class="${profile.icon} ${profile.color}"></i>
+                    <div>
+                        <p class="text-sm font-medium ${profile.color}">${profile.title}</p>
+                        <p class="text-xs text-gray-500">${displayAddress}</p>
+                    </div>
+                </div>
+            `;
+        },
+
+        getVerificationStatus(eventName, timestamp) {
+            const now = Date.now();
+            const eventTime = timestamp * (timestamp > 1e12 ? 1 : 1000);
+            const isRecent = (now - eventTime) < (24 * 60 * 60 * 1000); // Less than 24 hours
+            
+            return `
+                <div class="flex items-center space-x-2">
+                    <div class="flex items-center space-x-1">
+                        <i class="fas fa-shield-alt text-green-500"></i>
+                        <span class="text-xs font-medium text-green-700">Verified</span>
+                    </div>
+                    <div class="w-1 h-1 bg-gray-300 rounded-full"></div>
+                    <div class="flex items-center space-x-1">
+                        <i class="fas fa-link text-blue-500"></i>
+                        <span class="text-xs text-blue-700">Blockchain</span>
+                    </div>
+                    ${isRecent ? `
+                        <div class="w-1 h-1 bg-gray-300 rounded-full"></div>
+                        <div class="flex items-center space-x-1">
+                            <i class="fas fa-clock text-orange-500"></i>
+                            <span class="text-xs text-orange-700">Recent</span>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
         }
     };
 
@@ -209,31 +841,69 @@
 
     function showFullImage(ipfsHash) {
         if (!ipfsHash) return;
-                const fullUrl = Blockchain.getImageUrl(ipfsHash);
+        const fullUrl = Blockchain.getImageUrl(ipfsHash);
         
-        // Create modal overlay
+        // Create modal overlay with improved design
         const overlay = document.createElement('div');
-        overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        overlay.className = 'fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4';
         overlay.onclick = (e) => {
-            if (e.target === overlay) overlay.remove();
+            if (e.target === overlay) {
+                overlay.classList.add('opacity-0');
+                setTimeout(() => overlay.remove(), 300);
+            }
         };
         
-        // Create modal content
+        // Create modal content with enhanced styling
         const modal = document.createElement('div');
-        modal.className = 'bg-white p-4 rounded-lg max-w-4xl max-h-[90vh] overflow-auto';
+        modal.className = 'bg-white rounded-2xl shadow-2xl max-w-4xl max-h-[90vh] overflow-hidden transform transition-all duration-300 scale-95 opacity-0';
         modal.innerHTML = `
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-semibold">Image Preview</h3>
-                <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
+            <div class="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4 text-white">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-image text-xl"></i>
+                        <h3 class="text-lg font-semibold">Farm Image Preview</h3>
+                    </div>
+                    <button onclick="this.closest('.fixed').classList.add('opacity-0'); setTimeout(() => this.closest('.fixed').remove(), 300)" 
+                            class="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
             </div>
-            <img src="${fullUrl}" class="max-w-full h-auto rounded-lg" alt="Full image" />
+            <div class="p-6 overflow-auto max-h-[80vh]">
+                <div class="text-center">
+                    <img src="${fullUrl}" 
+                         class="max-w-full h-auto rounded-xl shadow-lg border border-gray-200" 
+                         alt="Farm image preview" 
+                         onload="this.parentElement.parentElement.parentElement.style.transform='scale(1)'; this.parentElement.parentElement.parentElement.style.opacity='1'" />
+                    <p class="text-gray-500 text-sm mt-4">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        This image was captured during the farm batch creation process
+                    </p>
+                </div>
+            </div>
         `;
         
         overlay.appendChild(modal);
         document.body.appendChild(overlay);
+        
+        // Animate in
+        setTimeout(() => {
+            overlay.classList.remove('opacity-0');
+            modal.style.transform = 'scale(1)';
+            modal.style.opacity = '1';
+        }, 10);
     }
+
+    // Add keyboard support for modal
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const modal = document.querySelector('.fixed.inset-0');
+            if (modal) {
+                modal.classList.add('opacity-0');
+                setTimeout(() => modal.remove(), 300);
+            }
+        }
+    });
     </script>
 </body>
 </html>
