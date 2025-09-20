@@ -1020,23 +1020,57 @@
 
             const formData = {
                 processingDate: document.getElementById('processingDate').value,
-                quantityProcessed: parseFloat(document.getElementById('quantityProcessed').value),
-                wastage: parseFloat(document.getElementById('wastage').value),
+                quantityProcessed: parseFloat(document.getElementById('quantityProcessed').value) || 0,
+                wastage: parseFloat(document.getElementById('wastage').value) || 0,
                 productType: document.getElementById('productType').value,
-                productQuantity: parseInt(document.getElementById('productQuantity').value),
+                productQuantity: parseInt(document.getElementById('productQuantity').value) || 0,
                 packagingDate: document.getElementById('packagingDate').value,
                 expiryDate: document.getElementById('expiryDate').value
             };
 
-            // Validate form
-            if (!formData.processingDate || !formData.quantityProcessed || !formData.wastage || 
-                !formData.productType || !formData.productQuantity || !formData.packagingDate || !formData.expiryDate) {
-                alert('Please fill in all fields');
+            // Enhanced validation
+            if (!formData.processingDate || !formData.productType || !formData.packagingDate || !formData.expiryDate) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            if (isNaN(formData.quantityProcessed) || formData.quantityProcessed <= 0) {
+                alert('Quantity processed must be a valid positive number');
+                return;
+            }
+
+            if (isNaN(formData.wastage) || formData.wastage < 0) {
+                alert('Wastage must be a valid non-negative number');
+                return;
+            }
+
+            if (formData.quantityProcessed <= formData.wastage) {
+                alert('Quantity processed must be greater than wastage');
                 return;
             }
 
             if (formData.productQuantity < 1 || formData.productQuantity > 100) {
                 alert('Product quantity must be between 1 and 100');
+                return;
+            }
+
+            // Validate dates
+            const processingDate = new Date(formData.processingDate);
+            const packagingDate = new Date(formData.packagingDate);
+            const expiryDate = new Date(formData.expiryDate);
+            
+            if (isNaN(processingDate.getTime()) || isNaN(packagingDate.getTime()) || isNaN(expiryDate.getTime())) {
+                alert('Please enter valid dates');
+                return;
+            }
+
+            if (packagingDate < processingDate) {
+                alert('Packaging date cannot be before processing date');
+                return;
+            }
+
+            if (expiryDate <= packagingDate) {
+                alert('Expiry date must be after packaging date');
                 return;
             }
 
@@ -1069,18 +1103,62 @@
                 }
                 
                 // Create products on blockchain
-                const manufacturerId = (await getCurrentUser())?.email || 'Unknown Manufacturer';
-                // Convert to integers for BigInt conversion in blockchain.js
+                const currentUser = await getCurrentUser();
+                const manufacturerId = currentUser?.email || 'Unknown Manufacturer';
+                const manufacturerUsername = currentUser?.actorId || 'unknown';
+                const manufacturerName = currentUser?.name || currentUser?.actorId || 'Unknown';
+                
+                console.log(`👤 Manufacturer: ${manufacturerName} (${manufacturerUsername})`);
+                
+                // First, set manufacturer profile on blockchain
+                try {
+                    console.log('🔗 Setting manufacturer profile on blockchain...');
+                    await Blockchain.init();
+                    await Blockchain.setManufacturerProfile(manufacturerName, manufacturerUsername);
+                    console.log('✅ Manufacturer profile set on blockchain');
+                } catch (profileError) {
+                    console.warn('⚠️ Could not set manufacturer profile:', profileError);
+                    // Continue anyway - profile setting is not critical
+                }
+                
+                // Enhanced data conversion and validation
                 const quantityProcessedInt = Math.round(Number(formData.quantityProcessed));
                 const wastageInt = Math.round(Number(formData.wastage));
-                if (Number.isNaN(quantityProcessedInt) || Number.isNaN(wastageInt)) {
-                    throw new Error('Quantity and wastage must be valid numbers');
+                
+                // Double-check numeric conversion
+                if (!Number.isFinite(quantityProcessedInt) || quantityProcessedInt <= 0) {
+                    throw new Error('Invalid quantity processed value');
                 }
-                const processingTs = Math.floor(new Date(formData.processingDate).getTime() / 1000);
-                const expiryTs = Math.floor(new Date(formData.expiryDate).getTime() / 1000);
-                if (!Number.isFinite(processingTs) || !Number.isFinite(expiryTs)) {
-                    throw new Error('Invalid processing or expiry date');
+                
+                if (!Number.isFinite(wastageInt) || wastageInt < 0) {
+                    throw new Error('Invalid wastage value');
                 }
+
+                if (quantityProcessedInt <= wastageInt) {
+                    throw new Error('Quantity processed must be greater than wastage');
+                }
+
+                // Safe date conversion with validation
+                let processingTs, expiryTs;
+                try {
+                    processingTs = Math.floor(new Date(formData.processingDate).getTime() / 1000);
+                    expiryTs = Math.floor(new Date(formData.expiryDate).getTime() / 1000);
+                    
+                    if (!Number.isFinite(processingTs) || !Number.isFinite(expiryTs)) {
+                        throw new Error('Date conversion failed');
+                    }
+                    
+                    if (processingTs >= expiryTs) {
+                        throw new Error('Processing date must be before expiry date');
+                    }
+                } catch (dateError) {
+                    throw new Error('Invalid processing or expiry date format');
+                }
+
+                // Calculate safe quantity distribution
+                const netQuantity = quantityProcessedInt - wastageInt;
+                const quantityPerProduct = Math.max(1, Math.floor(netQuantity / formData.productQuantity));
+                const wastagePerProduct = Math.max(0, Math.floor(wastageInt / formData.productQuantity));
                 
                 // Verify we have a valid batch ID
                 if (!batchId || batchId.trim() === '') {
@@ -1095,28 +1173,30 @@
                 console.log(`Creating ${formData.productQuantity} individual products on blockchain...`);
                 console.log(`Batch ID: ${batchId}`);
                 console.log(`Product Type: ${formData.productType}`);
-                console.log(`Quantity per product: ${Math.round(quantityProcessedInt / formData.productQuantity)}`);
+                console.log(`Net quantity (after wastage): ${netQuantity} kg`);
+                console.log(`Quantity per product: ${quantityPerProduct} kg`);
+                console.log(`Wastage per product: ${wastagePerProduct} kg`);
+                console.log(`Manufacturer Username: ${manufacturerUsername}`);
                 
                 for (let i = 1; i <= formData.productQuantity; i++) {
-                    const serialNumber = `${batchId}-P${i.toString().padStart(3, '0')}`;
                     const productId = `${batchId}-PRD-${i.toString().padStart(3, '0')}-${Date.now()}`;
                     
-                    console.log(`Creating product ${i}/${formData.productQuantity}: ${serialNumber}`);
+                    console.log(`Creating product ${i}/${formData.productQuantity}: ${productId}`);
                     submitProcessBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Creating Product ${i}/${formData.productQuantity}...`;
                     
                     try {
-                        // Create individual product on blockchain with timeout
-                        console.log(`🔗 Creating blockchain entry for product ${i}...`);
+                        // Create individual product block on blockchain with batch ID
+                        console.log(`🔗 Creating blockchain block for batch ${batchId}...`);
                         
                         const createProductPromise = Blockchain.createProduct({
                             productId,
                             sourceBatchId: batchId,
                             productType: formData.productType,
-                            quantityProcessed: Math.round(quantityProcessedInt / formData.productQuantity), // Distribute quantity
-                            wastage: Math.round(wastageInt / formData.productQuantity), // Distribute wastage
+                            quantityProcessed: quantityPerProduct,
+                            wastage: wastagePerProduct,
                             processingDate: processingTs,
                             expiryDate: expiryTs,
-                            manufacturerId: manufacturerId
+                            manufacturerId: `${manufacturerUsername}|${manufacturerId}` // Store both username and email
                         });
 
                         // Add timeout to prevent hanging
@@ -1126,22 +1206,21 @@
 
                         await Promise.race([createProductPromise, timeoutPromise]);
 
-                        console.log(`✅ Created product ${i} on blockchain: ${productId}`);
+                        console.log(`✅ Created product block for batch ${batchId}: ${productId}`);
                         
-                        serialNumbers.push(serialNumber);
                         createdProducts.push({
-                            serialNumber,
                             productId,
                             batchId,
                             productType: formData.productType,
                             manufacturedDate: formData.processingDate,
                             packagingDate: formData.packagingDate,
                             expiryDate: formData.expiryDate,
-                            manufacturerId: manufacturerId
+                            manufacturerId: manufacturerId,
+                            manufacturerUsername: manufacturerUsername
                         });
 
-                        // Generate QR code for each product pointing to search.html
-                        console.log(`🎯 Generating QR code for ${serialNumber}...`);
+                        // Generate QR code for batch ID pointing to search.html
+                        console.log(`🎯 Generating QR code for batch ${batchId}...`);
                         let qrUrl;
                         try {
                             // Ensure QRCode library is available with timeout
@@ -1152,7 +1231,7 @@
                             
                             await Promise.race([qrWaitPromise, qrTimeoutPromise]);
                             
-                            const searchUrl = `${window.location.origin}/search.html?serial=${serialNumber}`;
+                            const searchUrl = `${window.location.origin}/search.html#${batchId}`;
                             console.log(`Generating QR for URL: ${searchUrl}`);
                             
                             // Try multiple QR generation methods
@@ -1183,26 +1262,26 @@
                             
                             // Fallback to external QR service
                             try {
-                                const searchUrl = `${window.location.origin}/search.html?serial=${serialNumber}`;
+                                const searchUrl = `${window.location.origin}/search.html#${batchId}`;
                                 const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(searchUrl)}`;
                                 qrUrl = apiUrl;
                                 console.log('✅ QR generated with external API');
                             } catch (fallbackError) {
                                 // Final fallback - create SVG placeholder with actual QR pattern
                                 console.error('All QR generation methods failed:', fallbackError);
-                                qrUrl = `data:image/svg+xml;base64,${btoa(`<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg"><rect width="200" height="200" fill="#ffffff" stroke="#000000" stroke-width="2"/><text x="100" y="60" text-anchor="middle" font-family="Arial" font-size="14" fill="#000000" font-weight="bold">QR Code</text><text x="100" y="80" text-anchor="middle" font-family="Arial" font-size="10" fill="#000000">${serialNumber}</text><text x="100" y="100" text-anchor="middle" font-family="Arial" font-size="8" fill="#666666">📱 Scan with QR reader</text><text x="100" y="120" text-anchor="middle" font-family="Arial" font-size="8" fill="#666666">URL: search.html?serial=${serialNumber}</text><rect x="50" y="130" width="100" height="50" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="5,5"/></svg>`)}`;
+                                qrUrl = `data:image/svg+xml;base64,${btoa(`<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg"><rect width="200" height="200" fill="#ffffff" stroke="#000000" stroke-width="2"/><text x="100" y="60" text-anchor="middle" font-family="Arial" font-size="14" fill="#000000" font-weight="bold">QR Code</text><text x="100" y="80" text-anchor="middle" font-family="Arial" font-size="10" fill="#000000">${batchId}</text><text x="100" y="100" text-anchor="middle" font-family="Arial" font-size="8" fill="#666666">📱 Scan with QR reader</text><text x="100" y="120" text-anchor="middle" font-family="Arial" font-size="8" fill="#666666">URL: search.html#${batchId}</text><rect x="50" y="130" width="100" height="50" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="5,5"/></svg>`)}`;
                             }
                         }
 
                         qrUrls.push({
                             url: qrUrl,
-                            serial: serialNumber,
-                            productId: `${formData.productType} - ${serialNumber}`,
-                            searchLink: `${window.location.origin}/search.html?serial=${serialNumber}`,
-                            hashLink: `${window.location.origin}/search.html#${serialNumber}`
+                            batchId: batchId,
+                            productId: `${formData.productType} - Product ${i}`,
+                            searchLink: `${window.location.origin}/search.html#${batchId}`,
+                            hashLink: `${window.location.origin}/search.html#${batchId}`
                         });
 
-                        console.log(`✅ Generated QR for ${serialNumber}:`);
+                        console.log(`✅ Generated QR for batch ${batchId}:`);
                         console.log(`   📱 QR code contains product serial number`);
                         console.log(`   🔍 Scan QR to view complete product history`);
 
@@ -1228,16 +1307,28 @@
                 console.log(`✅ Successfully created ${createdProducts.length} products on blockchain`);
 
                 // Store product information in localStorage for search.html
-                const existingProducts = JSON.parse(localStorage.getItem('manufactured_products') || '[]');
-                const allProducts = [...existingProducts, ...createdProducts];
-                localStorage.setItem('manufactured_products', JSON.stringify(allProducts));
+                try {
+                    const existingProducts = JSON.parse(localStorage.getItem('manufactured_products') || '[]');
+                    const allProducts = [...existingProducts, ...createdProducts];
+                    localStorage.setItem('manufactured_products', JSON.stringify(allProducts));
 
-                // Also create serial mapping for backward compatibility
-                const existingMapping = JSON.parse(localStorage.getItem('serial_mapping') || '{}');
-                createdProducts.forEach(product => {
-                    existingMapping[product.serialNumber] = product.batchId;
-                });
-                localStorage.setItem('serial_mapping', JSON.stringify(existingMapping));
+                    // Store batch information for search functionality
+                    const existingBatches = JSON.parse(localStorage.getItem('processed_batches') || '{}');
+                    existingBatches[batchId] = {
+                        batchId: batchId,
+                        productType: formData.productType,
+                        productCount: createdProducts.length,
+                        manufacturerUsername: manufacturerUsername,
+                        processedDate: formData.processingDate,
+                        expiryDate: formData.expiryDate
+                    };
+                    localStorage.setItem('processed_batches', JSON.stringify(existingBatches));
+                    
+                    console.log(`✅ Stored ${createdProducts.length} products for batch ${batchId}`);
+                } catch (storageError) {
+                    console.warn('Failed to save to localStorage:', storageError);
+                    // Continue anyway as this is not critical for blockchain operation
+                }
 
                 // Store batch history in manufacturer dashboard
                 // Calculate wastage (if any failed products)
@@ -1257,23 +1348,31 @@
                     processingDate: formData.processingDate,
                     packagingDate: formData.packagingDate,
                     expiryDate: formData.expiryDate,
-                    serialNumbers: createdProducts.map(p => p.serialNumber),
                     qrCodes: qrUrls,
                     status: 'completed',
                     manufacturerNotes: `Successfully created ${actualProducts}/${expectedQuantity} products with QR codes${wastageCount > 0 ? ` (${wastageCount} failed)` : ''}`
                 };
 
                 // Store batch history
-                const existingBatches = JSON.parse(localStorage.getItem('batch_history') || '[]');
-                existingBatches.push(batchHistory);
-                localStorage.setItem('batch_history', JSON.stringify(existingBatches));
+                try {
+                    const existingBatches = JSON.parse(localStorage.getItem('batch_history') || '[]');
+                    existingBatches.push(batchHistory);
+                    localStorage.setItem('batch_history', JSON.stringify(existingBatches));
+                } catch (storageError) {
+                    console.warn('Failed to save batch history to localStorage:', storageError);
+                    // Continue anyway as this is not critical for blockchain operation
+                }
 
                 // Remove from in-production list
-                const inProductionList = JSON.parse(localStorage.getItem('in_production') || '[]');
-                const updatedInProduction = inProductionList.filter(item => item.batchId !== batchId);
-                localStorage.setItem('in_production', JSON.stringify(updatedInProduction));
+                try {
+                    const inProductionList = JSON.parse(localStorage.getItem('in_production') || '[]');
+                    const updatedInProduction = inProductionList.filter(item => item.batchId !== batchId);
+                    localStorage.setItem('in_production', JSON.stringify(updatedInProduction));
+                } catch (storageError) {
+                    console.warn('Failed to update in-production list:', storageError);
+                }
 
-                console.log(`✅ Stored ${createdProducts.length} products in localStorage:`, createdProducts.map(p => p.serialNumber));
+                console.log(`✅ Stored ${createdProducts.length} products in localStorage for batch:`, batchId);
                 console.log(`✅ Stored batch history for batch: ${batchId}`, batchHistory);
 
                 // Update dashboard stats
@@ -1288,10 +1387,11 @@
                 document.getElementById('batchIdDisplay').textContent = batchId;
                 
                 const qrGrid = document.getElementById('qrGrid');
-                qrGrid.innerHTML = qrUrls.map(qr => `
+                qrGrid.innerHTML = qrUrls.map((qr, index) => `
                     <div style="text-align:center; padding:12px; background:white; border-radius:8px; border:1px solid #e5e7eb;">
                         <img src="${qr.url}" style="width:150px; height:150px; margin-bottom:8px;">
-                        <p style="margin:0; font-size:12px; color:#374151; font-weight:500;">${qr.serial}</p>
+                        <p style="margin:0; font-size:12px; color:#374151; font-weight:500;">Product ${index + 1}</p>
+                        <p style="margin:4px 0 0 0; font-size:11px; color:#6b7280;">Batch: ${qr.batchId}</p>
                         <p style="margin:4px 0 0 0; font-size:11px; color:#6b7280;">${formData.productType}</p>
                         <small style="color:#10b981; font-size:10px;">✓ On Blockchain</small>
                         <div style="margin-top:8px; font-size:10px; color:#10b981;">
@@ -1310,15 +1410,15 @@
 
                 alert(`Successfully created ${createdProducts.length} products on blockchain!
 
-🔗 Serial Numbers Generated:
-${serialNumbers.slice(0, 3).join(', ')}${serialNumbers.length > 3 ? ` + ${serialNumbers.length - 3} more` : ''}
+🔗 Batch ID: ${batchId}
 
 📱 QR Codes Generated Successfully!
 • Use Download or Print buttons below to get QR codes
-• Each QR code contains the product serial number
-• When scanned, QR codes will show complete product history
+• Each QR code contains the batch ID (${batchId})
+• When scanned, QR codes redirect to search.html#${batchId}
+• Shows complete supply chain for this batch
 
-⛓️ Each product has individual blockchain entry
+⛓️ Each product has individual blockchain entry with manufacturer profile
 🔗 Ready for distribution with QR codes!`);
 
                 // No automatic redirect - let user download QR codes instead
@@ -1326,6 +1426,10 @@ ${serialNumbers.slice(0, 3).join(', ')}${serialNumbers.length > 3 ? ` + ${serial
 
             } catch (error) {
                 console.error('Error creating products:', error);
+                
+                // Reset button state
+                submitProcessBtn.innerHTML = '<i class="fas fa-cogs"></i> Create Products';
+                submitProcessBtn.disabled = false;
                 
                 // Remove from in-production list on error
                 const inProductionList = JSON.parse(localStorage.getItem('in_production') || '[]');
@@ -1346,35 +1450,31 @@ ${serialNumbers.slice(0, 3).join(', ')}${serialNumbers.length > 3 ? ` + ${serial
                     
                     // Create test products without blockchain
                     const createdProducts = [];
-                    const serialNumbers = [];
                     const qrUrls = [];
                     
                     for (let i = 1; i <= formData.productQuantity; i++) {
-                        const serialNumber = `${batchId || 'TEST_BATCH'}-P${i.toString().padStart(3, '0')}`;
                         const productId = `${batchId || 'TEST_BATCH'}-PRD-${i.toString().padStart(3, '0')}-${Date.now()}`;
                         
                         createdProducts.push({
-                            serialNumber,
                             productId,
                             batchId: batchId || 'TEST_BATCH',
                             productType: formData.productType,
                             manufacturedDate: formData.processingDate,
                             packagingDate: formData.packagingDate,
                             expiryDate: formData.expiryDate,
-                            manufacturerId: 'TEST_MANUFACTURER'
+                            manufacturerId: 'TEST_MANUFACTURER',
+                            manufacturerUsername: 'test_user'
                         });
                         
-                        serialNumbers.push(serialNumber);
-                        
-                        // Create simple QR code
-                        const qrUrl = `data:image/svg+xml;base64,${btoa(`<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg"><rect width="200" height="200" fill="#f3f4f6" stroke="#d1d5db"/><text x="100" y="70" text-anchor="middle" font-family="Arial" font-size="14" fill="#374151" font-weight="bold">TEST QR</text><text x="100" y="90" text-anchor="middle" font-family="Arial" font-size="10" fill="#6b7280">${serialNumber}</text><text x="100" y="110" text-anchor="middle" font-family="Arial" font-size="8" fill="#9ca3af">search.html?serial=${serialNumber}</text><text x="100" y="130" text-anchor="middle" font-family="Arial" font-size="8" fill="#ef4444">TEST MODE</text></svg>`)}`;
+                        // Create simple QR code with batch ID
+                        const qrUrl = `data:image/svg+xml;base64,${btoa(`<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg"><rect width="200" height="200" fill="#f3f4f6" stroke="#d1d5db"/><text x="100" y="70" text-anchor="middle" font-family="Arial" font-size="14" fill="#374151" font-weight="bold">TEST QR</text><text x="100" y="90" text-anchor="middle" font-family="Arial" font-size="10" fill="#6b7280">${batchId || 'TEST_BATCH'}</text><text x="100" y="110" text-anchor="middle" font-family="Arial" font-size="8" fill="#9ca3af">search.html#${batchId || 'TEST_BATCH'}</text><text x="100" y="130" text-anchor="middle" font-family="Arial" font-size="8" fill="#ef4444">TEST MODE</text></svg>`)}`;
                         
                         qrUrls.push({
                             url: qrUrl,
-                            serial: serialNumber,
-                            productId: `${formData.productType} - ${serialNumber}`,
-                            searchLink: `${window.location.origin}/search.html?serial=${serialNumber}`,
-                            hashLink: `${window.location.origin}/search.html#${serialNumber}`
+                            batchId: batchId || 'TEST_BATCH',
+                            productId: `${formData.productType} - Product ${i}`,
+                            searchLink: `${window.location.origin}/search.html#${batchId || 'TEST_BATCH'}`,
+                            hashLink: `${window.location.origin}/search.html#${batchId || 'TEST_BATCH'}`
                         });
                     }
                     
@@ -1383,11 +1483,16 @@ ${serialNumbers.slice(0, 3).join(', ')}${serialNumbers.length > 3 ? ` + ${serial
                     const allProducts = [...existingProducts, ...createdProducts];
                     localStorage.setItem('manufactured_products', JSON.stringify(allProducts));
 
-                    const existingMapping = JSON.parse(localStorage.getItem('serial_mapping') || '{}');
-                    createdProducts.forEach(product => {
-                        existingMapping[product.serialNumber] = product.batchId;
-                    });
-                    localStorage.setItem('serial_mapping', JSON.stringify(existingMapping));
+                    const existingMapping = JSON.parse(localStorage.getItem('processed_batches') || '{}');
+                    existingMapping[batchId || 'TEST_BATCH'] = {
+                        batchId: batchId || 'TEST_BATCH',
+                        productType: formData.productType,
+                        productCount: createdProducts.length,
+                        manufacturerUsername: 'test_user',
+                        processedDate: formData.processingDate,
+                        expiryDate: formData.expiryDate
+                    };
+                    localStorage.setItem('processed_batches', JSON.stringify(existingMapping));
                     
                     // Store batch history for test mode
                     const batchHistory = {
@@ -1399,7 +1504,6 @@ ${serialNumbers.slice(0, 3).join(', ')}${serialNumbers.length > 3 ? ` + ${serial
                         processingDate: formData.processingDate,
                         packagingDate: formData.packagingDate,
                         expiryDate: formData.expiryDate,
-                        serialNumbers: createdProducts.map(p => p.serialNumber),
                         qrCodes: qrUrls,
                         status: 'test_mode',
                         manufacturerNotes: `TEST MODE: Created ${createdProducts.length} products without blockchain`
@@ -1416,10 +1520,11 @@ ${serialNumbers.slice(0, 3).join(', ')}${serialNumbers.length > 3 ? ` + ${serial
                     document.getElementById('batchIdDisplay').textContent = batchId || 'TEST_BATCH';
                     
                     const qrGrid = document.getElementById('qrGrid');
-                    qrGrid.innerHTML = qrUrls.map(qr => `
+                    qrGrid.innerHTML = qrUrls.map((qr, index) => `
                         <div style="text-align:center; padding:12px; background:white; border-radius:8px; border:1px solid #e5e7eb;">
                             <img src="${qr.url}" style="width:150px; height:150px; margin-bottom:8px;">
-                            <p style="margin:0; font-size:12px; color:#374151; font-weight:500;">${qr.serial}</p>
+                            <p style="margin:0; font-size:12px; color:#374151; font-weight:500;">Product ${index + 1}</p>
+                            <p style="margin:4px 0 0 0; font-size:11px; color:#6b7280;">Batch: ${qr.batchId}</p>
                             <p style="margin:4px 0 0 0; font-size:11px; color:#6b7280;">${formData.productType}</p>
                             <small style="color:#ef4444; font-size:10px;">⚠️ TEST MODE</small>
                             <div style="margin-top:8px; font-size:10px; color:#10b981;">

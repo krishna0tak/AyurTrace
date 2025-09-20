@@ -104,65 +104,64 @@
         },
 
         handleURLHash() {
-            // Check both hash and URL parameters for serial number
-            let serialNumber = window.location.hash.substring(1);
+            // Check both hash and URL parameters for batch ID
+            let batchId = window.location.hash.substring(1);
             
             // If no hash, check URL parameters
-            if (!serialNumber) {
+            if (!batchId) {
                 const urlParams = new URLSearchParams(window.location.search);
-                serialNumber = urlParams.get('serial');
+                batchId = urlParams.get('serial') || urlParams.get('batch');
             }
             
-            if (serialNumber) {
-                document.getElementById('searchResultId').textContent = `Serial Number: ${serialNumber}`;
-                this.search(serialNumber);
+            if (batchId) {
+                document.getElementById('searchResultId').textContent = `Batch ID: ${batchId}`;
+                this.search(batchId);
             }
         },
 
-        async search(serialNumber) {
-            this.currentSerialNumber = serialNumber;
+        async search(batchId) {
+            this.currentBatchId = batchId;
             const traceContainer = document.getElementById('searchResultTrace');
             const historyContainer = document.getElementById('searchResultHistory');
             
-            traceContainer.innerHTML = '<p>🔍 Searching blockchain for serial number...</p>';
+            traceContainer.innerHTML = '<p>🔍 Searching blockchain for batch ID...</p>';
             historyContainer.innerHTML = '<p>🔍 Loading supply chain history...</p>';
 
             try {
-                // First check if this serial number maps to a batch ID
-                const serialMapping = JSON.parse(localStorage.getItem('serial_mapping') || '{}');
-                let batchId = serialMapping[serialNumber];
+                // Check if this batch has been processed by manufacturer
+                const processedBatches = JSON.parse(localStorage.getItem('processed_batches') || '{}');
+                const batchInfo = processedBatches[batchId];
                 
-                // Also check manufactured_products for new format
-                const manufacturedProducts = JSON.parse(localStorage.getItem('manufactured_products') || '[]');
-                const productMatch = manufacturedProducts.find(p => p.serialNumber === serialNumber);
-                
-                // Store product details for QR code generation
-                this.currentProduct = productMatch;
-                
-                if (productMatch) {
-                    batchId = productMatch.batchId;
-                    console.log(`Found in manufactured products: ${serialNumber} -> ${batchId}`);
+                if (batchInfo) {
+                    console.log(`Found processed batch: ${batchId}`);
                     
                     // Show product QR section
                     document.getElementById('productQRSection').classList.remove('hidden');
-                    document.getElementById('productSerial').textContent = `Serial: ${productMatch.serialNumber}`;
-                    document.getElementById('productType').textContent = `Type: ${productMatch.productType}`;
-                    document.getElementById('productExpiry').textContent = `Expiry: ${new Date(productMatch.expiryDate).toLocaleDateString()}`;
+                    document.getElementById('productSerial').textContent = `Batch: ${batchId}`;
+                    document.getElementById('productType').textContent = `Type: ${batchInfo.productType || 'Unknown'}`;
+                    
+                    const expiryDate = batchInfo.expiryDate ? new Date(batchInfo.expiryDate).toLocaleDateString() : 'Not specified';
+                    document.getElementById('productExpiry').textContent = `Expiry: ${expiryDate}`;
                     
                     // Generate QR code immediately
                     setTimeout(() => generateQRCode(), 500);
                     
-                    // Show product details in details tab
-                    this.renderProductDetails(productMatch, traceContainer);
-                    
-                } else if (batchId) {
-                    console.log(`Found in serial mapping: ${serialNumber} -> ${batchId}`);
-                } else {
-                    // If no mapping found, assume serialNumber is directly a batch ID
-                    batchId = serialNumber;
-                    console.log(`No mapping found, using as batch ID: ${batchId}`);
+                    // Show batch details
+                    traceContainer.innerHTML = `
+                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 1rem;">
+                            <h3 style="margin: 0 0 1rem 0; font-size: 1.25rem;">📦 Product Information</h3>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                                <div><strong>Batch ID:</strong> ${batchId}</div>
+                                <div><strong>Product Type:</strong> ${batchInfo.productType}</div>
+                                <div><strong>Product Count:</strong> ${batchInfo.productCount || 'Unknown'}</div>
+                                <div><strong>Processed Date:</strong> ${batchInfo.processedDate ? new Date(batchInfo.processedDate).toLocaleDateString() : 'Unknown'}</div>
+                                <div><strong>Manufacturer:</strong> ${batchInfo.manufacturerUsername || 'Unknown'}</div>
+                            </div>
+                        </div>
+                    `;
                 }
                 
+                // Now search blockchain for the batch history
                 const logs = await Blockchain.getChainForBatch(batchId);
                 console.log(`Found ${logs ? logs.length : 0} events for batch ${batchId}`);
                 
@@ -171,17 +170,16 @@
                         <div class="p-6 text-center">
                             <div class="text-red-500 mb-4">
                                 <i class="fas fa-exclamation-triangle text-4xl mb-2"></i>
-                                <h3 class="text-lg font-semibold">No history found</h3>
+                                <h3 class="text-lg font-semibold">No blockchain history found</h3>
                             </div>
-                            <p class="text-gray-500 mb-4">The product may not exist or hasn't been processed yet</p>
+                            <p class="text-gray-500 mb-4">The batch may not exist on blockchain or hasn't been processed yet</p>
                             <div class="text-sm text-gray-400 bg-gray-100 p-3 rounded">
-                                <p><strong>Serial Number:</strong> ${serialNumber}</p>
-                                <p><strong>Mapped to Batch ID:</strong> ${batchId}</p>
-                                <p>Please check if the serial number is correct or try scanning a different QR code.</p>
+                                <p><strong>Batch ID:</strong> ${batchId}</p>
+                                <p>Please check if the batch ID is correct or try scanning a different QR code.</p>
                             </div>
                         </div>
                     `;
-                    if (!productMatch) {
+                    if (!batchInfo) {
                         traceContainer.innerHTML = noHistoryMessage;
                     }
                     historyContainer.innerHTML = noHistoryMessage;
@@ -196,9 +194,9 @@
                             <i class="fas fa-exclamation-circle text-4xl mb-2"></i>
                             <h3 class="text-lg font-semibold">Search Error</h3>
                         </div>
-                        <p class="text-gray-600 mb-4">Could not retrieve data. Please check the Serial Number and your connection.</p>
+                        <p class="text-gray-600 mb-4">Could not retrieve data. Please check the Batch ID and your connection.</p>
                         <div class="text-sm text-gray-500 bg-gray-100 p-3 rounded">
-                            <p><strong>Serial Number:</strong> ${serialNumber}</p>
+                            <p><strong>Batch ID:</strong> ${batchId}</p>
                             <p><strong>Error:</strong> ${e.message}</p>
                             <p><strong>Suggestion:</strong> Try refreshing the page or check your internet connection.</p>
                         </div>
