@@ -1096,34 +1096,61 @@
 
             try {
                 // Initialize blockchain connection first
-                console.log('🔗 Initializing blockchain connection...');
+                console.log('🔗 Step 1: Initializing blockchain connection...');
+                console.log('🔗 Blockchain object:', window.Blockchain);
+                
                 const connected = await Blockchain.init();
+                console.log('🔗 Blockchain init result:', connected);
+                
                 if (!connected) {
                     throw new Error('Failed to connect to blockchain. Please check your wallet connection.');
                 }
+                console.log('✅ Step 1 Complete: Blockchain connection established');
                 
                 // Create products on blockchain
+                console.log('🔗 Step 2: Getting current user...');
                 const currentUser = await getCurrentUser();
+                console.log('👤 Current user details:', currentUser);
+                
                 const manufacturerId = currentUser?.email || 'Unknown Manufacturer';
                 const manufacturerUsername = currentUser?.actorId || 'unknown';
                 const manufacturerName = currentUser?.name || currentUser?.actorId || 'Unknown';
                 
-                console.log(`👤 Manufacturer: ${manufacturerName} (${manufacturerUsername})`);
+                console.log(`👤 Manufacturer Details:`, { 
+                    manufacturerName, 
+                    manufacturerUsername, 
+                    manufacturerId,
+                    userObject: currentUser 
+                });
                 
                 // First, set manufacturer profile on blockchain
+                console.log('🔗 Step 3: Setting manufacturer profile on blockchain...');
                 try {
-                    console.log('🔗 Setting manufacturer profile on blockchain...');
-                    await Blockchain.init();
+                    console.log('🔗 Calling Blockchain.setManufacturerProfile...');
                     await Blockchain.setManufacturerProfile(manufacturerName, manufacturerUsername);
-                    console.log('✅ Manufacturer profile set on blockchain');
+                    console.log('✅ Step 3 Complete: Manufacturer profile set on blockchain');
                 } catch (profileError) {
-                    console.warn('⚠️ Could not set manufacturer profile:', profileError);
+                    console.warn('⚠️ Step 3 Warning: Could not set manufacturer profile:', profileError);
+                    console.warn('⚠️ Profile error details:', {
+                        message: profileError.message,
+                        stack: profileError.stack,
+                        name: profileError.name
+                    });
                     // Continue anyway - profile setting is not critical
                 }
                 
                 // Enhanced data conversion and validation
+                console.log('🔗 Step 4: Data conversion and validation...');
+                console.log('📊 Form data received:', formData);
+                
                 const quantityProcessedInt = Math.round(Number(formData.quantityProcessed));
                 const wastageInt = Math.round(Number(formData.wastage));
+                
+                console.log('📊 Converted values:', {
+                    quantityProcessedInt,
+                    wastageInt,
+                    productQuantity: formData.productQuantity
+                });
                 
                 // Double-check numeric conversion
                 if (!Number.isFinite(quantityProcessedInt) || quantityProcessedInt <= 0) {
@@ -1139,10 +1166,21 @@
                 }
 
                 // Safe date conversion with validation
+                console.log('🔗 Step 5: Date conversion...');
+                console.log('📅 Date inputs:', {
+                    processingDate: formData.processingDate,
+                    expiryDate: formData.expiryDate
+                });
+                
                 let processingTs, expiryTs;
                 try {
                     processingTs = Math.floor(new Date(formData.processingDate).getTime() / 1000);
                     expiryTs = Math.floor(new Date(formData.expiryDate).getTime() / 1000);
+                    
+                    console.log('📅 Converted timestamps:', {
+                        processingTs,
+                        expiryTs
+                    });
                     
                     if (!Number.isFinite(processingTs) || !Number.isFinite(expiryTs)) {
                         throw new Error('Date conversion failed');
@@ -1152,24 +1190,37 @@
                         throw new Error('Processing date must be before expiry date');
                     }
                 } catch (dateError) {
+                    console.error('❌ Date processing error:', dateError);
                     throw new Error('Invalid processing or expiry date format');
                 }
+
+                console.log('✅ Step 5 Complete: Date conversion successful');
 
                 // Calculate safe quantity distribution
                 const netQuantity = quantityProcessedInt - wastageInt;
                 const quantityPerProduct = Math.max(1, Math.floor(netQuantity / formData.productQuantity));
                 const wastagePerProduct = Math.max(0, Math.floor(wastageInt / formData.productQuantity));
                 
+                console.log('📊 Calculated distributions:', {
+                    netQuantity,
+                    quantityPerProduct,
+                    wastagePerProduct
+                });
+                
                 // Verify we have a valid batch ID
+                console.log('🔗 Step 6: Batch ID verification...');
+                console.log('🏷️ Current batch ID:', batchId);
+                
                 if (!batchId || batchId.trim() === '') {
                     throw new Error('No valid batch ID selected. Please search for a batch first.');
                 }
+                console.log('✅ Step 6 Complete: Batch ID verified');
                 
                 // Create individual blockchain entries for each product
                 const createdProducts = [];
-                const serialNumbers = [];
                 const qrUrls = [];
 
+                console.log('🔗 Step 7: Starting product creation loop...');
                 console.log(`Creating ${formData.productQuantity} individual products on blockchain...`);
                 console.log(`Batch ID: ${batchId}`);
                 console.log(`Product Type: ${formData.productType}`);
@@ -1179,7 +1230,10 @@
                 console.log(`Manufacturer Username: ${manufacturerUsername}`);
                 
                 for (let i = 1; i <= formData.productQuantity; i++) {
+                    console.log(`\n🔗 === Creating Product ${i}/${formData.productQuantity} ===`);
+                    
                     const productId = `${batchId}-PRD-${i.toString().padStart(3, '0')}-${Date.now()}`;
+                    console.log(`📦 Product ID: ${productId}`);
                     
                     console.log(`Creating product ${i}/${formData.productQuantity}: ${productId}`);
                     submitProcessBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Creating Product ${i}/${formData.productQuantity}...`;
@@ -1187,7 +1241,18 @@
                     try {
                         // Create individual product block on blockchain with batch ID
                         console.log(`🔗 Creating blockchain block for batch ${batchId}...`);
+                        console.log('📊 Product parameters:', {
+                            productId,
+                            sourceBatchId: batchId,
+                            productType: formData.productType,
+                            quantityProcessed: quantityPerProduct,
+                            wastage: wastagePerProduct,
+                            processingDate: processingTs,
+                            expiryDate: expiryTs,
+                            manufacturerId: `${manufacturerUsername}|${manufacturerId}`
+                        });
                         
+                        console.log('🔗 Calling Blockchain.createProduct...');
                         const createProductPromise = Blockchain.createProduct({
                             productId,
                             sourceBatchId: batchId,
@@ -1198,16 +1263,31 @@
                             expiryDate: expiryTs,
                             manufacturerId: `${manufacturerUsername}|${manufacturerId}` // Store both username and email
                         });
+                        
+                        console.log('⏱️ Waiting for blockchain transaction...');
 
                         // Add timeout to prevent hanging
+                        console.log('⏱️ Setting up 30-second timeout for blockchain...');
                         const timeoutPromise = new Promise((_, reject) => 
                             setTimeout(() => reject(new Error('Blockchain transaction timeout')), 30000)
                         );
 
-                        await Promise.race([createProductPromise, timeoutPromise]);
+                        console.log('🔄 Racing blockchain promise vs timeout...');
+                        const result = await Promise.race([createProductPromise, timeoutPromise]);
+                        console.log('✅ Blockchain transaction completed successfully:', result);
 
                         console.log(`✅ Created product block for batch ${batchId}: ${productId}`);
                         
+                        // Store processed batch mapping directly with batch ID
+                        console.log('💾 Storing processed batch mapping...');
+                        let processedBatches = JSON.parse(localStorage.getItem('processed_batches') || '{}');
+                        console.log('📂 Current processed_batches before update:', processedBatches);
+                        
+                        processedBatches[batchId] = productId;
+                        localStorage.setItem('processed_batches', JSON.stringify(processedBatches));
+                        console.log('💾 Updated processed_batches after storing:', processedBatches);
+                        
+                        console.log('📦 Adding to createdProducts array...');
                         createdProducts.push({
                             productId,
                             batchId,
@@ -1220,22 +1300,28 @@
                         });
 
                         // Generate QR code for batch ID pointing to search.html
+                        console.log(`\n🎯 === QR Generation for Product ${i}/${formData.productQuantity} ===`);
                         console.log(`🎯 Generating QR code for batch ${batchId}...`);
                         let qrUrl;
                         try {
+                            console.log('📚 Checking QRCode library availability...');
                             // Ensure QRCode library is available with timeout
                             const qrWaitPromise = waitForQRCode();
                             const qrTimeoutPromise = new Promise((_, reject) => 
                                 setTimeout(() => reject(new Error('QRCode library timeout')), 5000)
                             );
                             
+                            console.log('⏱️ Waiting for QRCode library with 5s timeout...');
                             await Promise.race([qrWaitPromise, qrTimeoutPromise]);
+                            console.log('✅ QRCode library is available');
                             
                             const searchUrl = `${window.location.origin}/search.html#${batchId}`;
-                            console.log(`Generating QR for URL: ${searchUrl}`);
+                            console.log(`🔗 Generating QR for URL: ${searchUrl}`);
                             
                             // Try multiple QR generation methods
+                            console.log('🔍 Checking QRCode.toDataURL availability...');
                             if (typeof QRCode !== 'undefined' && QRCode.toDataURL) {
+                                console.log('📱 Using QRCode.toDataURL method...');
                                 qrUrl = await QRCode.toDataURL(searchUrl, {
                                     width: 200,
                                     margin: 2,
@@ -1244,8 +1330,9 @@
                                         light: '#FFFFFF'
                                     }
                                 });
-                                console.log('✅ QR generated with QRCode.toDataURL');
+                                console.log('✅ QR generated with QRCode.toDataURL, length:', qrUrl.length);
                             } else if (typeof qrcode !== 'undefined') {
+                                console.log('📱 Using alternative qrcode library...');
                                 // Try alternative qrcode library
                                 qrUrl = await new Promise((resolve, reject) => {
                                     qrcode.toDataURL(searchUrl, { width: 200 }, (err, url) => {
@@ -1286,9 +1373,21 @@
                         console.log(`   🔍 Scan QR to view complete product history`);
 
                     } catch (productError) {
+                        console.error(`\n❌ === ERROR in Product ${i}/${formData.productQuantity} ===`);
                         console.error(`❌ Error creating product ${i}:`, productError);
+                        console.error('❌ Error details:', {
+                            message: productError.message,
+                            stack: productError.stack,
+                            name: productError.name
+                        });
+                        console.error('❌ Product that failed:', {
+                            productId,
+                            batchId,
+                            productType: formData.productType
+                        });
                         
                         // Show detailed error but continue
+                        console.log('🤔 Showing error dialog to user...');
                         const continueAnyway = confirm(
                             `Error creating product ${i}: ${productError.message}\n\n` +
                             `This could be due to:\n` +
@@ -1299,21 +1398,35 @@
                         );
                         
                         if (!continueAnyway) {
+                            console.log('🛑 User chose to stop processing');
                             throw new Error(`Stopped at product ${i}: ${productError.message}`);
                         }
+                        console.log('➡️ User chose to continue with remaining products');
                     }
+                    
+                    console.log(`✅ Completed product ${i}/${formData.productQuantity}`);
                 }
 
+                console.log(`\n🎉 === PRODUCT CREATION LOOP COMPLETED ===`);
                 console.log(`✅ Successfully created ${createdProducts.length} products on blockchain`);
+                console.log('📋 Created products:', createdProducts);
 
                 // Store product information in localStorage for search.html
+                console.log('\n💾 === STORING PRODUCT DATA ===');
                 try {
+                    console.log('📂 Loading existing manufactured_products...');
                     const existingProducts = JSON.parse(localStorage.getItem('manufactured_products') || '[]');
+                    console.log('📂 Existing products count:', existingProducts.length);
+                    
                     const allProducts = [...existingProducts, ...createdProducts];
+                    console.log('📂 Total products after merge:', allProducts.length);
                     localStorage.setItem('manufactured_products', JSON.stringify(allProducts));
+                    console.log('💾 Stored manufactured_products successfully');
 
                     // Store batch information for search functionality
+                    console.log('📂 Loading existing processed_batches...');
                     const existingBatches = JSON.parse(localStorage.getItem('processed_batches') || '{}');
+                    console.log('📂 Existing batches:', Object.keys(existingBatches));
                     existingBatches[batchId] = {
                         batchId: batchId,
                         productType: formData.productType,
@@ -1323,19 +1436,31 @@
                         expiryDate: formData.expiryDate
                     };
                     localStorage.setItem('processed_batches', JSON.stringify(existingBatches));
+                    console.log('💾 Stored processed_batches successfully');
+                    console.log('📂 Final processed_batches:', existingBatches);
                     
                     console.log(`✅ Stored ${createdProducts.length} products for batch ${batchId}`);
                 } catch (storageError) {
+                    console.error('❌ Failed to save to localStorage:', storageError);
                     console.warn('Failed to save to localStorage:', storageError);
                     // Continue anyway as this is not critical for blockchain operation
                 }
 
                 // Store batch history in manufacturer dashboard
+                console.log('\n📊 === CALCULATING BATCH STATISTICS ===');
                 // Calculate wastage (if any failed products)
                 const expectedQuantity = parseInt(formData.productQuantity);
                 const actualProducts = createdProducts.length;
                 const wastageCount = Math.max(0, expectedQuantity - actualProducts);
                 const wastagePercentage = expectedQuantity > 0 ? ((wastageCount / expectedQuantity) * 100).toFixed(2) : 0;
+
+                console.log('📊 Batch statistics:', {
+                    expectedQuantity,
+                    actualProducts,
+                    wastageCount,
+                    wastagePercentage,
+                    qrCodesGenerated: qrUrls.length
+                });
 
                 const batchHistory = {
                     batchId: batchId,
@@ -1401,13 +1526,29 @@
                 `).join('');
 
                 // Store QR URLs for download/print
+                console.log('\n🎯 === FINAL QR CODE SETUP ===');
+                console.log('💾 Storing QR URLs globally for download/print...');
                 window.currentQRUrls = qrUrls;
+                console.log('🔗 Current QR URLs count:', qrUrls.length);
+                
                 // Wire buttons for this batch
+                console.log('🔘 Wiring download and print buttons...');
                 const dlBtn = document.getElementById('downloadAllQRBtn');
                 const prBtn = document.getElementById('printQRBtn');
-                if (dlBtn) dlBtn.onclick = () => downloadAllQRs(qrUrls, batchId);
-                if (prBtn) prBtn.onclick = () => printQRCodes(qrUrls, batchId);
+                if (dlBtn) {
+                    dlBtn.onclick = () => downloadAllQRs(qrUrls, batchId);
+                    console.log('✅ Download button wired');
+                } else {
+                    console.warn('⚠️ Download button not found');
+                }
+                if (prBtn) {
+                    prBtn.onclick = () => printQRCodes(qrUrls, batchId);
+                    console.log('✅ Print button wired');
+                } else {
+                    console.warn('⚠️ Print button not found');
+                }
 
+                console.log('\n🎉 === SHOWING SUCCESS ALERT ===');
                 alert(`Successfully created ${createdProducts.length} products on blockchain!
 
 🔗 Batch ID: ${batchId}
@@ -1422,28 +1563,52 @@
 🔗 Ready for distribution with QR codes!`);
 
                 // No automatic redirect - let user download QR codes instead
+                console.log('\n🎊 === PROCESS COMPLETED SUCCESSFULLY ===');
                 console.log('✅ Products created successfully. QR codes ready for download.');
+                console.log('📱 QR URLs available for download:', qrUrls.length);
+                console.log('🔗 Blockchain products created:', createdProducts.length);
+                console.log('💾 Data stored in localStorage successfully');
+                console.log('🎯 Process completed without errors!');
 
             } catch (error) {
-                console.error('Error creating products:', error);
+                console.error('\n💥 === MAJOR ERROR IN PRODUCT CREATION ===');
+                console.error('❌ Error creating products:', error);
+                console.error('❌ Error details:', {
+                    message: error.message,
+                    stack: error.stack,
+                    name: error.name,
+                    timestamp: new Date().toISOString()
+                });
+                console.error('❌ Form data when error occurred:', formData);
+                console.error('❌ Batch ID when error occurred:', batchId);
+                console.error('❌ Products created before error:', createdProducts.length);
+                console.error('❌ QR codes generated before error:', qrUrls.length);
                 
                 // Reset button state
+                console.log('🔄 Resetting button state...');
                 submitProcessBtn.innerHTML = '<i class="fas fa-cogs"></i> Create Products';
                 submitProcessBtn.disabled = false;
                 
                 // Remove from in-production list on error
+                console.log('🧹 Cleaning up in-production list...');
                 const inProductionList = JSON.parse(localStorage.getItem('in_production') || '[]');
+                console.log('📂 Current in-production before cleanup:', inProductionList);
                 const updatedInProduction = inProductionList.filter(item => item.batchId !== batchId);
                 localStorage.setItem('in_production', JSON.stringify(updatedInProduction));
+                console.log('📂 In-production after cleanup:', updatedInProduction);
                 
                 // Update dashboard stats
+                console.log('📊 Updating dashboard stats...');
                 updateDashboardStats();
                 
                 // Show detailed error information
+                console.log('📋 Preparing error message for user...');
                 const errorMsg = `Error creating products: ${error.message}\n\nPossible causes:\n• Blockchain connection issues\n• Wallet not connected\n• Network problems\n• Invalid form data\n\nCheck the browser console for more details.`;
                 
                 // Ask if user wants to continue in test mode
+                console.log('🤔 Asking user about test mode...');
                 const useTestMode = confirm(errorMsg + '\n\nWould you like to continue in TEST MODE?\n(This will create QR codes without blockchain entries)');
+                console.log('👤 User test mode choice:', useTestMode);
                 
                 if (useTestMode) {
                     console.log('🧪 Continuing in TEST MODE...');
