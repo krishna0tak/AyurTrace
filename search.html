@@ -6,7 +6,6 @@
     <title>Product Trace - AyurTrace</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -33,56 +32,11 @@
         </header>
 
         <main class="container mx-auto p-4 md:p-6">
-            <!-- Product QR Code Section (Hidden by default) -->
-            <section id="productQRSection" class="bg-gradient-to-r from-blue-50 to-green-50 p-6 rounded-2xl shadow-lg mb-6 hidden">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="text-lg font-bold text-gray-800 mb-2">📱 Product QR Code</h3>
-                        <p id="productSerial" class="text-sm text-gray-600">Serial: -</p>
-                        <p id="productType" class="text-sm text-gray-600">Type: -</p>
-                        <p id="productExpiry" class="text-sm text-gray-600">Expiry: -</p>
-                    </div>
-                    <div class="text-center">
-                        <div id="qrCodeContainer" class="mb-2 min-h-[100px] flex items-center justify-center bg-white rounded border">
-                            <span class="text-gray-400 text-sm">QR Code will appear here</span>
-                        </div>
-                        <button onclick="generateQRCode()" class="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
-                            🔄 Generate QR
-                        </button>
-                        <button onclick="shareProduct()" class="ml-2 px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600">
-                            🔗 Share
-                        </button>
-                    </div>
-                </div>
-            </section>
-            
             <section id="searchResults" class="bg-white p-6 rounded-2xl shadow-lg">
                 <h2 class="text-2xl font-bold text-gray-800">Supply Chain History</h2>
                 <p id="searchResultId" class="text-gray-500 mb-4">Serial Number: -</p>
-                
-                <!-- Tab Navigation -->
-                <div class="flex border-b border-gray-200 mb-6">
-                    <button id="detailsTab" onclick="switchTab('details')" class="px-4 py-2 text-sm font-medium text-blue-600 border-b-2 border-blue-600">
-                        📋 Product Details
-                    </button>
-                    <button id="historyTab" onclick="switchTab('history')" class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 ml-4">
-                        🔗 Supply Chain History
-                    </button>
-                </div>
-                
-                <!-- Product Details Tab Content -->
-                <div id="detailsContent" class="tab-content">
-                    <div id="searchResultTrace" class="relative pl-6 border-l-2 border-gray-200">
-                        <p>Enter a Serial Number in the URL (e.g., search.html#12345) to see the product details.</p>
-                    </div>
-                </div>
-                
-                <!-- History Tab Content -->
-                <div id="historyContent" class="tab-content hidden">
-                    <div id="searchResultHistory" class="relative pl-6 border-l-2 border-gray-200">
-                        <p>Supply chain events will appear here.</p>
-                    </div>
-                </div>
+                <div id="searchResultTrace" class="relative pl-6 border-l-2 border-gray-200">
+                    <p>Enter a Serial Number in the URL (e.g., search.html#12345) to see the product history.</p>
                 </div>
             </section>
         </main>
@@ -104,192 +58,86 @@
         },
 
         handleURLHash() {
-            // Check both hash and URL parameters for batch ID
-            let batchId = window.location.hash.substring(1);
+            // Check both hash and URL parameters for serial number
+            let serialNumber = window.location.hash.substring(1);
             
             // If no hash, check URL parameters
-            if (!batchId) {
+            if (!serialNumber) {
                 const urlParams = new URLSearchParams(window.location.search);
-                batchId = urlParams.get('serial') || urlParams.get('batch');
+                serialNumber = urlParams.get('serial');
             }
             
-            if (batchId) {
-                document.getElementById('searchResultId').textContent = `Batch ID: ${batchId}`;
-                this.search(batchId);
+            if (serialNumber) {
+                document.getElementById('searchResultId').textContent = `Serial Number: ${serialNumber}`;
+                this.search(serialNumber);
             }
         },
 
-        async search(batchId) {
-            this.currentBatchId = batchId;
+        async search(serialNumber) {
+            this.currentSerialNumber = serialNumber;
             const traceContainer = document.getElementById('searchResultTrace');
-            const historyContainer = document.getElementById('searchResultHistory');
-            
-            traceContainer.innerHTML = '<p>🔍 Searching blockchain for batch ID...</p>';
-            historyContainer.innerHTML = '<p>🔍 Loading supply chain history...</p>';
+            traceContainer.innerHTML = '<p>🔍 Searching blockchain for serial number...</p>';
 
             try {
-                // Check if this batch has been processed by manufacturer
-                const processedBatches = JSON.parse(localStorage.getItem('processed_batches') || '{}');
-                const batchInfo = processedBatches[batchId];
+                // First check if this serial number maps to a batch ID
+                const serialMapping = JSON.parse(localStorage.getItem('serial_mapping') || '{}');
+                let batchId = serialMapping[serialNumber];
                 
-                if (batchInfo) {
-                    console.log(`Found processed batch: ${batchId}`);
-                    
-                    // Show product QR section
-                    document.getElementById('productQRSection').classList.remove('hidden');
-                    document.getElementById('productSerial').textContent = `Batch: ${batchId}`;
-                    document.getElementById('productType').textContent = `Type: ${batchInfo.productType || 'Unknown'}`;
-                    
-                    const expiryDate = batchInfo.expiryDate ? new Date(batchInfo.expiryDate).toLocaleDateString() : 'Not specified';
-                    document.getElementById('productExpiry').textContent = `Expiry: ${expiryDate}`;
-                    
-                    // Generate QR code immediately
-                    setTimeout(() => generateQRCode(), 500);
-                    
-                    // Show batch details
-                    traceContainer.innerHTML = `
-                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 1rem;">
-                            <h3 style="margin: 0 0 1rem 0; font-size: 1.25rem;">📦 Product Information</h3>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-                                <div><strong>Batch ID:</strong> ${batchId}</div>
-                                <div><strong>Product Type:</strong> ${batchInfo.productType}</div>
-                                <div><strong>Product Count:</strong> ${batchInfo.productCount || 'Unknown'}</div>
-                                <div><strong>Processed Date:</strong> ${batchInfo.processedDate ? new Date(batchInfo.processedDate).toLocaleDateString() : 'Unknown'}</div>
-                                <div><strong>Manufacturer:</strong> ${batchInfo.manufacturerUsername || 'Unknown'}</div>
-                            </div>
-                        </div>
-                    `;
+                // Also check manufactured_products for new format
+                const manufacturedProducts = JSON.parse(localStorage.getItem('manufactured_products') || '[]');
+                const productMatch = manufacturedProducts.find(p => p.serialNumber === serialNumber);
+                
+                if (productMatch) {
+                    batchId = productMatch.batchId;
+                    console.log(`Found in manufactured products: ${serialNumber} -> ${batchId}`);
+                } else if (batchId) {
+                    console.log(`Found in serial mapping: ${serialNumber} -> ${batchId}`);
+                } else {
+                    // If no mapping found, assume serialNumber is directly a batch ID
+                    batchId = serialNumber;
+                    console.log(`No mapping found, using as batch ID: ${batchId}`);
                 }
                 
-                // Now search blockchain for the batch history
                 const logs = await Blockchain.getChainForBatch(batchId);
                 console.log(`Found ${logs ? logs.length : 0} events for batch ${batchId}`);
                 
                 if (!logs || logs.length === 0) {
-                    const noHistoryMessage = `
+                    traceContainer.innerHTML = `
                         <div class="p-6 text-center">
                             <div class="text-red-500 mb-4">
                                 <i class="fas fa-exclamation-triangle text-4xl mb-2"></i>
-                                <h3 class="text-lg font-semibold">No blockchain history found</h3>
+                                <h3 class="text-lg font-semibold">No history found</h3>
                             </div>
-                            <p class="text-gray-500 mb-4">The batch may not exist on blockchain or hasn't been processed yet</p>
+                            <p class="text-gray-500 mb-4">The product may not exist or hasn't been processed yet</p>
                             <div class="text-sm text-gray-400 bg-gray-100 p-3 rounded">
-                                <p><strong>Batch ID:</strong> ${batchId}</p>
-                                <p>Please check if the batch ID is correct or try scanning a different QR code.</p>
+                                <p><strong>Serial Number:</strong> ${serialNumber}</p>
+                                <p><strong>Mapped to Batch ID:</strong> ${batchId}</p>
+                                <p><strong>Available Mappings:</strong> ${Object.keys(serialMapping).length} serial numbers</p>
+                                <p>Please check if the serial number is correct or try scanning a different QR code.</p>
                             </div>
                         </div>
                     `;
-                    if (!batchInfo) {
-                        traceContainer.innerHTML = noHistoryMessage;
-                    }
-                    historyContainer.innerHTML = noHistoryMessage;
                     return;
                 }
-                this.renderChainFromLogs(batchId, logs, historyContainer);
+                this.renderChainFromLogs(batchId, logs, traceContainer);
             } catch (e) {
                 console.error('Search error:', e);
-                const errorMessage = `
+                traceContainer.innerHTML = `
                     <div class="p-6 text-center">
                         <div class="text-red-600 mb-4">
                             <i class="fas fa-exclamation-circle text-4xl mb-2"></i>
                             <h3 class="text-lg font-semibold">Search Error</h3>
                         </div>
-                        <p class="text-gray-600 mb-4">Could not retrieve data. Please check the Batch ID and your connection.</p>
+                        <p class="text-gray-600 mb-4">Could not retrieve data. Please check the Serial Number and your connection.</p>
                         <div class="text-sm text-gray-500 bg-gray-100 p-3 rounded">
-                            <p><strong>Batch ID:</strong> ${batchId}</p>
+                            <p><strong>Serial Number:</strong> ${serialNumber}</p>
                             <p><strong>Error:</strong> ${e.message}</p>
                             <p><strong>Suggestion:</strong> Try refreshing the page or check your internet connection.</p>
                         </div>
                     </div>
                 `;
-                traceContainer.innerHTML = errorMessage;
-                historyContainer.innerHTML = errorMessage;
             }
         },
-        
-        renderProductDetails(productInfo, container) {
-            const html = `
-                <div class="space-y-6">
-                    <!-- Product Information Card -->
-                    <div class="bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-lg border border-green-200">
-                        <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                            <span class="mr-2">🏭</span> Product Information
-                        </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="bg-white p-4 rounded border shadow-sm">
-                                <div class="flex items-center mb-2">
-                                    <i class="fas fa-tag text-green-600 mr-2"></i>
-                                    <span class="text-gray-600 font-medium">Product Type</span>
-                                </div>
-                                <div class="text-lg font-bold text-green-700">${productInfo.productType}</div>
-                            </div>
-                            <div class="bg-white p-4 rounded border shadow-sm">
-                                <div class="flex items-center mb-2">
-                                    <i class="fas fa-barcode text-blue-600 mr-2"></i>
-                                    <span class="text-gray-600 font-medium">Serial Number</span>
-                                </div>
-                                <div class="text-lg font-bold text-blue-700 font-mono">${productInfo.serialNumber}</div>
-                            </div>
-                            <div class="bg-white p-4 rounded border shadow-sm">
-                                <div class="flex items-center mb-2">
-                                    <i class="fas fa-calendar-plus text-purple-600 mr-2"></i>
-                                    <span class="text-gray-600 font-medium">Manufacturing Date</span>
-                                </div>
-                                <div class="text-lg font-bold text-purple-700">${new Date(productInfo.timestamp).toLocaleDateString()}</div>
-                            </div>
-                            <div class="bg-white p-4 rounded border shadow-sm">
-                                <div class="flex items-center mb-2">
-                                    <i class="fas fa-calendar-times text-orange-600 mr-2"></i>
-                                    <span class="text-gray-600 font-medium">Expiry Date</span>
-                                </div>
-                                <div class="text-lg font-bold text-orange-700">${new Date(productInfo.expiryDate).toLocaleDateString()}</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Product Status -->
-                    <div class="bg-white p-6 rounded-lg border shadow-sm">
-                        <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                            <span class="mr-2">📊</span> Product Status
-                        </h4>
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center">
-                                <div class="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
-                                <span class="text-gray-700">Manufactured & Ready for Distribution</span>
-                            </div>
-                            <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                                Active
-                            </span>
-                        </div>
-                        <div class="mt-4 p-3 bg-gray-50 rounded">
-                            <p class="text-sm text-gray-600">
-                                This product has been successfully manufactured and registered on the blockchain. 
-                                Track its complete journey through the supply chain in the History tab.
-                            </p>
-                        </div>
-                    </div>
-                    
-                    <!-- Batch Information -->
-                    <div class="bg-white p-6 rounded-lg border shadow-sm">
-                        <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                            <span class="mr-2">📦</span> Batch Information
-                        </h4>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <span class="text-gray-600 block text-sm">Batch ID</span>
-                                <div class="font-mono text-sm text-gray-800 bg-gray-100 p-2 rounded">${productInfo.batchId}</div>
-                            </div>
-                            <div>
-                                <span class="text-gray-600 block text-sm">Manufacturing Location</span>
-                                <div class="text-gray-800">Manufacturing Facility</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            container.innerHTML = html;
-        },
-
         renderChainFromLogs(batchId, logs, container) {
             const icon = { 
                 BatchCreated: '🌾', 
@@ -299,302 +147,65 @@
                 ProductReceived: '📦', 
                 ProductDispatched: '🚚' 
             };
-            
-            // Get manufacturing details if available
-            const manufacturedProducts = JSON.parse(localStorage.getItem('manufactured_products') || '[]');
-            const productInfo = manufacturedProducts.find(p => p.batchId === batchId);
-            
-            let html = `<div class="mb-6">`;
-            
-            // Add manufacturing header with product details
-            if (productInfo) {
-                html += `
-                    <div class="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg border border-green-200 mb-4">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-3">🏭 Manufacturing Information</h3>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                            <div class="bg-white p-3 rounded border">
-                                <span class="text-gray-500 block">Product Type</span>
-                                <div class="font-medium text-green-700">${productInfo.productType}</div>
-                            </div>
-                            <div class="bg-white p-3 rounded border">
-                                <span class="text-gray-500 block">Serial Number</span>
-                                <div class="font-medium text-blue-700">${productInfo.serialNumber}</div>
-                            </div>
-                            <div class="bg-white p-3 rounded border">
-                                <span class="text-gray-500 block">Manufactured Date</span>
-                                <div class="font-medium text-purple-700">${new Date(productInfo.timestamp).toLocaleDateString()}</div>
-                            </div>
-                            <div class="bg-white p-3 rounded border">
-                                <span class="text-gray-500 block">Expiry Date</span>
-                                <div class="font-medium text-orange-700">${new Date(productInfo.expiryDate).toLocaleDateString()}</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            html += `<p class="text-sm text-gray-500 mb-4">Supply Chain History for Serial: ${this.currentSerialNumber} (Batch ID: ${batchId})</p>`;
-            
+            let html = '';
             const formatArgsClean = (args) => {
-                // Show only user-friendly information, hide technical details
                 try {
                     const entries = Object.entries(args || {});
-                    const userFriendly = entries.filter(([k, v]) => {
+                    const allowed = entries.filter(([k, v]) => {
                         const key = String(k).toLowerCase();
-                        // Hide technical fields
-                        if (key.includes('hash') || key.includes('ipfs')) return false;
+                        if (key.includes('hash')) return false;
                         if (key.includes('owner') || key.includes('recordedby') || key === 'account') return false;
-                        if (key.includes('status') || key.includes('timestamp')) return false;
-                        if (key.includes('farmlocation') && typeof v === 'string' && v.length > 50) return false;
-                        if (typeof v === 'string' && /^0x[a-fA-F0-9]{40,}$/.test(v)) return false;
-                        
-                        // Show only relevant fields
-                        const allowedKeys = ['croptype', 'quantity', 'location', 'farmer', 'date'];
-                        return allowedKeys.some(allowed => key.includes(allowed));
+                        if (typeof v === 'string' && /^0x[a-fA-F0-9]{64}$/.test(v)) return false;
+                        return true;
                     });
-                    
-                    if (userFriendly.length === 0) {
-                        return 'Event recorded successfully on blockchain';
-                    }
-                    
-                    return userFriendly.map(([k, v]) => {
+                    return allowed.map(([k, v]) => {
                         let val = v;
                         if (typeof v === 'bigint') val = v.toString();
-                        
-                        // Format key names to be more readable
-                        let displayKey = k;
-                        if (k.toLowerCase().includes('crop')) displayKey = 'Crop';
-                        if (k.toLowerCase().includes('quantity')) displayKey = 'Quantity';
-                        if (k.toLowerCase().includes('farmer')) displayKey = 'Farmer';
-                        
-                        return `<span class="inline-block mr-4 text-sm"><strong>${displayKey}:</strong> ${val}</span>`;
-                    }).join('');
-                } catch { 
-                    return 'Event recorded successfully on blockchain'; 
-                }
+                        if (typeof v === 'string' && /^0x[a-fA-F0-9]{40}$/.test(v)) {
+                            val = v.slice(0, 6) + '...' + v.slice(-4);
+                        }
+                        return `<span class="inline-block mr-3"><strong>${k}:</strong> ${val}</span>`;
+                    }).join(' • ') || 'Event recorded on blockchain';
+                } catch { return 'Event recorded on blockchain'; }
             };
-            
-            logs.forEach((l, index) => {
+            logs.forEach(l => {
                 const name = l.fragment?.name || 'Event';
                 const ts = l.args?.timestamp || l.args?.collectionDate || l.args?.date || null;
                 const tsNum = ts != null ? Number(ts) : null;
                 const when = tsNum ? new Date(tsNum * (tsNum > 1e12 ? 1 : 1000)).toLocaleString() : '';
-                const isLast = index === logs.length - 1;
                 
                 let description = '';
                 if (name === 'BatchCreated' && l.args) {
-                    // Show clean, user-friendly information
-                    const cropType = l.args.cropType || 'Unknown Crop';
-                    const quantity = l.args.quantity || 'Not specified';
-                    const farmer = 'Agricultural Producer'; // Hide specific farmer details
-                    
-                    description = `
-                        <div class="space-y-2">
-                            <div class="flex items-center text-sm">
-                                <span class="w-16 text-gray-500">Crop:</span>
-                                <span class="font-medium text-green-700">${cropType}</span>
-                            </div>
-                            <div class="flex items-center text-sm">
-                                <span class="w-16 text-gray-500">Quantity:</span>
-                                <span class="font-medium text-blue-700">${quantity} kg</span>
-                            </div>
-                            <div class="flex items-center text-sm">
-                                <span class="w-16 text-gray-500">Source:</span>
-                                <span class="font-medium text-gray-700">${farmer}</span>
-                            </div>
-                        </div>
-                    `;
+                    const meta = Blockchain?.parseFarmLocationMeta ? Blockchain.parseFarmLocationMeta(l.args.farmLocation || '') : {};
+                    const farmer = meta.farmer || 'Unknown Farmer';
+                    const baseLoc = meta.base || (l.args.farmLocation || 'Not specified');
+                    description = `${l.args.cropType} • ${l.args.quantity} kg • Location: ${baseLoc} • Farmer: ${farmer}`;
+                    const imageHash = meta.ipfs || l.args.photoHash;
+                    if (imageHash && Blockchain?.getImageUrl) {
+                        description += `<br><div style="margin-top:8px;"><img src="${Blockchain.getImageUrl(imageHash)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:2px solid #e5e7eb;" onclick="showFullImage('${imageHash}')" title="Click to view full image" /><span style="margin-left:8px;color:#3b82f6;cursor:pointer;" onclick="showFullImage('${imageHash}')"><i class="fas fa-expand"></i> View Full</span></div>`;
+                    }
                 } else {
                     description = formatArgsClean(l.args);
                 }
                 
                 html += `
-                <div class="timeline-item flex gap-4 pb-6">
+                <div class="timeline-item flex gap-4 pb-8">
                     <div class="flex flex-col items-center">
-                        <div class="bg-gradient-to-br from-indigo-500 to-purple-600 text-white w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-lg border-2 border-white">
-                            ${icon[name] || '⛓️'}
-                        </div>
-                        ${!isLast ? '<div class="timeline-line w-0.5 h-full bg-gradient-to-b from-indigo-300 to-gray-200"></div>' : ''}
+                        <div class="bg-indigo-500 text-white w-12 h-12 rounded-full flex items-center justify-center text-xl">${icon[name] || '⛓️'}</div>
+                        <div class="timeline-line w-0.5 h-full bg-gray-200"></div>
                     </div>
-                    <div class="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-4 rounded-lg flex-1">
-                        <div class="flex justify-between items-start mb-2">
-                            <p class="font-bold text-gray-800 text-lg">${name}</p>
-                            ${when ? `<span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">${when}</span>` : ''}
-                        </div>
-                        <div class="text-sm text-gray-700 leading-relaxed">${description}</div>
-                        ${l.args?.quantity ? `
-                            <div class="mt-2 pt-2 border-t border-gray-100">
-                                <span class="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
-                                    📦 Quantity: ${l.args.quantity}
-                                </span>
-                            </div>
-                        ` : ''}
+                    <div class="bg-gray-50 p-4 rounded-lg flex-1">
+                        <p class="font-bold text-gray-800">${name}</p>
+                        ${when ? `<p class="text-xs text-gray-400 mb-2">${when}</p>` : ''}
+                        <div class="text-xs text-gray-600">${description}</div>
                     </div>
                 </div>`;
             });
-            
-            html += `</div>`;
-            container.innerHTML = html;
+            container.innerHTML = `<p class="text-sm text-gray-500 mb-4">History for Serial Number: ${this.currentSerialNumber} (Batch ID: ${batchId})</p>` + html;
         }
     };
 
     document.addEventListener('DOMContentLoaded', () => App.init());
-
-    // Tab switching functionality
-    function switchTab(tabName) {
-        const detailsTab = document.getElementById('detailsTab');
-        const historyTab = document.getElementById('historyTab');
-        const detailsContent = document.getElementById('detailsContent');
-        const historyContent = document.getElementById('historyContent');
-        
-        if (tabName === 'details') {
-            detailsTab.className = 'px-4 py-2 text-sm font-medium text-blue-600 border-b-2 border-blue-600';
-            historyTab.className = 'px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 ml-4';
-            detailsContent.classList.remove('hidden');
-            historyContent.classList.add('hidden');
-        } else {
-            historyTab.className = 'px-4 py-2 text-sm font-medium text-blue-600 border-b-2 border-blue-600 ml-4';
-            detailsTab.className = 'px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700';
-            historyContent.classList.remove('hidden');
-            detailsContent.classList.add('hidden');
-        }
-    }
-
-    // QR Code generation function
-    function generateQRCode() {
-        const qrContainer = document.getElementById('qrCodeContainer');
-        const searchUrl = `${window.location.origin}${window.location.pathname}?serial=${App.currentSerialNumber || 'UNKNOWN'}`;
-        
-        // Clear previous QR code
-        qrContainer.innerHTML = '<div class="text-center text-gray-500 p-4">Generating QR Code...</div>';
-        
-        try {
-            // Method 1: Try QRCode.js library if available
-            if (typeof QRCode !== 'undefined') {
-                qrContainer.innerHTML = '';
-                const qr = new QRCode(qrContainer, {
-                    text: searchUrl,
-                    width: 150,
-                    height: 150,
-                    colorDark: "#000000",
-                    colorLight: "#ffffff",
-                    correctLevel: QRCode.CorrectLevel.M
-                });
-                console.log('QR Code generated successfully with QRCode.js');
-                return;
-            }
-        } catch (error) {
-            console.warn('QRCode.js failed:', error);
-        }
-        
-        try {
-            // Method 2: Try qrcode library (alternative)
-            if (typeof qrcode !== 'undefined') {
-                qrcode.toDataURL(searchUrl, { width: 150 }, (err, url) => {
-                    if (err) throw err;
-                    qrContainer.innerHTML = `
-                        <div class="text-center">
-                            <img src="${url}" alt="QR Code" class="mx-auto border border-gray-300 rounded"/>
-                            <p class="text-xs text-gray-500 mt-2">Scan to view product</p>
-                        </div>
-                    `;
-                });
-                return;
-            }
-        } catch (error) {
-            console.warn('qrcode library failed:', error);
-        }
-        
-        try {
-            // Method 2: External QR API service
-            const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(searchUrl)}`;
-            qrContainer.innerHTML = `
-                <div class="text-center">
-                    <img src="${qrApiUrl}" 
-                         alt="QR Code for ${App.currentSerialNumber}" 
-                         class="mx-auto border border-gray-300 rounded"
-                         onload="console.log('QR Code loaded from API')"
-                         onerror="this.parentElement.innerHTML='<div class=\\'text-red-500 text-sm p-4\\'>QR generation failed</div>'"
-                    />
-                    <p class="text-xs text-gray-500 mt-2">Scan to view product</p>
-                </div>
-            `;
-            console.log('QR Code generated using external API');
-        } catch (error) {
-            console.error('All QR generation methods failed:', error);
-            qrContainer.innerHTML = `
-                <div class="text-center text-red-500 text-sm p-4">
-                    <i class="fas fa-exclamation-triangle mb-2"></i>
-                    <p>QR Code generation failed</p>
-                    <p class="text-xs mt-1 break-all">${searchUrl}</p>
-                </div>
-            `;
-        }
-    }
-    
-    // Share product function
-    function shareProduct() {
-        const shareUrl = `${window.location.origin}${window.location.pathname}?serial=${App.currentSerialNumber || 'UNKNOWN'}`;
-        
-        if (navigator.share && App.currentProduct) {
-            navigator.share({
-                title: `AyurTrace Product: ${App.currentProduct.productType}`,
-                text: `View the complete supply chain history of this ${App.currentProduct.productType}`,
-                url: shareUrl
-            }).then(() => {
-                console.log('Product shared successfully');
-                showShareNotification('Product shared successfully!');
-            }).catch(err => {
-                console.log('Share failed, falling back to clipboard');
-                fallbackShare(shareUrl);
-            });
-        } else {
-            fallbackShare(shareUrl);
-        }
-    }
-    
-    function fallbackShare(url) {
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(url).then(() => {
-                showShareNotification('Link copied to clipboard!');
-            }).catch(() => {
-                showShareNotification('Share URL: ' + url);
-            });
-        } else {
-            // For older browsers
-            const textArea = document.createElement('textarea');
-            textArea.value = url;
-            document.body.appendChild(textArea);
-            textArea.select();
-            try {
-                document.execCommand('copy');
-                showShareNotification('Link copied to clipboard!');
-            } catch (err) {
-                showShareNotification('Share URL: ' + url);
-            }
-            document.body.removeChild(textArea);
-        }
-    }
-    
-    function showShareNotification(message) {
-        // Create notification
-        const notification = document.createElement('div');
-        notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50 transition-all duration-300';
-        notification.textContent = message;
-        
-        document.body.appendChild(notification);
-        
-        // Auto remove after 3 seconds
-        setTimeout(() => {
-            notification.style.opacity = '0';
-            notification.style.transform = 'translateY(-10px)';
-            setTimeout(() => {
-                if (notification.parentElement) {
-                    notification.parentElement.removeChild(notification);
-                }
-            }, 300);
-        }, 3000);
-    }
 
     function showFullImage(ipfsHash) {
         if (!ipfsHash) return;
@@ -622,121 +233,6 @@
         
         overlay.appendChild(modal);
         document.body.appendChild(overlay);
-    }
-
-    // QR Code generation function
-    function generateQRCode() {
-        const qrContainer = document.getElementById('qrCodeContainer');
-        const searchUrl = `${window.location.origin}${window.location.pathname}?serial=${App.currentSerialNumber || 'UNKNOWN'}`;
-        
-        // Clear previous QR code
-        qrContainer.innerHTML = '<div class="text-center text-gray-500">Generating QR Code...</div>';
-        
-        try {
-            // Method 1: Try QRCode.js library
-            if (typeof QRCode !== 'undefined') {
-                qrContainer.innerHTML = '';
-                new QRCode(qrContainer, {
-                    text: searchUrl,
-                    width: 200,
-                    height: 200,
-                    colorDark: "#000000",
-                    colorLight: "#ffffff",
-                    correctLevel: QRCode.CorrectLevel.M
-                });
-                console.log('QR Code generated successfully with QRCode.js');
-                return;
-            }
-        } catch (error) {
-            console.warn('QRCode.js failed:', error);
-        }
-        
-        try {
-            // Method 2: External QR API service
-            const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(searchUrl)}`;
-            qrContainer.innerHTML = `
-                <img src="${qrApiUrl}" 
-                     alt="QR Code for ${App.currentSerialNumber}" 
-                     class="mx-auto border border-gray-300 rounded"
-                     onload="console.log('QR Code loaded from API')"
-                     onerror="this.parentElement.innerHTML='<div class=\\'text-red-500 text-sm\\'>QR generation failed</div>'"
-                />
-                <p class="text-xs text-gray-500 mt-2">Scan to view this product</p>
-            `;
-            console.log('QR Code generated using external API');
-        } catch (error) {
-            console.error('All QR generation methods failed:', error);
-            qrContainer.innerHTML = `
-                <div class="text-center text-red-500 text-sm">
-                    <i class="fas fa-exclamation-triangle mb-2"></i>
-                    <p>QR Code generation failed</p>
-                    <p class="text-xs mt-1">URL: ${searchUrl}</p>
-                </div>
-            `;
-        }
-    }
-    
-    // Share product function
-    function shareProduct() {
-        const shareUrl = `${window.location.origin}${window.location.pathname}?serial=${App.currentSerialNumber || 'UNKNOWN'}`;
-        
-        if (navigator.share && App.currentProduct) {
-            navigator.share({
-                title: `AyurTrace Product: ${App.currentProduct.productType}`,
-                text: `View the complete supply chain history of this ${App.currentProduct.productType}`,
-                url: shareUrl
-            }).then(() => {
-                console.log('Product shared successfully');
-            }).catch(err => {
-                console.log('Share failed, falling back to clipboard');
-                fallbackShare(shareUrl);
-            });
-        } else {
-            fallbackShare(shareUrl);
-        }
-    }
-    
-    function fallbackShare(url) {
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(url).then(() => {
-                showShareNotification('Link copied to clipboard!');
-            }).catch(() => {
-                showShareNotification('Share URL: ' + url);
-            });
-        } else {
-            // For older browsers
-            const textArea = document.createElement('textarea');
-            textArea.value = url;
-            document.body.appendChild(textArea);
-            textArea.select();
-            try {
-                document.execCommand('copy');
-                showShareNotification('Link copied to clipboard!');
-            } catch (err) {
-                showShareNotification('Share URL: ' + url);
-            }
-            document.body.removeChild(textArea);
-        }
-    }
-    
-    function showShareNotification(message) {
-        // Create notification
-        const notification = document.createElement('div');
-        notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50 transition-all duration-300';
-        notification.textContent = message;
-        
-        document.body.appendChild(notification);
-        
-        // Auto remove after 3 seconds
-        setTimeout(() => {
-            notification.style.opacity = '0';
-            notification.style.transform = 'translateY(-10px)';
-            setTimeout(() => {
-                if (notification.parentElement) {
-                    notification.parentElement.removeChild(notification);
-                }
-            }, 300);
-        }, 3000);
     }
     </script>
 </body>

@@ -662,21 +662,6 @@
       return await this.contractRO.products(productId);
     },
 
-    // Set manufacturer profile
-    async setManufacturerProfile(name, username) {
-      const c = this.requireSigner();
-      try {
-        console.log('👤 Setting manufacturer profile:', { name, username });
-        const tx = await c.setManufacturerProfile(name, username);
-        const receipt = await tx.wait();
-        console.log('✅ Manufacturer profile set successfully');
-        return receipt;
-      } catch (error) {
-        console.error('❌ Error setting manufacturer profile:', error);
-        throw error;
-      }
-    },
-
     // --- Distributor ---
     async recordReception({ batchId, herbType, quantity, storageLocation }) {
       const c = this.requireSigner();
