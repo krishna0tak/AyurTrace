@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline QR Generator - AyurTrace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+        .input {
+             border-color: #d1d5db; 
+             border-width: 1px;
+             padding: 0.5rem 0.75rem;
+             border-radius: 0.375rem;
+             box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <header class="bg-white shadow-md">
+        <div class="container mx-auto px-4 py-3">
+            <h1 class="text-xl font-bold text-gray-800">AyurTrace - 🏭 Offline QR & Link Generator</h1>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-6 space-y-6">
+        <section class="bg-white p-6 rounded-2xl shadow-lg">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Generate Product Serial Numbers & QR Codes</h2>
+            <p class="text-sm text-gray-600 mb-4">Enter the details below to generate unique serials and scannable QR codes for your products.</p>
+            <div class="grid md:grid-cols-2 gap-4 items-start">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Base Batch ID</label>
+                    <input id="m_batchId" type="text" placeholder="e.g., AWB-2025-09" class="mt-1 block w-full input">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Final Product Name</label>
+                    <input id="m_productName" type="text" placeholder="e.g., Ashwagandha Powder 500g" class="mt-1 block w-full input">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Number of Products to Create</label>
+                    <input id="m_quantity" type="number" placeholder="e.g., 100" class="mt-1 block w-full input">
+                </div>
+                 <div>
+                    <label class="block text-sm font-medium text-gray-700">Processing Location</label>
+                    <input id="m_location" type="text" placeholder="e.g., Factory Unit A" class="mt-1 block w-full input">
+                </div>
+            </div>
+            <button id="btn_m_createProducts" class="mt-4 w-full sm:w-auto bg-green-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-green-700">Generate Serials</button>
+            <div id="manufacturerFeedback" class="hidden mt-4 p-4 rounded-md text-sm"></div>
+        </section>
+
+        <section id="manufacturerSerialSection" class="hidden bg-white p-6 rounded-2xl shadow-lg">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Generated Serial Numbers & QR Codes</h2>
+            <p class="text-sm text-gray-500">Each QR code links to a unique verification URL. Right-click to save or use the print button.</p>
+            <div id="serialNumberContainer" class="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
+        </section>
+    </main>
+
+    <script>
+    // --- App Logic (No Blockchain) ---
+    const App = {
+        init() {
+            this.setupEventListeners();
+        },
+        
+        setupEventListeners() {
+            document.getElementById('btn_m_createProducts').addEventListener('click', () => this.generateSerials());
+        },
+
+        showFeedback(elId, message, type) {
+            const el = document.getElementById(elId);
+            el.className = 'p-4 rounded-md text-sm mt-4';
+            if (type === 'success') el.classList.add('bg-green-100', 'text-green-800');
+            else if (type === 'error') el.classList.add('bg-red-100', 'text-red-800');
+            else el.classList.add('bg-blue-100', 'text-blue-800');
+            el.innerHTML = message;
+            el.style.display = 'block';
+        },
+        
+        async generateSerials() {
+            const batchId = document.getElementById('m_batchId').value.trim();
+            const quantity = parseInt(document.getElementById('m_quantity').value);
+            const feedbackId = 'manufacturerFeedback';
+
+            if (!batchId || isNaN(quantity) || quantity <= 0) {
+                return this.showFeedback(feedbackId, "Please provide a valid Batch ID and quantity.", 'error');
+            }
+            
+            this.showFeedback(feedbackId, 'Generating serial numbers...', 'info');
+
+            const serialsContainer = document.getElementById('serialNumberContainer');
+            document.getElementById('manufacturerSerialSection').classList.remove('hidden');
+            serialsContainer.innerHTML = ''; // Clear previous results
+
+            const generatedSerials = [];
+            const timestamp = Date.now();
+
+            for (let i = 1; i <= quantity; i++) {
+                // Create a unique serial number
+                const serialNumber = `${batchId}-${timestamp}-${i}`;
+                generatedSerials.push(serialNumber);
+            }
+            
+            // This small delay simulates a "processing" step and allows the UI to update.
+            await new Promise(resolve => setTimeout(resolve, 200));
+
+            this.showFeedback(feedbackId, `Successfully generated ${quantity} serials! Displaying QR codes below.`, 'success');
+            this.displayGeneratedQRCodes(generatedSerials);
+        },
+
+        displayGeneratedQRCodes(serialNumbers) {
+            const container = document.getElementById('serialNumberContainer');
+            container.innerHTML = ''; // Clear previous results
+
+            serialNumbers.forEach(serialNumber => {
+                // This creates a public-facing search link. 
+                // You can change 'search.html' to the actual URL of your verification page.
+                const verificationLink = `https://your-website.com/search#${serialNumber}`;
+
+                const card = document.createElement('div');
+                card.className = 'text-center p-2 bg-gray-50 rounded-lg border';
+
+                const canvas = document.createElement('canvas');
+                card.appendChild(canvas);
+
+                const idEl = document.createElement('p');
+                idEl.className = 'text-xs font-semibold text-gray-700 mt-2 break-all';
+                idEl.textContent = serialNumber;
+                card.appendChild(idEl);
+
+                const printBtn = document.createElement('button');
+                printBtn.textContent = 'Print';
+                printBtn.className = 'text-xs bg-gray-200 px-2 py-1 rounded mt-2 hover:bg-gray-300';
+                printBtn.onclick = () => {
+                    const printWindow = window.open('', '_blank');
+                    printWindow.document.write(`
+                        <html>
+                            <head><title>Print QR Code - ${serialNumber}</title></head>
+                            <body style="text-align:center; margin-top: 50px;">
+                                <h3>${serialNumber}</h3>
+                                <img src="${canvas.toDataURL()}" />
+                                <p style="font-family: sans-serif; font-size: 12px;">Scan to verify</p>
+                                <script>
+                                    window.onload = () => { window.print(); window.close(); };
+                                <\/script>
+                            </body>
+                        </html>
+                    `);
+                    printWindow.document.close();
+                };
+                card.appendChild(printBtn);
+
+                container.appendChild(card);
+
+                QRCode.toCanvas(canvas, verificationLink, { width: 150, margin: 1 });
+            });
+        }
+    };
+
+    // --- App Initialization ---
+    document.addEventListener('DOMContentLoaded', () => {
+        App.init();
+    });
+    </script>
+</body>
+</html>

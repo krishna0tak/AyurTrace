@@ -132,91 +132,48 @@
                         <p style="text-align:center; color:#64748b; margin:0;">Enter a Batch ID above to see the complete supply chain timeline with images</p>
                     </div>
                     
-                    <!-- Process Batch Button (Hidden by default) -->
-                    <div id="processBatchSection" style="display:none; margin-top:16px; text-align:center;">
-                        <button type="button" id="processBatchBtn" class="submit-btn" style="background:#10b981;">
-                            <i class="fas fa-cogs"></i> Process This Batch
-                        </button>
-                    </div>
                 </div>
             </section>
 
-            <!-- Product Creation Dialog (Hidden by default) -->
-            <div id="productDialog" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
-                <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:white; border-radius:12px; padding:24px; max-width:500px; width:90%; max-height:80vh; overflow-y:auto;">
-                    <h3 style="margin:0 0 20px 0; color:#334155; display:flex; align-items:center; gap:8px;">
-                        <i class="fas fa-industry"></i> Create Products from Batch
-                    </h3>
-                    
+            <!-- Product Creation Section -->
+            <section class="card" id="productCreationSection" style="display:none;">
+                <h3 class="card-header">
+                    <i class="fas fa-industry"></i> Generate Product Serial Numbers & QR Codes
+                </h3>
+                <p style="margin:0 0 20px 0; color:#64748b; font-size:14px;">Enter the details below to generate unique serials and scannable QR codes for your products.</p>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:16px; margin-bottom:20px;">
                     <div class="form-group">
-                        <label for="processingDate">Processing Date</label>
-                        <input type="date" id="processingDate" class="form-input" required>
+                        <label for="m_batchId">Base Batch ID</label>
+                        <input id="m_batchId" type="text" class="form-input" placeholder="e.g., AWB-2025-09" readonly>
                     </div>
-                    
                     <div class="form-group">
-                        <label for="quantityProcessed">Quantity Processed (kg)</label>
-                        <input type="number" id="quantityProcessed" class="form-input" placeholder="Amount to process" required min="0" step="0.1">
+                        <label for="m_productName">Final Product Name</label>
+                        <input id="m_productName" type="text" class="form-input" placeholder="e.g., Ashwagandha Powder 500g" required>
                     </div>
-                    
                     <div class="form-group">
-                        <label for="wastage">Wastage (kg)</label>
-                        <input type="number" id="wastage" class="form-input" placeholder="Amount wasted in processing" required min="0" step="0.1">
+                        <label for="m_quantity">Number of Products to Create</label>
+                        <input id="m_quantity" type="number" class="form-input" placeholder="e.g., 100" required min="1" max="100">
                     </div>
-                    
                     <div class="form-group">
-                        <label for="productType">Product Type</label>
-                        <input type="text" id="productType" class="form-input" placeholder="e.g., Rice Bag 25kg" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="productQuantity">Number of Products</label>
-                        <input type="number" id="productQuantity" class="form-input" placeholder="How many products to create?" required min="1" max="100" step="1" value="1">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="packagingDate">Packaging Date</label>
-                        <input type="date" id="packagingDate" class="form-input" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="expiryDate">Expiry Date</label>
-                        <input type="date" id="expiryDate" class="form-input" required>
-                    </div>
-                    
-                    <div style="display:flex; gap:12px; margin-top:24px;">
-                        <button type="button" id="cancelProcessBtn" class="submit-btn" style="background:#6b7280; flex:1;">
-                            Cancel
-                        </button>
-                        <button type="button" id="submitProcessBtn" class="submit-btn" style="background:#10b981; flex:1;">
-                            <i class="fas fa-cogs"></i> Create Products
-                        </button>
+                        <label for="m_location">Processing Location</label>
+                        <input id="m_location" type="text" class="form-input" placeholder="e.g., Factory Unit A" required>
                     </div>
                 </div>
-            </div>
+                <button id="btn_m_createProducts" class="submit-btn" style="background:#10b981;">
+                    <i class="fas fa-cogs"></i> Generate Serials
+                </button>
+                <div id="manufacturerFeedback" style="display:none; margin-top:16px; padding:12px; border-radius:8px; font-size:14px;"></div>
+            </section>
             </section>
 
-            <!-- Product QR Section -->
-            <section class="card" id="productQRSection" style="display:none;">
+            <!-- Generated Serial Numbers & QR Codes Section -->
+            <section class="card" id="manufacturerSerialSection" style="display:none;">
                 <h3 class="card-header">
                     <i class="fas fa-qrcode"></i>
-                    Product QR Codes
+                    Generated Serial Numbers & QR Codes
                 </h3>
-                <div style="padding:16px;">
-                    <div id="qrStats" style="margin-bottom:16px; padding:12px; background:#f8f9fa; border-radius:8px; text-align:center;">
-                        <p style="margin:0; color:#334155; font-weight:500;">Generated <span id="qrCount">0</span> QR codes for batch: <span id="batchIdDisplay">-</span></p>
-                    </div>
-                    <div id="qrGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:16px; margin-bottom:16px;">
-                        <!-- QR codes will be generated here -->
-                    </div>
-                    <div style="text-align:center;">
-                        <button id="downloadAllQRBtn" class="submit-btn" type="button" style="margin-right:8px;">
-                            <i class="fas fa-download"></i> Download All QR Codes
-                        </button>
-                        <button id="printQRBtn" class="submit-btn" type="button" style="background:#6366f1;">
-                            <i class="fas fa-print"></i> Print QR Codes
-                        </button>
-                    </div>
-                </div>
+                <p style="margin:0 0 16px 0; color:#64748b; font-size:14px;">Each QR code links to a unique verification URL. Right-click to save or use the print button.</p>
+                <div id="serialNumberContainer" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:16px; margin-top:20px;"></div>
             </section>
         </div>
     </main>
@@ -230,14 +187,6 @@
                 document.querySelector('.user-menu span').textContent = user.name;
                 document.querySelector('.user-avatar').textContent = user.name.substring(0, 2).toUpperCase();
             }
-
-            // Set current date
-            document.getElementById('processingDate').value = new Date().toISOString().split('T')[0];
-            
-            // Set default expiry (1 year from now)
-            const oneYearFromNow = new Date();
-            oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-            document.getElementById('expiryDate').value = oneYearFromNow.toISOString().split('T')[0];
 
             await Blockchain.init();
 
@@ -333,65 +282,66 @@
             });
 
             stopScanBtn.addEventListener('click', stopScanner);
-        });
 
-        // Search and display chain function
-        async function searchAndDisplayChain(batchId) {
-            const idEl = document.getElementById('chainResultId');
-            const timeline = document.getElementById('chainTimeline');
-            const processBatchSection = document.getElementById('processBatchSection');
-            
-            idEl.textContent = `Batch ID: ${batchId}`;
-            timeline.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin" style="font-size:24px;color:#6366f1;"></i><p style="margin-top:12px;color:#64748b;">Searching blockchain directly...</p></div>';
-            processBatchSection.style.display = 'none';
-
-            try {
-                console.log(`🔍 Manufacturer direct search for batch: ${batchId}`);
-                const batchData = await Blockchain.searchBatchInBlockchain(batchId);
+            // Search and display chain function
+            async function searchAndDisplayChain(batchId) {
+                const idEl = document.getElementById('chainResultId');
+                const timeline = document.getElementById('chainTimeline');
                 
-                if (!batchData || !batchData.found) {
+                idEl.textContent = `Batch ID: ${batchId}`;
+                timeline.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin" style="font-size:24px;color:#6366f1;"></i><p style="margin-top:12px;color:#64748b;">Searching blockchain directly...</p></div>';
+
+                try {
+                    console.log(`🔍 Manufacturer direct search for batch: ${batchId}`);
+                    const batchData = await Blockchain.searchBatchInBlockchain(batchId);
+                    
+                    if (!batchData || !batchData.found) {
+                        timeline.innerHTML = `
+                            <div style="text-align:center;padding:40px;color:#ef4444;">
+                                <i class="fas fa-exclamation-triangle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i>
+                                <h4 style="margin-bottom:8px;">No events found for ${batchId}</h4>
+                                <p style="color:#64748b;margin-bottom:16px;">This batch does not exist on the blockchain.</p>
+                                <div style="background:#f8f9fa;padding:12px;border-radius:8px;text-align:left;max-width:400px;margin:0 auto;">
+                                    <p style="margin:0;font-size:14px;color:#495057;"><strong>Manufacturer Checklist:</strong></p>
+                                    <ul style="margin:8px 0 0 20px;font-size:13px;color:#6c757d;">
+                                        <li>Verify the Batch ID is correct</li>
+                                        <li>Check if the batch has been created and collected</li>
+                                        <li>Ensure you have the right blockchain network</li>
+                                        <li>Contact the farmer or collector for confirmation</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    renderTimelineWithImages(timeline, batchData.chain || []);
+                    
+                    // Show product creation form if chain is valid
+                    if (batchData.chain && batchData.chain.length > 0) {
+                        const productCreationSection = document.getElementById('productCreationSection');
+                        productCreationSection.style.display = 'block';
+                        // Store current batch ID for processing and populate the batch ID field
+                        window.currentBatchId = batchId;
+                        document.getElementById('m_batchId').value = batchId;
+                    }
+                    
+                } catch (e) {
+                    console.error('Search chain error', e);
                     timeline.innerHTML = `
                         <div style="text-align:center;padding:40px;color:#ef4444;">
-                            <i class="fas fa-exclamation-triangle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i>
-                            <h4 style="margin-bottom:8px;">No events found for ${batchId}</h4>
-                            <p style="color:#64748b;margin-bottom:16px;">This batch does not exist on the blockchain.</p>
+                            <i class="fas fa-exclamation-circle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i>
+                            <h4 style="margin-bottom:8px;">Search Error</h4>
+                            <p style="color:#64748b;margin-bottom:16px;">Failed to search blockchain for ${batchId}</p>
                             <div style="background:#f8f9fa;padding:12px;border-radius:8px;text-align:left;max-width:400px;margin:0 auto;">
-                                <p style="margin:0;font-size:14px;color:#495057;"><strong>Manufacturer Checklist:</strong></p>
-                                <ul style="margin:8px 0 0 20px;font-size:13px;color:#6c757d;">
-                                    <li>Verify the Batch ID is correct</li>
-                                    <li>Check if the batch has been created and collected</li>
-                                    <li>Ensure you have the right blockchain network</li>
-                                </ul>
+                                <p style="margin:0;font-size:14px;color:#495057;"><strong>Error Details:</strong></p>
+                                <p style="margin:4px 0;font-size:13px;color:#6c757d;">${e.message || 'Unknown error occurred'}</p>
                             </div>
                         </div>
                     `;
-                    return;
                 }
-                
-                renderTimelineWithImages(timeline, batchData.chain || []);
-                
-                // Show process batch button if chain is valid
-                if (batchData.chain && batchData.chain.length > 0) {
-                    processBatchSection.style.display = 'block';
-                    // Store current batch ID for processing
-                    window.currentBatchId = batchId;
-                }
-                
-            } catch (e) {
-                console.error('Search chain error', e);
-                timeline.innerHTML = `
-                    <div style="text-align:center;padding:40px;color:#ef4444;">
-                        <i class="fas fa-exclamation-circle" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i>
-                        <h4 style="margin-bottom:8px;">Search Error</h4>
-                        <p style="color:#64748b;margin-bottom:16px;">Failed to search blockchain for ${batchId}</p>
-                        <div style="background:#f8f9fa;padding:12px;border-radius:8px;text-align:left;max-width:400px;margin:0 auto;">
-                            <p style="margin:0;font-size:14px;color:#495057;"><strong>Error Details:</strong></p>
-                            <p style="margin:4px 0;font-size:13px;color:#6c757d;">${e.message || 'Unknown error occurred'}</p>
-                        </div>
-                    </div>
-                `;
             }
-        }
+        });
 
         // Timeline renderer with images
         function renderTimelineWithImages(container, logs) {
@@ -449,61 +399,141 @@
             container.innerHTML = html;
         }
 
-        // Product QR functions
-        function showMultipleProductQRs(productIds, batchId) {
-            const section = document.getElementById('productQRSection');
-            const qrGrid = document.getElementById('qrGrid');
-            const qrCount = document.getElementById('qrCount');
-            const batchIdDisplay = document.getElementById('batchIdDisplay');
+        // Simple QR Generation functions (adapted from copy/index.html)
+        function showFeedback(elId, message, type) {
+            const el = document.getElementById(elId);
+            el.className = 'p-4 rounded-md text-sm mt-4';
+            if (type === 'success') el.classList.add('bg-green-100', 'text-green-800');
+            else if (type === 'error') el.classList.add('bg-red-100', 'text-red-800');
+            else el.classList.add('bg-blue-100', 'text-blue-800');
+            el.innerHTML = message;
+            el.style.display = 'block';
+        }
+        
+        async function generateSerials() {
+            const batchId = document.getElementById('m_batchId').value.trim();
+            const productName = document.getElementById('m_productName').value.trim();
+            const quantity = parseInt(document.getElementById('m_quantity').value);
+            const location = document.getElementById('m_location').value.trim();
+            const feedbackId = 'manufacturerFeedback';
+
+            if (!batchId || !productName || !location || isNaN(quantity) || quantity <= 0) {
+                return showFeedback(feedbackId, "Please fill all fields with valid values.", 'error');
+            }
             
-            section.style.display = 'block';
-            qrCount.textContent = productIds.length;
-            batchIdDisplay.textContent = batchId;
+            if (quantity > 100) {
+                return showFeedback(feedbackId, "Maximum 100 products can be generated at once.", 'error');
+            }
             
-            // Clear previous QR codes
-            qrGrid.innerHTML = '';
+            showFeedback(feedbackId, 'Generating serial numbers...', 'info');
+
+            const serialsContainer = document.getElementById('serialNumberContainer');
+            document.getElementById('manufacturerSerialSection').style.display = 'block';
+            serialsContainer.innerHTML = ''; // Clear previous results
+
+            const generatedSerials = [];
+            const timestamp = Date.now();
+
+            for (let i = 1; i <= quantity; i++) {
+                // Create a unique serial number
+                const serialNumber = `${batchId}-${timestamp}-${i}`;
+                generatedSerials.push(serialNumber);
+            }
             
-            // Get serial mapping to find serial numbers
-            const productDetails = JSON.parse(localStorage.getItem('product_details') || '{}');
-            const qrUrls = [];
-            
-            // Generate QR codes for each product
-            productIds.forEach((productId, index) => {
-                // Find serial number for this product
-                let serialNumber = null;
-                for (const [serial, details] of Object.entries(productDetails)) {
-                    if (details.productId === productId) {
-                        serialNumber = serial;
-                        break;
+            // This small delay simulates a "processing" step and allows the UI to update.
+            await new Promise(resolve => setTimeout(resolve, 200));
+
+            showFeedback(feedbackId, `Successfully generated ${quantity} serials! Displaying QR codes below.`, 'success');
+            displayGeneratedQRCodes(generatedSerials, productName);
+        }
+
+        function displayGeneratedQRCodes(serialNumbers, productName) {
+            const container = document.getElementById('serialNumberContainer');
+            container.innerHTML = ''; // Clear previous results
+
+            serialNumbers.forEach(serialNumber => {
+                // This creates a public-facing search link. 
+                const verificationLink = `${window.location.origin}/search.html#${serialNumber}`;
+
+                const card = document.createElement('div');
+                card.style.cssText = `
+                    text-align: center;
+                    padding: 12px;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                    border: 1px solid #e5e7eb;
+                `;
+
+                const canvas = document.createElement('canvas');
+                card.appendChild(canvas);
+
+                const idEl = document.createElement('p');
+                idEl.style.cssText = `
+                    font-size: 12px;
+                    font-weight: 600;
+                    color: #374151;
+                    margin: 8px 0 4px 0;
+                    word-break: break-all;
+                `;
+                idEl.textContent = serialNumber;
+                card.appendChild(idEl);
+
+                const productEl = document.createElement('p');
+                productEl.style.cssText = `
+                    font-size: 11px;
+                    color: #6b7280;
+                    margin: 0 0 8px 0;
+                `;
+                productEl.textContent = productName;
+                card.appendChild(productEl);
+
+                const printBtn = document.createElement('button');
+                printBtn.textContent = 'Print';
+                printBtn.style.cssText = `
+                    font-size: 11px;
+                    background: #6b7280;
+                    color: white;
+                    padding: 4px 8px;
+                    border-radius: 4px;
+                    border: none;
+                    cursor: pointer;
+                    margin-top: 4px;
+                `;
+                printBtn.onclick = () => {
+                    const printWindow = window.open('', '_blank');
+                    printWindow.document.write(`
+                        <html>
+                            <head><title>Print QR Code - ${serialNumber}</title></head>
+                            <body style="text-align:center; margin-top: 50px; font-family: Arial, sans-serif;">
+                                <h3>${productName}</h3>
+                                <img src="${canvas.toDataURL()}" />
+                                <p style="font-size: 14px; margin-top: 10px;"><strong>${serialNumber}</strong></p>
+                                <p style="font-size: 12px; color: #666;">Scan to verify authenticity</p>
+                                <script>
+                                    window.onload = () => { 
+                                        window.print(); 
+                                        setTimeout(() => window.close(), 1000);
+                                    };
+                                <\/script>
+                            </body>
+                        </html>
+                    `);
+                    printWindow.document.close();
+                };
+                card.appendChild(printBtn);
+
+                container.appendChild(card);
+
+                // Generate QR code using QRCode library
+                QRCode.toCanvas(canvas, verificationLink, { 
+                    width: 150, 
+                    margin: 1,
+                    color: {
+                        dark: '#000000',
+                        light: '#FFFFFF'
                     }
-                }
-                
-                if (!serialNumber) {
-                    serialNumber = String(Math.floor(10000 + Math.random() * 90000));
-                }
-                
-                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`${window.location.origin}/search.html#${serialNumber}`)}`;
-                qrUrls.push({ url: qrUrl, serial: serialNumber, productId });
-                
-                const qrItem = document.createElement('div');
-                qrItem.style.cssText = `
-                    border: 1px solid #e2e8f0; 
-                    border-radius: 8px; 
-                    padding: 12px; 
-                    text-align: center; 
-                    background: white;
-                `;
-                qrItem.innerHTML = `
-                    <img src="${qrUrl}" alt="Product QR ${index + 1}" style="width:100%; height:auto; border-radius:4px; margin-bottom:8px;" />
-                    <p style="margin:0; font-size:12px; color:#666; font-weight:500;">Serial: ${serialNumber}</p>
-                    <p style="margin:4px 0 0 0; font-size:11px; color:#999;">${productId}</p>
-                `;
-                qrGrid.appendChild(qrItem);
+                });
             });
-            
-            // Setup download buttons
-            document.getElementById('downloadAllQRBtn').onclick = () => downloadAllQRs(qrUrls, batchId);
-            document.getElementById('printQRBtn').onclick = () => printQRCodes(qrUrls, batchId);
         }
         
         function downloadAllQRs(qrUrls, batchId) {
@@ -557,186 +587,13 @@
             };
         }
 
-        // Dialog functionality (safeguarded init)
-        (function initDialog() {
-            const processBatchBtn = document.getElementById('processBatchBtn');
-            const productDialog = document.getElementById('productDialog');
-            const cancelProcessBtn = document.getElementById('cancelProcessBtn');
-            const submitProcessBtn = document.getElementById('submitProcessBtn');
-
-            if (!processBatchBtn || !productDialog || !cancelProcessBtn || !submitProcessBtn) {
-                // Try again after DOM ready just in case
-                document.addEventListener('DOMContentLoaded', initDialog);
-                return;
-            }
-
-            // Show dialog when process batch button is clicked
-            processBatchBtn.addEventListener('click', function() {
-                const today = new Date().toISOString().split('T')[0];
-                document.getElementById('processingDate').value = today;
-                document.getElementById('packagingDate').value = today;
-                
-                const oneYearFromNow = new Date();
-                oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-                document.getElementById('expiryDate').value = oneYearFromNow.toISOString().split('T')[0];
-                
-                productDialog.style.display = 'block';
-            });
-
-            // Hide dialog when cancel is clicked
-            cancelProcessBtn.addEventListener('click', function() {
-                productDialog.style.display = 'none';
-            });
-
-            // Hide dialog when clicking outside
-            productDialog.addEventListener('click', function(e) {
-                if (e.target === productDialog) {
-                    productDialog.style.display = 'none';
-                }
-            });
-
-            // Process batch and create products
-            submitProcessBtn.addEventListener('click', async function() {
-            const batchId = window.currentBatchId;
-            if (!batchId) {
-                alert('No batch selected');
-                return;
-            }
-
-            const formData = {
-                processingDate: document.getElementById('processingDate').value,
-                quantityProcessed: parseFloat(document.getElementById('quantityProcessed').value),
-                wastage: parseFloat(document.getElementById('wastage').value),
-                productType: document.getElementById('productType').value,
-                productQuantity: parseInt(document.getElementById('productQuantity').value),
-                packagingDate: document.getElementById('packagingDate').value,
-                expiryDate: document.getElementById('expiryDate').value
-            };
-
-            // Validate form
-            if (!formData.processingDate || !formData.quantityProcessed || !formData.wastage || 
-                !formData.productType || !formData.productQuantity || !formData.packagingDate || !formData.expiryDate) {
-                alert('Please fill in all fields');
-                return;
-            }
-
-            if (formData.productQuantity < 1 || formData.productQuantity > 100) {
-                alert('Product quantity must be between 1 and 100');
-                return;
-            }
-
-            submitProcessBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Products...';
-            submitProcessBtn.disabled = true;
-
-            try {
-                // Create products on blockchain
-                const manufacturerId = (await getCurrentUser())?.email || 'Unknown Manufacturer';
-                // Convert to integers for BigInt conversion in blockchain.js
-                const quantityProcessedInt = Math.round(Number(formData.quantityProcessed));
-                const wastageInt = Math.round(Number(formData.wastage));
-                if (Number.isNaN(quantityProcessedInt) || Number.isNaN(wastageInt)) {
-                    throw new Error('Quantity and wastage must be valid numbers');
-                }
-                const processingTs = Math.floor(new Date(formData.processingDate).getTime() / 1000);
-                const expiryTs = Math.floor(new Date(formData.expiryDate).getTime() / 1000);
-                if (!Number.isFinite(processingTs) || !Number.isFinite(expiryTs)) {
-                    throw new Error('Invalid processing or expiry date');
-                }
-                // Create a single on-chain Product (represents the manufactured lot)
-                const productId = `${batchId}-PRD-${Date.now()}`;
-                await Blockchain.createProduct({
-                    productId,
-                    sourceBatchId: batchId,
-                    productType: formData.productType,
-                    quantityProcessed: quantityProcessedInt,
-                    wastage: wastageInt,
-                    processingDate: processingTs,
-                    expiryDate: expiryTs,
-                    manufacturerId: manufacturerId
-                });
-
-                // Generate serial numbers and QR codes
-                const serialNumbers = [];
-                const qrUrls = [];
-                
-                for (let i = 1; i <= formData.productQuantity; i++) {
-                    const serialNumber = `${batchId}-P${i.toString().padStart(3, '0')}`;
-                    serialNumbers.push(serialNumber);
-                    
-                    // Generate QR code for each product
-                    const qrUrl = await QRCode.toDataURL(`${window.location.origin}/search.html?serial=${serialNumber}`, {
-                        width: 200,
-                        margin: 2,
-                        color: {
-                            dark: '#000000',
-                            light: '#FFFFFF'
-                        }
-                    });
-                    
-                    qrUrls.push({
-                        url: qrUrl,
-                        serial: serialNumber,
-                        productId: `${formData.productType} - ${serialNumber}`
-                    });
-                }
-
-                // Store product information
-                const products = serialNumbers.map((serial, index) => ({
-                    serialNumber: serial,
-                    batchId: batchId,
-                    productType: formData.productType,
-                    manufacturedDate: formData.processingDate,
-                    packagingDate: formData.packagingDate,
-                    expiryDate: formData.expiryDate,
-                    manufacturerId: manufacturerId
-                }));
-                
-                localStorage.setItem('manufactured_products', JSON.stringify([
-                    ...JSON.parse(localStorage.getItem('manufactured_products') || '[]'),
-                    ...products
-                ]));
-
-                // Hide dialog
-                productDialog.style.display = 'none';
-
-                // Show QR codes section
-                document.getElementById('productQRSection').style.display = 'block';
-                document.getElementById('qrCount').textContent = formData.productQuantity;
-                document.getElementById('batchIdDisplay').textContent = batchId;
-                
-                const qrGrid = document.getElementById('qrGrid');
-                qrGrid.innerHTML = qrUrls.map(qr => `
-                    <div style="text-align:center; padding:12px; background:white; border-radius:8px; border:1px solid #e5e7eb;">
-                        <img src="${qr.url}" style="width:150px; height:150px; margin-bottom:8px;">
-                        <p style="margin:0; font-size:12px; color:#374151; font-weight:500;">${qr.serial}</p>
-                        <p style="margin:4px 0 0 0; font-size:11px; color:#6b7280;">${formData.productType}</p>
-                    </div>
-                `).join('');
-
-                // Store QR URLs for download/print
-                window.currentQRUrls = qrUrls;
-                // Wire buttons for this batch
-                const dlBtn = document.getElementById('downloadAllQRBtn');
-                const prBtn = document.getElementById('printQRBtn');
-                if (dlBtn) dlBtn.onclick = () => downloadAllQRs(qrUrls, batchId);
-                if (prBtn) prBtn.onclick = () => printQRCodes(qrUrls, batchId);
-
-                alert(`Successfully created ${formData.productQuantity} products with serial numbers!`);
-
-                // Redirect to search.html after 2 seconds
-                setTimeout(() => {
-                    window.location.href = 'search.html';
-                }, 2000);
-
-            } catch (error) {
-                console.error('Error creating products:', error);
-                alert('Error creating products: ' + error.message);
-            } finally {
-                submitProcessBtn.innerHTML = '<i class="fas fa-cogs"></i> Create Products';
-                submitProcessBtn.disabled = false;
+        // Initialize QR generation functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const generateBtn = document.getElementById('btn_m_createProducts');
+            if (generateBtn) {
+                generateBtn.addEventListener('click', generateSerials);
             }
         });
-        })();
 
         // Logout functionality
         document.getElementById('logoutBtn').addEventListener('click', async function(e) {
