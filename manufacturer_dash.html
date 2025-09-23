@@ -4,22 +4,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Manufacturer Dashboard - AyurTrace</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="theme.css">
+    <style>
+        /* Minimal input style to support Tailwind-like `.input` class used below */
+        .input { border: 1px solid #d1d5db; padding: 8px 12px; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    </style>
 </head>
 
 <body>
     <!-- Auth Check Script -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js"></script>
-    <script src="supabase-auth.js"></script>
+    <script src="config.js?v=1727120000"></script>
+    <script src="supabase-auth.js?v=1727120000"></script>
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-    <script src="blockchain.js"></script>
-    <script src="enhanced-search.js"></script>
+    <script src="blockchain.js?v=1727120000"></script>
+    <script src="enhanced-search.js?v=1727120000"></script>
     <script>
         // Check authentication using the proper auth system
         async function checkAuth() {
@@ -94,89 +101,107 @@
                 </div>
             </section>
 
-            <!-- Batch Search & Chain Display Section -->
-            <section class="card">
-                <h3 class="card-header">
-                    <i class="fas fa-search"></i>
-                    Search Batch & View Supply Chain
-                </h3>
-                <div class="form-group">
-                    <label for="batchSearchInput">Enter Batch ID to view complete supply chain</label>
-                    <div class="input-group">
-                        <input type="text" id="batchSearchInput" class="form-input" placeholder="Enter Batch ID (e.g., BATCH_1735262005200)">
-                        <button type="button" id="searchBatchBtn" class="get-location-btn">
-                            <i class="fas fa-search"></i>
-                        </button>
-                        <button type="button" id="qrScanBtn" class="get-location-btn" title="Scan QR Code">
-                            <i class="fas fa-qrcode"></i>
-                        </button>
+            <section class="card" style="margin-bottom: 2rem; background: linear-gradient(135deg, rgb(248, 250, 252) 0%, rgb(241, 245, 249) 100%); border: 1px solid rgb(226, 232, 240); display: block;">
+                <div style="padding: 1.5rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                        <h3 style="margin: 0; color: #1e293b; font-size: 1.25rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-search" style="color: var(--primary); font-size: 1.1rem;"></i>
+                            Batch Timeline &amp; Search
+                        </h3>
+                        <span style="font-size: 0.875rem; color: #64748b; background: #e2e8f0; padding: 0.25rem 0.75rem; border-radius: 1rem;">
+                            Track Supply Chain
+                        </span>
+                    </div>
+                    
+                    <div style="background: white; border-radius: 12px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <label for="searchBatchInput" style="display: block; margin-bottom: 0.75rem; color: #374151; font-weight: 500; font-size: 0.875rem;">
+                            Enter Batch ID to view complete supply chain history
+                        </label>
+                        <div style="position: relative; display: flex; gap: 0.5rem;" class="search-container">
+                            <div style="flex: 1; position: relative;">
+                                <input type="text" id="searchBatchInput" class="form-input" placeholder="Enter Batch ID (e.g., BATCH_1726614123456)" style="width: 100%; padding: 0.875rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 0.875rem; transition: all 0.2s ease; background: #fafafa;">
+                            </div>
+                            <div class="search-buttons" style="display: flex; gap: 0.5rem;">
+                                <button type="button" id="searchBatchBtn" style="padding: 0.875rem 1.25rem; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 0.5rem; font-weight: 500; box-shadow: 0 2px 4px rgba(52, 211, 153, 0.2);">
+                                    <i class="fas fa-search"></i>
+                                    <span style="font-size: 0.875rem;">Search</span>
+                                </button>
+                                <button type="button" id="qrScanBtn" style="padding: 0.875rem 1.25rem; background: #8b5cf6; color: white; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 0.5rem; font-weight: 500; box-shadow: 0 2px 4px rgba(139, 92, 246, 0.2);">
+                                    <i class="fas fa-qrcode"></i>
+                                    <span style="font-size: 0.875rem;">Scan QR</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 0.75rem; padding: 0.75rem; background: #f8fafc; border-radius: 6px; border-left: 3px solid var(--primary);">
+                            <p style="margin: 0; font-size: 0.75rem; color: #64748b; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-info-circle" style="color: var(--primary);"></i>
+                                Tip: Use the QR scanner to quickly scan batch QR codes or manually enter the batch ID above
+                            </p>
+                            <div id="recentBatchIds" style="margin-top: 0.5rem; display: none;">
+                                <p style="margin: 0 0 0.25rem 0; font-size: 0.75rem; color: #64748b; font-weight: 500;">Recent Batch IDs (click to search):</p>
+                                <div id="batchIdsList" style="display: flex; flex-wrap: wrap; gap: 0.25rem;"></div>
+                            </div>
+                            <button type="button" id="showRecentBatchesBtn" style="margin-top: 0.5rem; padding: 0.25rem 0.5rem; background: transparent; border: 1px solid var(--primary); color: var(--primary); border-radius: 4px; cursor: pointer; font-size: 0.75rem; transition: all 0.2s ease;" onmouseover="this.style.background='var(--primary)'; this.style.color='white';" onmouseout="this.style.background='transparent'; this.style.color='var(--primary)';">
+                                Show Recent Batch IDs
+                            </button>
+                        </div>
                     </div>
                 </div>
-
-                <!-- QR Scanner Section (Hidden by default) -->
-                <div id="qrScannerSection" style="display:none; margin-top:16px; padding:16px; background:#f8f9fa; border-radius:8px;">
-                    <div style="text-align:center;">
-                        <video id="qrVideo" style="width:100%; max-width:400px; border-radius:8px;"></video>
-                        <div style="margin-top:12px;">
-                            <button type="button" id="stopScanBtn" class="submit-btn" style="background:#ef4444;">
-                                <i class="fas fa-stop"></i> Stop Scanning
+                
+                <!-- QR Scanner (Hidden by default) -->
+                <div id="qrScannerSection" style="display: none; margin-top: 1rem;">
+                    <div style="background: white; border-radius: 12px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center;">
+                        <div style="margin-bottom: 1rem;">
+                            <h4 style="margin: 0 0 0.5rem 0; color: #1e293b; font-size: 1rem; font-weight: 600;">QR Code Scanner</h4>
+                            <p style="margin: 0; font-size: 0.875rem; color: #64748b;">Position the QR code within the camera frame</p>
+                        </div>
+                        <video id="qrVideo" style="width: 100%; max-width: 400px; border-radius: 8px; border: 2px solid #e2e8f0;"></video>
+                        <div style="margin-top: 1rem;">
+                            <button type="button" id="stopScanBtn" style="padding: 0.75rem 1.5rem; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s ease;">
+                                <i class="fas fa-times"></i> 
+                                Stop Scanner
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Chain Results -->
-                <div id="chainResults" style="margin-top:20px;">
-                    <div id="chainResultId" style="font-weight:600; color:#334155; margin-bottom:12px;">Search for a batch to view its complete supply chain history</div>
-                    <div id="chainTimeline" style="background:#f8f9fa; padding:20px; border-radius:8px; min-height:60px;">
-                        <p style="text-align:center; color:#64748b; margin:0;">Enter a Batch ID above to see the complete supply chain timeline with images</p>
-                    </div>
-                    
-                </div>
+                <!-- Timeline Display (dynamic; filled by JS) -->
+                <div id="chainTimeline" style="margin-top: 1rem; display: none;"></div>
             </section>
 
-            <!-- Product Creation Section -->
-            <section class="card" id="productCreationSection" style="display:none;">
-                <h3 class="card-header">
-                    <i class="fas fa-industry"></i> Generate Product Serial Numbers & QR Codes
-                </h3>
-                <p style="margin:0 0 20px 0; color:#64748b; font-size:14px;">Enter the details below to generate unique serials and scannable QR codes for your products.</p>
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:16px; margin-bottom:20px;">
-                    <div class="form-group">
-                        <label for="m_batchId">Base Batch ID</label>
-                        <input id="m_batchId" type="text" class="form-input" placeholder="e.g., AWB-2025-09" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label for="m_productName">Final Product Name</label>
-                        <input id="m_productName" type="text" class="form-input" placeholder="e.g., Ashwagandha Powder 500g" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="m_quantity">Number of Products to Create</label>
-                        <input id="m_quantity" type="number" class="form-input" placeholder="e.g., 100" required min="1" max="100">
-                    </div>
-                    <div class="form-group">
-                        <label for="m_location">Processing Location</label>
-                        <input id="m_location" type="text" class="form-input" placeholder="e.g., Factory Unit A" required>
-                    </div>
+            <!-- Product Creation (hidden until a valid batch chain is shown) -->
+            <section id="productCreationSection" class="bg-white p-6 rounded-2xl shadow-lg" style="display:none;">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Generate Product Serial Numbers &amp; QR Codes</h2>
+            <p class="text-sm text-gray-600 mb-4">Enter the details below to generate unique serials and scannable QR codes for your products.</p>
+            <div class="grid md:grid-cols-2 gap-4 items-start">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Base Batch ID</label>
+                    <input id="m_batchId" type="text" placeholder="e.g., AWB-2025-09" class="mt-1 block w-full input">
                 </div>
-                <button id="btn_m_createProducts" class="submit-btn" style="background:#10b981;">
-                    <i class="fas fa-cogs"></i> Generate Serials
-                </button>
-                <div id="manufacturerFeedback" style="display:none; margin-top:16px; padding:12px; border-radius:8px; font-size:14px;"></div>
-            </section>
-            </section>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Final Product Name</label>
+                    <input id="m_productName" type="text" placeholder="e.g., Ashwagandha Powder 500g" class="mt-1 block w-full input">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Number of Products to Create</label>
+                    <input id="m_quantity" type="number" placeholder="e.g., 100" class="mt-1 block w-full input">
+                </div>
+                 <div>
+                    <label class="block text-sm font-medium text-gray-700">Processing Location</label>
+                    <input id="m_location" type="text" placeholder="e.g., Factory Unit A" class="mt-1 block w-full input">
+                </div>
+            </div>
+            <button id="btn_m_createProducts" class="mt-4 w-full sm:w-auto bg-green-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-green-700">Generate Serials</button>
+            <div id="manufacturerFeedback" class="p-4 rounded-md text-sm mt-4" style="display:none;"></div>
+        </section>
 
-            <!-- Generated Serial Numbers & QR Codes Section -->
-            <section class="card" id="manufacturerSerialSection" style="display:none;">
-                <h3 class="card-header">
-                    <i class="fas fa-qrcode"></i>
-                    Generated Serial Numbers & QR Codes
-                </h3>
-                <p style="margin:0 0 16px 0; color:#64748b; font-size:14px;">Each QR code links to a unique verification URL. Right-click to save or use the print button.</p>
-                <div id="serialNumberContainer" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:16px; margin-top:20px;"></div>
-            </section>
+        <section id="manufacturerSerialSection" class="bg-white p-6 rounded-2xl shadow-lg" style="display:none;">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Generated Serial Numbers &amp; QR Codes</h2>
+            <p class="text-sm text-gray-500">Each QR code links to a unique verification URL. Right-click to save or use the print button.</p>
+            <div id="serialNumberContainer" class="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
+        </section>
         </div>
-    </main>
 
     <script>
         // Initialize dashboard
@@ -191,7 +216,7 @@
             await Blockchain.init();
 
             // Setup batch search functionality
-            const batchSearchInput = document.getElementById('batchSearchInput');
+            const batchSearchInput = document.getElementById('searchBatchInput');
             const searchBatchBtn = document.getElementById('searchBatchBtn');
 
             // Search batch function
@@ -285,10 +310,11 @@
 
             // Search and display chain function
             async function searchAndDisplayChain(batchId) {
-                const idEl = document.getElementById('chainResultId');
                 const timeline = document.getElementById('chainTimeline');
-                
-                idEl.textContent = `Batch ID: ${batchId}`;
+                // Reset view and show the dynamic timeline container
+                const qrSection = document.getElementById('manufacturerSerialSection');
+                if (qrSection) qrSection.style.display = 'none';
+                timeline.style.display = 'block';
                 timeline.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin" style="font-size:24px;color:#6366f1;"></i><p style="margin-top:12px;color:#64748b;">Searching blockchain directly...</p></div>';
 
                 try {
@@ -399,15 +425,16 @@
             container.innerHTML = html;
         }
 
-        // Simple QR Generation functions (adapted from copy/index.html)
+        // Simple QR Generation functions (copied from copy/index.html)
         function showFeedback(elId, message, type) {
             const el = document.getElementById(elId);
             el.className = 'p-4 rounded-md text-sm mt-4';
-            if (type === 'success') el.classList.add('bg-green-100', 'text-green-800');
-            else if (type === 'error') el.classList.add('bg-red-100', 'text-red-800');
-            else el.classList.add('bg-blue-100', 'text-blue-800');
-            el.innerHTML = message;
             el.style.display = 'block';
+            el.style.background = '#dbeafe';
+            el.style.color = '#1e40af';
+            if (type === 'success') { el.style.background = '#d1fae5'; el.style.color = '#065f46'; }
+            if (type === 'error') { el.style.background = '#fee2e2'; el.style.color = '#dc2626'; }
+            el.innerHTML = message;
         }
         
         async function generateSerials() {
@@ -425,7 +452,28 @@
                 return showFeedback(feedbackId, "Maximum 100 products can be generated at once.", 'error');
             }
             
-            showFeedback(feedbackId, 'Generating serial numbers...', 'info');
+            showFeedback(feedbackId, 'Pushing product to blockchain and generating serial numbers...', 'info');
+
+            // 1) Push an aggregated manufacturing record to blockchain
+            try {
+                const now = Date.now();
+                const productId = `${batchId}-${productName.replace(/\s+/g,'_')}-${now}`;
+                const processingDate = now; // ms timestamp; contract wraps BigInt
+                const expiryDate = now + 31536000000; // +1 year
+                await Blockchain.createProduct({
+                    productId,
+                    sourceBatchId: batchId,
+                    productType: productName,
+                    quantityProcessed: quantity,
+                    wastage: 0,
+                    processingDate,
+                    expiryDate,
+                    manufacturerId: undefined
+                });
+            } catch (e) {
+                console.error('Blockchain createProduct failed', e);
+                return showFeedback(feedbackId, `Blockchain error: ${e.message || e}`, 'error');
+            }
 
             const serialsContainer = document.getElementById('serialNumberContainer');
             document.getElementById('manufacturerSerialSection').style.display = 'block';
@@ -435,7 +483,7 @@
             const timestamp = Date.now();
 
             for (let i = 1; i <= quantity; i++) {
-                // Create a unique serial number
+                // Create a unique serial number (exactly like copy/index.html)
                 const serialNumber = `${batchId}-${timestamp}-${i}`;
                 generatedSerials.push(serialNumber);
             }
@@ -444,15 +492,19 @@
             await new Promise(resolve => setTimeout(resolve, 200));
 
             showFeedback(feedbackId, `Successfully generated ${quantity} serials! Displaying QR codes below.`, 'success');
-            displayGeneratedQRCodes(generatedSerials, productName);
+            displayGeneratedQRCodes(generatedSerials);
         }
 
-        function displayGeneratedQRCodes(serialNumbers, productName) {
+        function displayGeneratedQRCodes(serialNumbers) {
             const container = document.getElementById('serialNumberContainer');
             container.innerHTML = ''; // Clear previous results
+            // Persist mapping serial -> batch for scanner reverse-lookup
+            const mapping = JSON.parse(localStorage.getItem('serial_mapping') || '{}');
 
             serialNumbers.forEach(serialNumber => {
-                // This creates a public-facing search link. 
+                const batchId = (window.currentBatchId || document.getElementById('m_batchId').value || '').trim();
+                if (batchId) mapping[serialNumber] = batchId;
+                // This creates a public-facing search link pointing to search.html
                 const verificationLink = `${window.location.origin}/search.html#${serialNumber}`;
 
                 const card = document.createElement('div');
@@ -478,15 +530,6 @@
                 idEl.textContent = serialNumber;
                 card.appendChild(idEl);
 
-                const productEl = document.createElement('p');
-                productEl.style.cssText = `
-                    font-size: 11px;
-                    color: #6b7280;
-                    margin: 0 0 8px 0;
-                `;
-                productEl.textContent = productName;
-                card.appendChild(productEl);
-
                 const printBtn = document.createElement('button');
                 printBtn.textContent = 'Print';
                 printBtn.style.cssText = `
@@ -504,16 +547,12 @@
                     printWindow.document.write(`
                         <html>
                             <head><title>Print QR Code - ${serialNumber}</title></head>
-                            <body style="text-align:center; margin-top: 50px; font-family: Arial, sans-serif;">
-                                <h3>${productName}</h3>
+                            <body style="text-align:center; margin-top: 50px;">
+                                <h3>${serialNumber}</h3>
                                 <img src="${canvas.toDataURL()}" />
-                                <p style="font-size: 14px; margin-top: 10px;"><strong>${serialNumber}</strong></p>
-                                <p style="font-size: 12px; color: #666;">Scan to verify authenticity</p>
+                                <p style="font-family: sans-serif; font-size: 12px;">Scan to verify</p>
                                 <script>
-                                    window.onload = () => { 
-                                        window.print(); 
-                                        setTimeout(() => window.close(), 1000);
-                                    };
+                                    window.onload = () => { window.print(); window.close(); };
                                 <\/script>
                             </body>
                         </html>
@@ -524,16 +563,9 @@
 
                 container.appendChild(card);
 
-                // Generate QR code using QRCode library
-                QRCode.toCanvas(canvas, verificationLink, { 
-                    width: 150, 
-                    margin: 1,
-                    color: {
-                        dark: '#000000',
-                        light: '#FFFFFF'
-                    }
-                });
+                QRCode.toCanvas(canvas, verificationLink, { width: 150, margin: 1 });
             });
+            localStorage.setItem('serial_mapping', JSON.stringify(mapping));
         }
         
         function downloadAllQRs(qrUrls, batchId) {
