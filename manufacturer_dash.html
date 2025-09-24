@@ -1095,7 +1095,7 @@
                     if (product) {
                         console.log('✅ Product found on blockchain:', product);
                         console.log('🔗 Serial to Batch mapping:', serialNumber, '->', product.sourceBatchId);
-                        console.log('🌐 Search URL:', `search.html#${serialNumber}`);
+                        console.log('🌐 GitHub Search URL:', `https://krishna0tak.github.io/AyurTrace/search.html#${serialNumber}`);
                     } else {
                         console.warn('⚠️ Product not found on blockchain yet (might need more time)');
                     }
@@ -1123,8 +1123,8 @@
                     console.log(`🔄 Processing serial #${index + 1}:`, serialNumber);
                     
                     try {
-                        // This creates a public-facing search link pointing to search.html
-                        const verificationLink = `search.html#${serialNumber}`;
+                        // This creates a public-facing search link pointing to GitHub Pages
+                        const verificationLink = `https://krishna0tak.github.io/AyurTrace/search.html#${serialNumber}`;
                         console.log(`🔗 Verification link: ${verificationLink}`);
 
                         const card = document.createElement('div');
