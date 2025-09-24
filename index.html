@@ -437,8 +437,24 @@
         }
 
         // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Initialize authentication
             initAuthState();
+            
+            // Initialize blockchain connection for QR scanning functionality
+            if (typeof window.Blockchain !== 'undefined') {
+                console.log('🔗 Initializing blockchain connection...');
+                try {
+                    const connected = await window.Blockchain.init();
+                    if (connected) {
+                        console.log('✅ Blockchain connected successfully');
+                    } else {
+                        console.warn('⚠️ Failed to connect to blockchain, search may not work properly');
+                    }
+                } catch (error) {
+                    console.warn('⚠️ Blockchain initialization error:', error);
+                }
+            }
         });
     </script>
 

@@ -207,62 +207,56 @@
         <!-- Main Content -->
         <main class="container mx-auto p-3 lg:p-6 max-w-4xl">
             <!-- Product Info Header -->
-            <div id="productHeader" class="bg-white/90 backdrop-blur-md p-4 lg:p-6 rounded-xl lg:rounded-2xl shadow-xl mb-4 lg:mb-6 border border-green-100">
-                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 space-y-3 lg:space-y-0">
-                    <div>
-                        <h2 class="text-2xl lg:text-3xl font-bold text-gray-800 mb-2">
-                            <i class="fas fa-link text-green-500 mr-2"></i>Supply Chain Journey
-                        </h2>
-                        <p id="searchResultId" class="text-gray-600 text-base lg:text-lg">Serial Number: -</p>
-                    </div>
-                    <div class="lg:text-right">
-                        <div id="progressIndicator" class="hidden">
-                            <p class="text-sm text-gray-500 mb-1">Journey Progress</p>
-                            <div class="w-full lg:w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div id="progressBar" class="progress-bar h-full rounded-full"></div>
-                            </div>
-                            <p id="progressText" class="text-xs text-gray-600 mt-1">0% Complete</p>
+            <div id="productHeader" class="bg-white p-4 rounded-lg shadow-md mb-4 border border-gray-200">
+                <div class="mb-3">
+                    <h2 class="text-lg font-bold text-gray-800 mb-1">
+                        🔗 Product Journey
+                    </h2>
+                    <p id="searchResultId" class="text-sm text-gray-600">Serial Number: -</p>
+                </div>
+                
+                <div id="progressIndicator" class="hidden mb-3">
+                    <div class="flex items-center gap-2 mb-1">
+                        <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div id="progressBar" class="h-full bg-gradient-to-r from-green-400 to-green-600 rounded-full transition-all duration-500"></div>
                         </div>
+                        <span id="progressText" class="text-xs text-gray-600 font-medium">0%</span>
                     </div>
                 </div>
                 
-                <!-- Quick Stats -->
-                <div id="quickStats" class="hidden grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mt-4">
-                    <div class="text-center p-2 lg:p-3 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
-                        <i class="fas fa-seedling text-green-500 text-lg lg:text-xl mb-1"></i>
-                        <p class="text-xs text-gray-600">Farm Origin</p>
-                        <p id="farmOrigin" class="font-semibold text-xs lg:text-sm truncate">-</p>
-                    </div>
-                    <div class="text-center p-2 lg:p-3 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
-                        <i class="fas fa-calendar text-blue-500 text-lg lg:text-xl mb-1"></i>
-                        <p class="text-xs text-gray-600">Harvest Date</p>
-                        <p id="harvestDate" class="font-semibold text-xs lg:text-sm truncate">-</p>
-                    </div>
-                    <div class="text-center p-2 lg:p-3 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg">
-                        <i class="fas fa-weight-hanging text-yellow-500 text-lg lg:text-xl mb-1"></i>
-                        <p class="text-xs text-gray-600">Quantity</p>
-                        <p id="totalQuantity" class="font-semibold text-xs lg:text-sm truncate">-</p>
-                    </div>
-                    <div class="text-center p-2 lg:p-3 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
-                        <i class="fas fa-check-circle text-purple-500 text-lg lg:text-xl mb-1"></i>
-                        <p class="text-xs text-gray-600">Status</p>
-                        <p id="currentStatus" class="font-semibold text-xs lg:text-sm">-</p>
+                <!-- Quick Summary -->
+                <div id="quickStats" class="hidden bg-gray-50 p-3 rounded-lg mt-4">
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="text-gray-600">🌱 Origin:</span>
+                            <span id="farmOrigin" class="font-medium text-gray-800">-</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">📅 Harvest:</span>
+                            <span id="harvestDate" class="font-medium text-gray-800">-</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">⚖️ Quantity:</span>
+                            <span id="totalQuantity" class="font-medium text-gray-800">-</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">✅ Status:</span>
+                            <span id="currentStatus" class="font-medium text-gray-800">-</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Supply Chain Timeline -->
-            <section id="searchResults" class="bg-white/90 backdrop-blur-md p-4 lg:p-6 rounded-xl lg:rounded-2xl shadow-xl border border-green-100">
-                <div class="flex items-center mb-4 lg:mb-6">
-                    <i class="fas fa-route text-green-500 text-lg lg:text-xl mr-3"></i>
-                    <h3 class="text-lg lg:text-xl font-semibold text-gray-800">Traceability Timeline</h3>
+            <section id="searchResults" class="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+                <div class="flex items-center mb-4">
+                    <h3 class="text-base font-semibold text-gray-800">📋 Journey Steps</h3>
                 </div>
                 
                 <div id="searchResultTrace" class="relative">
-                    <div class="text-center py-8 lg:py-12">
-                        <i class="fas fa-qrcode text-gray-300 text-3xl lg:text-4xl mb-4"></i>
-                        <p class="text-gray-500 text-base lg:text-lg px-4">Enter a Serial Number in the URL to view the product history</p>
-                        <p class="text-gray-400 text-sm mt-2 px-4">Example: search.html#BATCH_1758309213275</p>
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-search text-gray-300 text-2xl mb-3"></i>
+                        <p class="text-sm">Scan QR code or enter serial number to view journey</p>
                     </div>
                 </div>
             </section>
@@ -316,6 +310,15 @@
             `;
 
             try {
+                // Initialize blockchain if not connected
+                if (!window.Blockchain || !window.Blockchain.contractRO) {
+                    console.log('🔗 Initializing blockchain connection...');
+                    const connected = await window.Blockchain.init();
+                    if (!connected) {
+                        throw new Error('Failed to connect to blockchain network');
+                    }
+                }
+
                 // First check if this serial number maps to a batch ID
                 const serialMapping = JSON.parse(localStorage.getItem('serial_mapping') || '{}');
                 let batchId = serialMapping[serialNumber];
@@ -330,9 +333,44 @@
                 } else if (batchId) {
                     console.log(`Found in serial mapping: ${serialNumber} -> ${batchId}`);
                 } else {
-                    // If no mapping found, assume serialNumber is directly a batch ID
-                    batchId = serialNumber;
-                    console.log(`No mapping found, using as batch ID: ${batchId}`);
+                    // Check if the serial number itself is a product ID on blockchain
+                    console.log('🔍 Checking if serial number is a product ID on blockchain...');
+                    try {
+                        const product = await window.Blockchain.getProductSafe(serialNumber);
+                        console.log('🏭 Product from blockchain:', product);
+                        
+                        if (product && product.sourceBatchId) {
+                            batchId = product.sourceBatchId;
+                            console.log(`✅ Found product on blockchain: ${serialNumber} -> ${batchId}`);
+                            
+                            // Store this mapping for future use
+                            serialMapping[serialNumber] = batchId;
+                            localStorage.setItem('serial_mapping', JSON.stringify(serialMapping));
+                            
+                            // Also store in manufactured_products for consistency
+                            const manufacturedProducts = JSON.parse(localStorage.getItem('manufactured_products') || '[]');
+                            const existingProduct = manufacturedProducts.find(p => p.serialNumber === serialNumber);
+                            if (!existingProduct) {
+                                manufacturedProducts.push({
+                                    serialNumber: serialNumber,
+                                    batchId: batchId,
+                                    timestamp: Date.now(),
+                                    createdAt: new Date().toISOString(),
+                                    fromBlockchain: true
+                                });
+                                localStorage.setItem('manufactured_products', JSON.stringify(manufacturedProducts));
+                            }
+                        } else {
+                            // If no mapping found, assume serialNumber is directly a batch ID
+                            batchId = serialNumber;
+                            console.log(`No product found, using as batch ID: ${batchId}`);
+                        }
+                    } catch (error) {
+                        console.log('❌ Error checking product on blockchain:', error);
+                        // If no mapping found, assume serialNumber is directly a batch ID
+                        batchId = serialNumber;
+                        console.log(`No mapping found, using as batch ID: ${batchId}`);
+                    }
                 }
                 
                 const logs = await Blockchain.getChainForBatch(batchId);
@@ -531,17 +569,19 @@
                 let description = '';
                 let imageHtml = '';
                 
+                // Simplified important info based on event type
                 if (name === 'BatchCreated' && l.args) {
                     const meta = Blockchain?.parseFarmLocationMeta ? Blockchain.parseFarmLocationMeta(l.args.farmLocation || '') : {};
-                    const farmer = meta.farmer || 'Unknown Farmer';
+                    const farmer = meta.farmer || l.args.farmerName || 'Unknown Farmer';
                     const baseLoc = meta.base || (l.args.farmLocation || 'Not specified');
+                    
                     description = `
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                            <div class="space-y-2">
-                                <p class="font-medium text-gray-800"><i class="fas fa-leaf text-green-500 mr-2"></i>Crop Type: ${l.args.cropType}</p>
-                                <p class="text-gray-600"><i class="fas fa-weight-hanging text-blue-500 mr-2"></i>Quantity: ${l.args.quantity} kg</p>
-                                <p class="text-gray-600"><i class="fas fa-map-marker-alt text-red-500 mr-2"></i>Location: ${baseLoc}</p>
-                                <p class="text-gray-600"><i class="fas fa-user-tie text-purple-500 mr-2"></i>Farmer: ${farmer}</p>
+                        <div class="bg-green-50 p-3 rounded-lg border border-green-200">
+                            <div class="grid grid-cols-2 gap-2 text-sm">
+                                <div><span class="font-semibold text-green-700">Crop:</span> ${l.args.cropType}</div>
+                                <div><span class="font-semibold text-green-700">Quantity:</span> ${l.args.quantity} kg</div>
+                                <div><span class="font-semibold text-green-700">Farmer:</span> ${farmer}</div>
+                                <div><span class="font-semibold text-green-700">Location:</span> ${baseLoc}</div>
                             </div>
                         </div>
                     `;
@@ -549,83 +589,97 @@
                     const imageHash = meta.ipfs || l.args.photoHash;
                     if (imageHash && Blockchain?.getImageUrl) {
                         imageHtml = `
-                            <div class="mt-4">
-                                <p class="text-sm font-medium text-gray-700 mb-2"><i class="fas fa-camera mr-1"></i>Farm Photo</p>
+                            <div class="mt-3">
                                 <img src="${Blockchain.getImageUrl(imageHash)}" 
-                                     class="image-thumbnail w-24 h-24 object-cover rounded-lg border-2 border-gray-200 shadow-md" 
+                                     class="image-thumbnail w-20 h-20 object-cover rounded-lg border-2 border-green-300 cursor-pointer" 
                                      onclick="showFullImage('${imageHash}')" 
-                                     title="Click to view full image" />
-                                <button onclick="showFullImage('${imageHash}')" class="ml-3 text-blue-600 hover:text-blue-800 text-sm font-medium">
-                                    <i class="fas fa-expand mr-1"></i>View Full Image
-                                </button>
+                                     title="Farm Photo - Click to enlarge" />
                             </div>
                         `;
                     }
+                } else if (name === 'CollectionAdded' && l.args) {
+                    description = `
+                        <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                            <div class="text-sm">
+                                <div><span class="font-semibold text-blue-700">Collector:</span> ${l.args.collectorId || 'Unknown'}</div>
+                                <div><span class="font-semibold text-blue-700">Status:</span> ${l.args.status || 'Collected'}</div>
+                            </div>
+                        </div>
+                    `;
+                } else if (name === 'InspectionAdded' && l.args) {
+                    const resultColor = l.args.result === 'approved' ? 'text-green-700' : l.args.result === 'rejected' ? 'text-red-700' : 'text-yellow-700';
+                    const bgColor = l.args.result === 'approved' ? 'bg-green-50 border-green-200' : l.args.result === 'rejected' ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200';
+                    
+                    description = `
+                        <div class="${bgColor} p-3 rounded-lg border">
+                            <div class="text-sm">
+                                <div><span class="font-semibold ${resultColor}">Result:</span> <span class="${resultColor} uppercase font-bold">${l.args.result}</span></div>
+                                ${l.args.notes ? `<div class="mt-1"><span class="font-semibold ${resultColor}">Notes:</span> ${l.args.notes}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                } else if (name === 'ProductCreated' && l.args) {
+                    description = `
+                        <div class="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                            <div class="text-sm">
+                                <div><span class="font-semibold text-purple-700">Product ID:</span> ${l.args.productId}</div>
+                                <div><span class="font-semibold text-purple-700">Type:</span> ${l.args.productType}</div>
+                                <div><span class="font-semibold text-purple-700">Manufacturer:</span> ${l.args.manufacturerId}</div>
+                            </div>
+                        </div>
+                    `;
                 } else {
-                    description = `<div class="flex flex-wrap gap-2 mt-2">${formatArgsClean(l.args)}</div>`;
+                    // Keep minimal info for other events
+                    const importantFields = ['status', 'destination', 'quantity', 'result'];
+                    const keys = Object.keys(l.args || {}).filter(k => importantFields.some(f => k.toLowerCase().includes(f)));
+                    if (keys.length > 0) {
+                        const items = keys.map(k => `<span class="text-sm bg-gray-100 px-2 py-1 rounded">${k}: ${l.args[k]}</span>`);
+                        description = `<div class="flex flex-wrap gap-2">${items.join('')}</div>`;
+                    } else {
+                        description = `<div class="text-sm text-gray-600">Event recorded successfully</div>`;
+                    }
                 }
                 
                 const isLastStep = index === logs.length - 1;
                 const stepNumber = index + 1;
                 
                 html += `
-                <div class="timeline-step mobile-card-enter relative flex gap-4 lg:gap-6 pb-6 lg:pb-8 ${isLastStep ? '' : 'mb-2 lg:mb-4'}" style="animation-delay: ${index * 0.1}s">
+                <div class="timeline-step relative flex gap-3 pb-4 ${isLastStep ? '' : 'mb-3'}">
                     <!-- Timeline Line -->
-                    ${!isLastStep ? '<div class="absolute left-5 lg:left-6 top-12 lg:top-16 w-0.5 h-full bg-gradient-to-b from-green-300 to-green-200 timeline-line"></div>' : ''}
+                    ${!isLastStep ? '<div class="absolute left-4 top-10 w-0.5 h-full bg-green-200"></div>' : ''}
                     
                     <!-- Step Icon -->
-                    <div class="flex flex-col items-center z-10 flex-shrink-0">
-                        <div class="timeline-icon bg-gradient-to-br ${stepInfo.color} text-white w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center shadow-lg relative">
-                            <i class="${stepInfo.icon} text-sm lg:text-lg"></i>
-                            <div class="absolute -top-1 -right-1 lg:-top-2 lg:-right-2 bg-white text-gray-700 text-xs font-bold w-5 h-5 lg:w-6 lg:h-6 rounded-full flex items-center justify-center border-2 border-gray-200">
-                                ${stepNumber}
-                            </div>
+                    <div class="flex-shrink-0 z-10">
+                        <div class="bg-gradient-to-br ${stepInfo.color} text-white w-8 h-8 rounded-full flex items-center justify-center shadow-md">
+                            <i class="${stepInfo.icon} text-xs"></i>
                         </div>
                     </div>
                     
                     <!-- Step Content -->
-                    <div class="step-card ${stepInfo.bgColor} p-4 lg:p-6 rounded-lg lg:rounded-xl flex-1 border-l-4 border-gradient-to-b ${stepInfo.color} min-w-0">
+                    <div class="bg-white p-4 rounded-lg flex-1 border border-gray-200 shadow-sm">
                         <!-- Step Header -->
-                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-3 space-y-2 lg:space-y-0">
-                            <h4 class="font-bold text-base lg:text-lg ${stepInfo.textColor} pr-2">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="font-semibold text-gray-800 text-sm">
                                 ${stepTitles[name] || name}
                             </h4>
-                            <div class="flex flex-wrap items-center gap-2">
-                                <span class="badge badge-success text-xs">
-                                    <i class="fas fa-check"></i>Completed
-                                </span>
-                                ${when ? `<span class="text-xs text-gray-500 bg-white px-2 py-1 rounded whitespace-nowrap">${relativeTime}</span>` : ''}
-                                <span class="swipe-indicator text-gray-400 lg:hidden">
-                                    <i class="fas fa-chevron-right text-xs"></i>
-                                </span>
-                            </div>
+                            <span class="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                                ✓ Complete
+                            </span>
                         </div>
                         
-                        <!-- Timestamp -->
-                        ${when ? `<p class="text-xs lg:text-sm text-gray-500 mb-3"><i class="far fa-clock mr-1"></i>${when}</p>` : ''}
+                        <!-- Time Info -->
+                        ${when ? `<p class="text-xs text-gray-500 mb-3">${relativeTime}</p>` : ''}
                         
-                        <!-- Step Details -->
-                        <div class="space-y-3 lg:space-y-4">
-                            <!-- Main Content -->
-                            <div class="text-xs lg:text-sm text-gray-700">
-                                ${description}
-                                ${imageHtml}
-                            </div>
-                            
-                            <!-- Additional Information Row -->
-                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4 pt-3 lg:pt-4 border-t border-gray-200">
-                                <!-- Stakeholder Info -->
-                                <div>
-                                    <p class="text-xs font-medium text-gray-500 mb-2">Recorded by</p>
-                                    ${this.getStakeholderInfo(name, l.args)}
-                                </div>
-                                
-                                <!-- Verification Status -->
-                                <div>
-                                    <p class="text-xs font-medium text-gray-500 mb-2">Verification</p>
-                                    ${this.getVerificationStatus(name, tsNum)}
-                                </div>
-                            </div>
+                        <!-- Main Content with Image -->
+                        <div class="flex gap-3">
+                            <div class="flex-1">${description}</div>
+                            ${imageHtml ? `<div class="flex-shrink-0">${imageHtml}</div>` : ''}
+                        </div>
+                        
+                        <!-- Footer Info -->
+                        <div class="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+                            <span><i class="fas fa-cube mr-1"></i>Block ${l.blockNumber || 'N/A'}</span>
+                            <span><i class="fas fa-shield-alt mr-1 text-green-500"></i>Verified</span>
                         </div>
                     </div>
                 </div>`;

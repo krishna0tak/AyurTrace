@@ -662,6 +662,30 @@
       return await this.contractRO.products(productId);
     },
 
+    // Helper function to get product with better error handling
+    async getProductSafe(productId) {
+      try {
+        const product = await this.contractRO.products(productId);
+        // Check if product exists (non-empty productId indicates existence)
+        if (product && product[0] && product[0] !== '') {
+          return {
+            productId: product[0],
+            sourceBatchId: product[1],
+            productType: product[2],
+            quantityProcessed: product[3],
+            wastage: product[4],
+            processingDate: product[5],
+            expiryDate: product[6],
+            manufacturerId: product[7]
+          };
+        }
+        return null;
+      } catch (error) {
+        console.warn(`Failed to get product ${productId}:`, error);
+        return null;
+      }
+    },
+
     // --- Distributor ---
     async recordReception({ batchId, herbType, quantity, storageLocation }) {
       const c = this.requireSigner();
