@@ -14,26 +14,96 @@
             color: white;
             border: none;
             padding: 12px 20px;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
             font-size: 14px;
+            font-weight: 500;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
             transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+            min-height: 44px;
         }
 
         .capture-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+            background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+        }
+
+        .capture-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: nowrap;
+        }
+
+        .input-with-buttons {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            width: 100%;
+        }
+
+        .input-with-buttons .form-input {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            color: #475569;
+            border: 2px solid #e2e8f0;
+            padding: 0;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            transition: all 0.3s ease;
+            width: 52px;
+            height: 52px;
+            min-width: 52px;
+            min-height: 52px;
+            flex-shrink: 0;
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+            border-color: #cbd5e1;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            color: #334155;
+        }
+
+        .btn-secondary:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .batch-details-card {
             background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-            border-radius: 12px;
-            padding: 24px;
-            margin: 20px 0;
-            border-left: 4px solid #10b981;
+            border-radius: 16px;
+            padding: 28px;
+            margin: 24px 0;
+            border-left: 5px solid #10b981;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .batch-details-card:hover {
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.15);
+            transform: translateY(-2px);
         }
 
         .add-collection-section {
@@ -46,6 +116,39 @@
 
         .hidden {
             display: none !important;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea !important;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+        }
+
+        .form-input:hover {
+            border-color: #cbd5e1 !important;
+        }
+
+        @media (max-width: 768px) {
+            .input-with-buttons {
+                flex-direction: column;
+                gap: 12px;
+            }
+            
+            .input-with-buttons .form-input {
+                margin-bottom: 0;
+                min-width: auto;
+                width: 100%;
+            }
+            
+            .btn-group {
+                justify-content: center;
+                gap: 16px;
+            }
+            
+            .btn-secondary {
+                width: 52px;
+                height: 52px;
+            }
         }
     </style>
 </head>
@@ -104,64 +207,64 @@
 
             <!-- Collect Batch Section -->
             <section class="card" id="collectBatchSection">
-                <h3 class="card-header">
-                    <i class="fas fa-plus-circle" style="color:#6366f1;"></i>
+                <h3 class="card-header" style="font-size: 20px; font-weight: 700; color: #1f2937; padding: 20px 24px; border-bottom: 2px solid #f1f5f9; margin: -24px -24px 24px -24px; border-radius: 12px 12px 0 0; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);">
+                    <i class="fas fa-plus-circle" style="color:#6366f1; font-size: 22px; margin-right: 12px;"></i>
                     Collect Batch
                 </h3>
                 <div class="batch-details-card">
                     <form id="collectBatchForm">
-                        <div class="form-grid">
+                        <div class="form-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 24px;">
                             <div class="form-group">
-                                <label for="batchId">Scan/Enter Batch ID</label>
-                                <div style="display:flex;gap:8px;align-items:center;">
+                                <label for="batchId" style="font-weight: 600; color: #374151; margin-bottom: 12px; display: block; font-size: 15px;">Scan/Enter Batch ID</label>
+                                <div class="input-with-buttons" style="margin-bottom: 12px;">
                                     <input type="text" id="batchId" name="batchId" class="form-input"
-                                        placeholder="e.g. FR123-20250908" required style="flex:1;">
-                                    <button type="button" id="qrScanCollectBtn" class="capture-btn" title="Scan QR Code"
-                                        style="padding:8px 12px;min-width:40px;">
+                                        placeholder="e.g. FR123-20250908" required style="border-radius: 12px; border: 2px solid #e2e8f0; padding: 14px 18px; font-size: 15px; transition: all 0.3s ease; height: 52px; box-sizing: border-box;">
+                                    <button type="button" id="qrScanCollectBtn" class="btn-secondary" title="Scan QR Code">
                                         <i class="fas fa-qrcode"></i>
                                     </button>
-                                    <label for="qrUploadCollect" class="capture-btn" title="Upload QR Image"
-                                        style="padding:8px 12px;min-width:40px;cursor:pointer;margin-bottom:0;">
+                                    <label for="qrUploadCollect" class="btn-secondary" title="Upload QR Image" style="cursor: pointer; margin: 0;">
                                         <i class="fas fa-upload"></i>
-                                        <input type="file" id="qrUploadCollect" accept="image/*" style="display:none;">
+                                        <input type="file" id="qrUploadCollect" accept="image/*" style="display: none;">
                                     </label>
                                 </div>
-                                <div id="farmerBatchInfo" class="batch-details-card hidden" style="margin:10px 0 0 0;">
+                                <div id="farmerBatchInfo" class="batch-details-card hidden" style="margin: 12px 0 0 0; border-radius: 10px; border-left: 4px solid #10b981; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label for="crop">Crop</label>
+                                <label for="crop" style="font-weight: 600; color: #374151; margin-bottom: 8px; display: block;">Crop</label>
                                 <input type="text" id="crop" name="crop" class="form-input" placeholder="e.g. Rice"
-                                    required>
+                                    required style="border-radius: 10px; border: 2px solid #e2e8f0; padding: 12px 16px; font-size: 14px; transition: all 0.3s ease; width: 100%;">
                             </div>
                             <div class="form-group">
-                                <label for="farmer">Farmer</label>
+                                <label for="farmer" style="font-weight: 600; color: #374151; margin-bottom: 8px; display: block;">Farmer</label>
                                 <input type="text" id="farmer" name="farmer" class="form-input"
-                                    placeholder="e.g. Ramesh (FR123)" required>
+                                    placeholder="e.g. Ramesh (FR123)" required style="border-radius: 10px; border: 2px solid #e2e8f0; padding: 12px 16px; font-size: 14px; transition: all 0.3s ease; width: 100%;">
                             </div>
                             <div class="form-group">
-                                <label for="collectionDate">Collection Date</label>
+                                <label for="collectionDate" style="font-weight: 600; color: #374151; margin-bottom: 8px; display: block;">Collection Date</label>
                                 <input type="date" id="collectionDate" name="collectionDate" class="form-input"
-                                    required>
+                                    required style="border-radius: 10px; border: 2px solid #e2e8f0; padding: 12px 16px; font-size: 14px; transition: all 0.3s ease; width: 100%;">
                             </div>
                             <div class="form-group">
-                                <label for="quantity">Quantity Received (kg)</label>
+                                <label for="quantity" style="font-weight: 600; color: #374151; margin-bottom: 8px; display: block;">Quantity Received (kg)</label>
                                 <input type="number" id="quantity" name="quantity" class="form-input"
-                                    placeholder="e.g. 100" min="1" required>
+                                    placeholder="e.g. 100" min="1" required style="border-radius: 10px; border: 2px solid #e2e8f0; padding: 12px 16px; font-size: 14px; transition: all 0.3s ease; width: 100%;">
                             </div>
                         </div>
-                        <button type="submit" class="capture-btn" style="margin-top:16px;">
-                            <i class="fas fa-check"></i>
-                            Confirm & Forward to Auditor
-                        </button>
+                        <div style="display: flex; justify-content: center; margin-top: 24px;">
+                            <button type="submit" class="capture-btn" style="padding: 14px 32px; font-size: 16px; font-weight: 600; min-width: 280px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
+                                <i class="fas fa-check-circle" style="font-size: 18px;"></i>
+                                Confirm & Forward to Auditor
+                            </button>
+                        </div>
                     </form>
                 </div>
             </section>
 
             <!-- Collected Batches Table -->
             <section class="card">
-                <h3 class="card-header">
-                    <i class="fas fa-box-open" style="color:#f59e0b;"></i>
+                <h3 class="card-header" style="font-size: 20px; font-weight: 700; color: #1f2937; padding: 20px 24px; border-bottom: 2px solid #f1f5f9; margin: -24px -24px 24px -24px; border-radius: 12px 12px 0 0; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);">
+                    <i class="fas fa-box-open" style="color:#f59e0b; font-size: 22px; margin-right: 12px;"></i>
                     Collected Batches
                 </h3>
                 <div style="overflow-x:auto;">
